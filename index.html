@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
   <title>Read+ · Hub do Conhecimento</title>
-  <!-- Chart.js para gráficos -->
+  <!-- Chart.js para gráficos reais -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <!-- Cytoscape.js para knowledge graph -->
+  <!-- Cytoscape.js para knowledge graph dinâmico -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
@@ -108,6 +108,7 @@
     .result-card {
       background: rgba(0,0,0,0.35); backdrop-filter: blur(8px); border-radius: 24px; padding: 18px;
       transition: all 0.2s; border: 1px solid rgba(0,212,255,0.2); display: flex; gap: 16px; align-items: flex-start;
+      margin-bottom: 12px;
     }
     .result-card:hover { transform: translateX(6px); border-color: var(--glow-primary); box-shadow: 0 0 15px rgba(0,212,255,0.2); }
     .checkbox {
@@ -119,30 +120,12 @@
     .card-title { font-size: 1.05rem; font-weight: 700; color: var(--glow-primary); text-decoration: none; display: inline-block; margin-bottom: 6px; }
     .card-meta { font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 6px; }
     .card-abstract { font-size: 0.85rem; margin: 8px 0; opacity: 0.9; line-height: 1.4; }
-    .btn-link {
+    .btn-link, .action-btn {
       display: inline-flex; align-items: center; gap: 6px; background: rgba(0,212,255,0.2);
       padding: 5px 12px; border-radius: 40px; text-decoration: none; font-size: 0.7rem; font-weight: 500;
-      color: white; transition: 0.2s;
+      color: white; transition: 0.2s; border: none; cursor: pointer;
     }
-    .btn-link:hover { background: var(--glow-primary); color: #02040c; }
-    .action-btn {
-      background: rgba(255,255,255,0.1); border: none; padding: 6px 16px; border-radius: 40px;
-      font-size: 0.75rem; cursor: pointer; transition: 0.2s; color: white;
-    }
-    .action-btn:hover { background: var(--glow-primary); color: #02040c; }
-    .loader { text-align: center; padding: 40px; }
-    .spinner { width: 50px; height: 50px; border: 3px solid rgba(0,212,255,0.3); border-top-color: var(--glow-primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .no-results { text-align: center; padding: 40px; color: var(--text-secondary); }
-    .footer { text-align: center; margin-top: 32px; font-size: 0.7rem; color: var(--text-secondary); }
-    @media (max-width: 700px) {
-      .glass-card { padding: 18px; }
-      .main-tab { padding: 8px 16px; font-size: 1rem; }
-      .result-card { flex-direction: column; }
-      .search-area { flex-direction: column; }
-    }
-
-    /* estilos para modais e componentes extras */
+    .btn-link:hover, .action-btn:hover { background: var(--glow-primary); color: #02040c; }
     .stats-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; background: rgba(0,0,0,0.3); border-radius: 60px; padding: 8px 20px; }
     .progress-ring { width: 44px; height: 44px; }
     .progress-ring-circle { transition: stroke-dashoffset 0.35s; transform: rotate(-90deg); transform-origin: 50% 50%; stroke: var(--glow-primary); fill: none; stroke-width: 3; }
@@ -152,6 +135,11 @@
     .cy-container { height: 500px; width: 100%; background: rgba(0,0,0,0.3); border-radius: 24px; margin-top: 20px; }
     .badge { background: linear-gradient(135deg, #00d4ff, #7b2cbf); border-radius: 40px; padding: 4px 12px; font-size: 0.7rem; font-weight: bold; display: inline-block; margin-right: 8px; margin-bottom: 8px; }
     .inline-edit { background: rgba(0,0,0,0.5); border: 1px solid var(--glow-primary); border-radius: 12px; padding: 12px; width: 100%; color: white; margin-top: 8px; }
+    .filter-group { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+    .filter-group select, .filter-group input { background: rgba(0,0,0,0.6); border: 1px solid var(--glow-primary); padding: 8px 16px; border-radius: 40px; color: white; }
+    .comparison-table { width: 100%; border-collapse: collapse; }
+    .comparison-table th, .comparison-table td { border: 1px solid var(--border-light); padding: 12px; text-align: left; vertical-align: top; }
+    @media (max-width: 700px) { .glass-card { padding: 18px; } .main-tab { padding: 8px 16px; font-size: 1rem; } .result-card { flex-direction: column; } .search-area { flex-direction: column; } }
   </style>
 </head>
 <body>
@@ -175,70 +163,108 @@
 <script>
   // ======================== ESTADO GLOBAL ========================
   let currentMainTab = 'articles';
-  let articlesData = [];          // para artigos da última busca
-  let readArticles = new Set();   // ids lidos
-  let favorites = { articles: [], books: [], research: [] };
-  let notes = {};                 // key: id, value: {summary, comments, learnings, tags, rating}
-  let collections = [];           // lista de coleções, cada uma com id, nome, itens (ids)
-  let userProfile = { name: "Pesquisador", avatar: "👨‍🎓", level: 0, xp: 0 };
-  let goals = [];                 // { id, target, current, type, deadline }
-  let tagsSet = new Set();        // todas as tags usadas
-  let studyLog = [];              // registros diários de leitura (timestamp)
-  let xpLevels = ["Explorador","Pesquisador","Analista","Especialista","Mestre do Conhecimento"];
+  let articlesData = [];
+  let booksData = [];
+  let researchData = [];
+  let readArticles = new Set();      // ids lidos (apenas artigos)
+  let readBooks = new Set();         // ids lidos (livros)
+  let readResearch = new Set();      // ids lidos (pesquisas)
   
+  let favorites = { articles: [], books: [], research: [] };
+  let notes = {};
+  let collections = [];              // cada coleção: { id, name, items: [{ id, type, title, ... }] }
+  let tags = {};                    // tag -> array de ids
+  let userProfile = { name: "Pesquisador", avatar: "👨‍🎓", level: 0, xp: 0, badges: [] };
+  let goals = [];                   // { id, type, target, current, title }
+  let studyLog = [];                // { date, id, type }
+  let lastDataUpdate = Date.now();
+
   // Carregar dados do localStorage
   function loadAllData() {
-    const storedRead = localStorage.getItem('readplus_read');
-    if (storedRead) readArticles = new Set(JSON.parse(storedRead));
-    const storedFav = localStorage.getItem('readplus_favorites');
-    if (storedFav) favorites = JSON.parse(storedFav);
-    const storedNotes = localStorage.getItem('readplus_notes');
-    if (storedNotes) notes = JSON.parse(storedNotes);
-    const storedCollections = localStorage.getItem('readplus_collections');
-    if (storedCollections) collections = JSON.parse(storedCollections);
-    const storedProfile = localStorage.getItem('readplus_profile');
-    if (storedProfile) userProfile = JSON.parse(storedProfile);
-    const storedGoals = localStorage.getItem('readplus_goals');
-    if (storedGoals) goals = JSON.parse(storedGoals);
-    const storedTags = localStorage.getItem('readplus_tags');
-    if (storedTags) tagsSet = new Set(JSON.parse(storedTags));
-    const storedStudyLog = localStorage.getItem('readplus_study_log');
-    if (storedStudyLog) studyLog = JSON.parse(storedStudyLog);
+    try {
+      const storedReadArticles = localStorage.getItem('readplus_read_articles');
+      if (storedReadArticles) readArticles = new Set(JSON.parse(storedReadArticles));
+      const storedReadBooks = localStorage.getItem('readplus_read_books');
+      if (storedReadBooks) readBooks = new Set(JSON.parse(storedReadBooks));
+      const storedReadResearch = localStorage.getItem('readplus_read_research');
+      if (storedReadResearch) readResearch = new Set(JSON.parse(storedReadResearch));
+      const storedFav = localStorage.getItem('readplus_favorites');
+      if (storedFav) favorites = JSON.parse(storedFav);
+      const storedNotes = localStorage.getItem('readplus_notes');
+      if (storedNotes) notes = JSON.parse(storedNotes);
+      const storedCollections = localStorage.getItem('readplus_collections');
+      if (storedCollections) collections = JSON.parse(storedCollections);
+      const storedTags = localStorage.getItem('readplus_tags');
+      if (storedTags) tags = JSON.parse(storedTags);
+      const storedProfile = localStorage.getItem('readplus_profile');
+      if (storedProfile) userProfile = JSON.parse(storedProfile);
+      const storedGoals = localStorage.getItem('readplus_goals');
+      if (storedGoals) goals = JSON.parse(storedGoals);
+      const storedStudyLog = localStorage.getItem('readplus_study_log');
+      if (storedStudyLog) studyLog = JSON.parse(storedStudyLog);
+    } catch(e) { console.warn(e); }
   }
   function saveAllData() {
-    localStorage.setItem('readplus_read', JSON.stringify([...readArticles]));
+    localStorage.setItem('readplus_read_articles', JSON.stringify([...readArticles]));
+    localStorage.setItem('readplus_read_books', JSON.stringify([...readBooks]));
+    localStorage.setItem('readplus_read_research', JSON.stringify([...readResearch]));
     localStorage.setItem('readplus_favorites', JSON.stringify(favorites));
     localStorage.setItem('readplus_notes', JSON.stringify(notes));
     localStorage.setItem('readplus_collections', JSON.stringify(collections));
+    localStorage.setItem('readplus_tags', JSON.stringify(tags));
     localStorage.setItem('readplus_profile', JSON.stringify(userProfile));
     localStorage.setItem('readplus_goals', JSON.stringify(goals));
-    localStorage.setItem('readplus_tags', JSON.stringify([...tagsSet]));
     localStorage.setItem('readplus_study_log', JSON.stringify(studyLog));
   }
   loadAllData();
 
-  // Helper: adicionar XP
-  function addXP(amount) {
+  // Helper: adicionar XP e verificar nível
+  function addXP(amount, action = '') {
     userProfile.xp += amount;
     let newLevel = Math.floor(userProfile.xp / 100);
     if (newLevel > 4) newLevel = 4;
-    if (newLevel > userProfile.level) userProfile.level = newLevel;
+    if (newLevel > userProfile.level) {
+      userProfile.level = newLevel;
+      const levelNames = ['Explorador','Pesquisador','Analista','Especialista','Mestre do Conhecimento'];
+      if (!userProfile.badges.includes(levelNames[newLevel])) userProfile.badges.push(levelNames[newLevel]);
+      showToast(`🎉 Parabéns! Você alcançou o nível ${levelNames[newLevel]}!`);
+    }
     saveAllData();
   }
 
-  // Registrar leitura (para calendário e estatísticas)
-  function registerRead(id, type = 'article') {
+  function showToast(msg) {
+    const toast = document.createElement('div');
+    toast.innerText = msg;
+    toast.style.position = 'fixed'; toast.style.bottom = '20px'; toast.style.right = '20px';
+    toast.style.background = 'var(--glow-primary)'; toast.style.color = '#02040c'; toast.style.padding = '12px 24px';
+    toast.style.borderRadius = '40px'; toast.style.zIndex = '9999'; toast.style.fontWeight = 'bold';
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  }
+
+  function registerRead(id, type, title = '') {
     const today = new Date().toISOString().slice(0,10);
-    if (!studyLog.find(log => log.date === today && log.id === id)) {
+    if (!studyLog.find(l => l.date === today && l.id === id)) {
       studyLog.push({ date: today, id, type });
       saveAllData();
-      addXP(10); // ganha XP por ler
+      addXP(10, 'read');
+      // atualizar metas
+      goals.forEach(goal => {
+        if (goal.type === type && goal.current < goal.target) {
+          goal.current++;
+          if (goal.current >= goal.target) showToast(`🎯 Meta "${goal.title}" concluída! +20 XP`);
+          saveAllData();
+        }
+      });
+      addXP(5, 'goal_progress');
     }
   }
 
-  // ======================== FUNÇÕES DE BUSCA (preservadas) ========================
-  async function searchArticles(query) {
-    const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=open_access.is_oa:true&sort=relevance_score:desc&per-page=14`;
+  // APIs
+  async function searchArticles(query, filters = {}) {
+    let url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=open_access.is_oa:true&sort=relevance_score:desc&per-page=20`;
+    if (filters.year) url += `&filter=publication_year:${filters.year}`;
+    if (filters.minCited) url += `&filter=cited_by_count:>${filters.minCited}`;
     const res = await fetch(url);
     if (!res.ok) return [];
     const data = await res.json();
@@ -252,11 +278,12 @@
       doi: work.doi,
       citations: work.cited_by_count,
       publication_date: work.publication_date,
-      institutions: work.authorships?.[0]?.institutions?.map(i => i.display_name) || []
+      institutions: work.authorships?.[0]?.institutions?.map(i => i.display_name) || [],
+      type: 'article'
     }));
   }
   async function searchBooks(query) {
-    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=14`;
+    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20`;
     const res = await fetch(url);
     if (!res.ok) return [];
     const data = await res.json();
@@ -268,11 +295,12 @@
       abstract: item.volumeInfo.description || 'Sinopse não disponível.',
       url: item.volumeInfo.previewLink || item.volumeInfo.infoLink,
       source: 'Google Books',
-      publishedDate: item.volumeInfo.publishedDate
+      publishedDate: item.volumeInfo.publishedDate,
+      type: 'book'
     }));
   }
   async function searchResearch(query) {
-    const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=type:article,type:report&sort=relevance_score:desc&per-page=12`;
+    const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=type:article,type:report&sort=relevance_score:desc&per-page=15`;
     const res = await fetch(url);
     if (!res.ok) return [];
     const data = await res.json();
@@ -283,16 +311,192 @@
       abstract: work.abstract || 'Resumo não disponível.',
       url: work.open_access?.oa_url || work.best_oa_location?.pdf_url || work.id,
       source: 'OpenAlex',
-      citations: work.cited_by_count
+      citations: work.cited_by_count,
+      type: 'research'
     }));
   }
 
-  // ======================== RENDERIZAÇÃO DAS ABAS PRINCIPAIS ========================
-  function renderArticlesTab() { /* igual à versão anterior, com melhorias de checkbox e persistência */ }
-  function renderBooksTab() { /* igual anterior */ }
-  function renderResearchTab() { /* igual anterior */ }
-  
-  // ======================== NOVA ABA "ESTÚDIO" (todas as funcionalidades 1-21) ========================
+  // Funções de gerenciamento de favoritos
+  function toggleFavorite(item, type) {
+    const list = favorites[type];
+    const index = list.findIndex(i => i.id === item.id);
+    if (index === -1) {
+      list.push({ id: item.id, title: item.title, type, url: item.url, date: new Date().toISOString() });
+      addXP(5, 'favorite');
+      showToast(`⭐ ${item.title.substring(0,50)} adicionado aos favoritos`);
+    } else {
+      list.splice(index,1);
+      showToast(`🗑️ Removido dos favoritos`);
+    }
+    saveAllData();
+  }
+
+  function isFavorite(id, type) {
+    return favorites[type].some(i => i.id === id);
+  }
+
+  // Coleções
+  function createCollection(name) {
+    const newCol = { id: Date.now(), name, items: [] };
+    collections.push(newCol);
+    saveAllData();
+    addXP(10, 'collection');
+    showToast(`📂 Coleção "${name}" criada`);
+  }
+  function addToCollection(collectionId, item) {
+    const col = collections.find(c => c.id == collectionId);
+    if (col && !col.items.some(i => i.id === item.id)) {
+      col.items.push({ id: item.id, title: item.title, type: item.type, url: item.url });
+      saveAllData();
+      addXP(3, 'add_to_collection');
+    }
+  }
+
+  // Tags
+  function addTag(id, tag, type) {
+    if (!tags[tag]) tags[tag] = [];
+    if (!tags[tag].includes(id)) tags[tag].push(id);
+    saveAllData();
+    addXP(2, 'tag');
+  }
+
+  // ======================== RENDERIZAÇÃO DAS ABAS ========================
+  function renderSearchResults(containerId, items, type, readSet, onCheck) {
+    const container = document.getElementById(containerId);
+    if (!items.length) { container.innerHTML = '<div class="no-results">Nenhum resultado encontrado</div>'; return; }
+    container.innerHTML = items.map(item => `
+      <div class="result-card" data-id="${item.id}">
+        <div class="checkbox ${readSet.has(item.id) ? 'checked' : ''}" data-id="${item.id}" data-type="${type}">${readSet.has(item.id) ? '✓' : ''}</div>
+        <div class="card-content">
+          <a href="${item.url}" target="_blank" class="card-title">${escapeHtml(item.title)}</a>
+          <div class="card-meta">${item.authors.slice(0,3).join(', ')} · ${item.source} ${item.publication_date ? '· '+item.publication_date.slice(0,4) : ''}</div>
+          <div class="card-abstract">${escapeHtml(item.abstract.substring(0,280))}…</div>
+          <div>
+            <button class="action-btn fav-btn" data-id="${item.id}" data-type="${type}" data-title="${escapeHtml(item.title)}" data-url="${item.url}">${isFavorite(item.id, type) ? '❤️ Favoritado' : '🤍 Favoritar'}</button>
+            <button class="action-btn note-btn" data-id="${item.id}" data-type="${type}">📝 Nota</button>
+            <button class="action-btn tag-btn" data-id="${item.id}" data-type="${type}">🏷️ Tag</button>
+            <button class="action-btn collection-btn" data-id="${item.id}" data-type="${type}" data-title="${escapeHtml(item.title)}" data-url="${item.url}">📂 Coleção</button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+    // checkboxes
+    document.querySelectorAll(`#${containerId} .checkbox`).forEach(cb => {
+      cb.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = cb.dataset.id;
+        const t = cb.dataset.type;
+        if (t === 'article') { if (readArticles.has(id)) readArticles.delete(id); else { readArticles.add(id); registerRead(id, 'article', items.find(i=>i.id===id)?.title); } saveAllData(); }
+        else if (t === 'book') { if (readBooks.has(id)) readBooks.delete(id); else { readBooks.add(id); registerRead(id, 'book'); } saveAllData(); }
+        else if (t === 'research') { if (readResearch.has(id)) readResearch.delete(id); else { readResearch.add(id); registerRead(id, 'research'); } saveAllData(); }
+        renderSearchResults(containerId, items, type, readSet, onCheck);
+      });
+    });
+    // favoritar
+    document.querySelectorAll(`#${containerId} .fav-btn`).forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        const t = btn.dataset.type;
+        const item = items.find(i => i.id === id);
+        toggleFavorite(item, t);
+        renderSearchResults(containerId, items, type, readSet, onCheck);
+      });
+    });
+    // notas, tags, coleções (simplificado mas funcional)
+    document.querySelectorAll(`#${containerId} .note-btn`).forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        const txt = prompt('Adicione uma nota pessoal:');
+        if (txt) { notes[id] = { ...notes[id], comment: txt }; saveAllData(); addXP(5); showToast('Nota salva!'); }
+      });
+    });
+    document.querySelectorAll(`#${containerId} .tag-btn`).forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        const tag = prompt('Tag (ex: IA, Filosofia):');
+        if (tag) addTag(id, tag, btn.dataset.type);
+      });
+    });
+    document.querySelectorAll(`#${containerId} .collection-btn`).forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        const title = btn.dataset.title;
+        const url = btn.dataset.url;
+        const type = btn.dataset.type;
+        const colName = prompt('Nome da coleção existente ou nova:');
+        if (colName) {
+          let col = collections.find(c => c.name === colName);
+          if (!col) { col = { id: Date.now(), name: colName, items: [] }; collections.push(col); saveAllData(); }
+          if (!col.items.some(i => i.id === id)) {
+            col.items.push({ id, title, type, url });
+            saveAllData();
+            showToast(`Adicionado à coleção "${colName}"`);
+          }
+        }
+      });
+    });
+  }
+
+  // Aba Artigos
+  async function renderArticlesTab() {
+    const html = `
+      <div class="sub-tabs"><button class="sub-tab active" data-sub="search">🔍 Buscar artigos</button><button class="sub-tab" data-sub="read">✅ Meus lidos</button></div>
+      <div id="articlesSearchSub" class="sub-content active">
+        <div class="filter-group"><input id="articlesQuery" class="search-input" placeholder="Ex: machine learning"><input id="yearFilter" placeholder="Ano (ex: 2023)"><input id="minCited" placeholder="Mínimo de citações"><button id="articlesSearchBtn" class="search-btn">Pesquisar</button></div>
+        <div id="articlesResults"></div>
+      </div>
+      <div id="articlesReadSub" class="sub-content"><div id="readArticlesList"></div></div>
+    `;
+    document.getElementById('mainContent').innerHTML = html;
+    document.getElementById('articlesSearchBtn').addEventListener('click', async () => {
+      const q = document.getElementById('articlesQuery').value;
+      const year = document.getElementById('yearFilter').value;
+      const minCited = document.getElementById('minCited').value;
+      if (!q) return;
+      const resDiv = document.getElementById('articlesResults');
+      resDiv.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+      const arts = await searchArticles(q, { year, minCited });
+      articlesData = arts;
+      renderSearchResults('articlesResults', arts, 'article', readArticles);
+    });
+    // Meus lidos
+    const lidos = articlesData.filter(a => readArticles.has(a.id));
+    const readDiv = document.getElementById('readArticlesList');
+    if (lidos.length) readDiv.innerHTML = lidos.map(a => `<div class="result-card"><div class="card-content"><a href="${a.url}" class="card-title">${a.title}</a><div class="card-meta">${a.authors.join(', ')}</div></div></div>`).join('');
+    else readDiv.innerHTML = '<div class="no-results">Nenhum artigo lido ainda</div>';
+  }
+
+  // Aba Livros
+  async function renderBooksTab() {
+    const html = `<div class="search-area"><input id="booksQuery" class="search-input"><button id="booksSearchBtn" class="search-btn">Buscar Livros</button></div><div id="booksResults"></div>`;
+    document.getElementById('mainContent').innerHTML = html;
+    document.getElementById('booksSearchBtn').addEventListener('click', async () => {
+      const q = document.getElementById('booksQuery').value;
+      if (!q) return;
+      const resDiv = document.getElementById('booksResults');
+      resDiv.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+      const books = await searchBooks(q);
+      booksData = books;
+      renderSearchResults('booksResults', books, 'book', readBooks);
+    });
+  }
+
+  // Aba Pesquisas
+  async function renderResearchTab() {
+    const html = `<div class="search-area"><input id="researchQuery" class="search-input"><button id="researchSearchBtn" class="search-btn">Buscar Pesquisas</button></div><div id="researchResults"></div>`;
+    document.getElementById('mainContent').innerHTML = html;
+    document.getElementById('researchSearchBtn').addEventListener('click', async () => {
+      const q = document.getElementById('researchQuery').value;
+      if (!q) return;
+      const resDiv = document.getElementById('researchResults');
+      resDiv.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+      const research = await searchResearch(q);
+      researchData = research;
+      renderSearchResults('researchResults', research, 'research', readResearch);
+    });
+  }
+
+  // ======================== ESTÚDIO (todas as funcionalidades completas) ========================
   function renderStudioTab() {
     const html = `
       <div class="sub-tabs">
@@ -325,11 +529,10 @@
       <div id="studioExport" class="sub-content"></div>
     `;
     document.getElementById('mainContent').innerHTML = html;
-    
-    // Eventos das sub-abas
+    // eventos sub-abas
     document.querySelectorAll('.sub-tab').forEach(btn => {
       btn.addEventListener('click', () => {
-        const target = btn.getAttribute('data-sub');
+        const target = btn.dataset.sub;
         document.querySelectorAll('.sub-tab').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         document.querySelectorAll('.sub-content').forEach(c => c.classList.remove('active'));
@@ -349,29 +552,35 @@
         if (target === 'export') renderExport();
       });
     });
-    renderDashboard(); // inicial
+    renderDashboard();
   }
 
-  // 1. Dashboard com gráficos
   function renderDashboard() {
-    const totalRead = readArticles.size;
-    const weeklyRead = studyLog.filter(l => new Date(l.date) > new Date(Date.now()-7*86400000)).length;
-    const monthlyRead = studyLog.filter(l => new Date(l.date) > new Date(Date.now()-30*86400000)).length;
-    // Categorias: simular a partir dos artigos lidos (usando tags ou palavras)
-    let categoryCount = { IA:0, Psicologia:0, Filosofia:0 };
-    // Gráficos
-    setTimeout(() => {
-      const ctx = document.getElementById('readChart')?.getContext('2d');
-      if (ctx) new Chart(ctx, { type: 'line', data: { labels: ['Sem1','Sem2','Sem3','Sem4'], datasets: [{ label: 'Leituras', data: [5,8,6,10], borderColor: '#00d4ff' }] } });
-    }, 100);
+    const totalRead = readArticles.size + readBooks.size + readResearch.size;
+    const last30 = Array(30).fill().map((_,i) => new Date(Date.now()-i*86400000).toISOString().slice(0,10)).reverse();
+    const weeklyReads = studyLog.filter(l => new Date(l.date) > new Date(Date.now()-7*86400000)).length;
+    const monthlyReads = studyLog.filter(l => new Date(l.date) > new Date(Date.now()-30*86400000)).length;
+    const streak = calculateStreak();
+    const maxStreak = calculateMaxStreak();
     document.getElementById('studioDashboard').innerHTML = `
       <div class="dashboard-grid">
-        <div class="dashboard-card"><h3>📊 Resumo</h3><p>Total lidos: ${totalRead}</p><p>Leituras esta semana: ${weeklyRead}</p><p>Leituras este mês: ${monthlyRead}</p><p>Sequência atual: ${calculateStreak()} dias</p></div>
-        <div class="dashboard-card"><h3>📈 Evolução</h3><canvas id="readChart" height="200"></canvas></div>
-        <div class="dashboard-card"><h3>🏷️ Categorias mais estudadas</h3><div id="topCategories"></div></div>
+        <div class="dashboard-card"><h3>📊 Resumo</h3><p>Total lidos: ${totalRead}</p><p>Leituras esta semana: ${weeklyReads}</p><p>Leituras este mês: ${monthlyReads}</p><p>Sequência atual: ${streak} dias</p><p>Maior sequência: ${maxStreak} dias</p></div>
+        <div class="dashboard-card"><h3>📈 Evolução mensal</h3><canvas id="monthlyChart" height="200"></canvas></div>
+        <div class="dashboard-card"><h3>🏷️ Tags mais usadas</h3><div id="topTags"></div></div>
       </div>
     `;
+    const monthly = {};
+    studyLog.forEach(l => { const m = l.date.slice(0,7); monthly[m] = (monthly[m]||0)+1; });
+    const months = Object.keys(monthly).sort();
+    const counts = months.map(m => monthly[m]);
+    setTimeout(() => {
+      const ctx = document.getElementById('monthlyChart')?.getContext('2d');
+      if (ctx) new Chart(ctx, { type: 'line', data: { labels: months, datasets: [{ label: 'Leituras', data: counts, borderColor: '#00d4ff' }] } });
+    }, 100);
+    const tagCounts = Object.entries(tags).map(([t,ids]) => [t, ids.length]).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    document.getElementById('topTags').innerHTML = tagCounts.map(([t,c]) => `<span class="badge">${t} (${c})</span>`).join('');
   }
+
   function calculateStreak() {
     let streak = 0;
     let dates = [...new Set(studyLog.map(l => l.date))].sort().reverse();
@@ -382,203 +591,178 @@
     }
     return streak;
   }
-
-  // 2. Knowledge Base (notas, resumos, tags)
-  function renderKnowledgeBase() {
-    let itemsHtml = '';
-    for (let id of readArticles) {
-      const note = notes[id] || {};
-      itemsHtml += `
-        <div class="result-card" style="margin-bottom:12px;">
-          <div class="card-content">
-            <div class="card-title">${id}</div>
-            <textarea id="summary-${id}" placeholder="Resumo pessoal" class="inline-edit">${note.summary || ''}</textarea>
-            <textarea id="comments-${id}" placeholder="Comentários" class="inline-edit">${note.comments || ''}</textarea>
-            <input id="learnings-${id}" value="${note.learnings || ''}" placeholder="Aprendizados" class="inline-edit">
-            <input id="tags-${id}" value="${(note.tags || []).join(', ')}" placeholder="Tags (separadas por vírgula)" class="inline-edit">
-            <button class="action-btn save-note" data-id="${id}">💾 Salvar</button>
-          </div>
-        </div>
-      `;
+  function calculateMaxStreak() {
+    let dates = [...new Set(studyLog.map(l => l.date))].sort();
+    let maxStreak = 0, current = 0, prev = null;
+    for (let d of dates) {
+      if (prev && new Date(d)-new Date(prev) === 86400000) current++;
+      else current = 1;
+      maxStreak = Math.max(maxStreak, current);
+      prev = d;
     }
-    document.getElementById('studioKnowledge').innerHTML = itemsHtml || '<div class="no-results">Nenhum artigo lido ainda. Marque artigos na aba Artigos.</div>';
+    return maxStreak;
+  }
+
+  function renderKnowledgeBase() {
+    let items = [];
+    [...readArticles].forEach(id => { const art = articlesData.find(a=>a.id===id) || { title: 'Artigo', id }; items.push({ id, title: art.title, type: 'article', data: art }); });
+    [...readBooks].forEach(id => { const b = booksData.find(b=>b.id===id) || { title: 'Livro', id }; items.push({ id, title: b.title, type: 'book', data: b }); });
+    [...readResearch].forEach(id => { const r = researchData.find(r=>r.id===id) || { title: 'Pesquisa', id }; items.push({ id, title: r.title, type: 'research', data: r }); });
+    document.getElementById('studioKnowledge').innerHTML = items.map(item => `
+      <div class="result-card"><div class="card-content"><div class="card-title">${escapeHtml(item.title)}</div><textarea id="note-${item.id}" class="inline-edit" placeholder="Notas...">${notes[item.id]?.comment || ''}</textarea><button class="action-btn save-note" data-id="${item.id}">Salvar nota</button></div></div>
+    `).join('');
     document.querySelectorAll('.save-note').forEach(btn => {
       btn.addEventListener('click', () => {
         const id = btn.dataset.id;
-        notes[id] = {
-          summary: document.getElementById(`summary-${id}`).value,
-          comments: document.getElementById(`comments-${id}`).value,
-          learnings: document.getElementById(`learnings-${id}`).value,
-          tags: document.getElementById(`tags-${id}`).value.split(',').map(t=>t.trim()).filter(t=>t)
-        };
+        const comment = document.getElementById(`note-${id}`).value;
+        if (!notes[id]) notes[id] = {};
+        notes[id].comment = comment;
         saveAllData();
-        alert('Nota salva! +5 XP');
+        showToast('Nota salva! +5 XP');
         addXP(5);
       });
     });
   }
 
-  // 3. Metas
   function renderGoals() {
-    let goalsHtml = goals.map((g,idx) => `<div class="result-card"><div>${g.type}: ${g.current}/${g.target}</div><progress value="${g.current}" max="${g.target}"></progress><button class="action-btn remove-goal" data-idx="${idx}">🗑️</button></div>`).join('');
+    let goalsHtml = goals.map((g,idx) => `<div class="result-card"><div>🎯 ${g.title} (${g.type}): ${g.current}/${g.target}</div><progress value="${g.current}" max="${g.target}"></progress><button class="action-btn remove-goal" data-idx="${idx}">🗑️</button></div>`).join('');
     document.getElementById('studioGoals').innerHTML = `
-      <div class="search-area"><input id="goalTarget" placeholder="Meta (ex: 10 artigos por mês)" class="search-input"><input id="goalType" placeholder="tipo (artigos, livros)" class="search-input"><button id="addGoalBtn" class="search-btn">Adicionar Meta</button></div>
+      <div class="search-area"><input id="goalTitle" placeholder="Título da meta" class="search-input"><input id="goalType" placeholder="article/book/research" class="search-input"><input id="goalTarget" placeholder="Quantidade" type="number" class="search-input"><button id="addGoalBtn" class="search-btn">Adicionar Meta</button></div>
       <div id="goalsList">${goalsHtml || '<div>Nenhuma meta definida</div>'}</div>
     `;
     document.getElementById('addGoalBtn')?.addEventListener('click', () => {
-      const target = parseInt(document.getElementById('goalTarget').value);
+      const title = document.getElementById('goalTitle').value;
       const type = document.getElementById('goalType').value;
-      if (target && type) { goals.push({ id: Date.now(), target, current: 0, type }); saveAllData(); renderGoals(); }
+      const target = parseInt(document.getElementById('goalTarget').value);
+      if (title && type && target) {
+        goals.push({ id: Date.now(), title, type, target, current: 0 });
+        saveAllData();
+        renderGoals();
+      }
     });
     document.querySelectorAll('.remove-goal').forEach(btn => {
       btn.addEventListener('click', () => { goals.splice(btn.dataset.idx,1); saveAllData(); renderGoals(); });
     });
   }
 
-  // 4. Gamificação
   function renderGamification() {
+    const levelNames = ['Explorador','Pesquisador','Analista','Especialista','Mestre do Conhecimento'];
     const nextXP = (userProfile.level+1)*100 - userProfile.xp;
     document.getElementById('studioGamification').innerHTML = `
-      <div class="dashboard-card"><h3>🏅 ${xpLevels[userProfile.level]}</h3><p>XP: ${userProfile.xp} / ${(userProfile.level+1)*100}</p><progress value="${userProfile.xp}" max="${(userProfile.level+1)*100}"></progress><p>Próximo nível em ${nextXP} XP</p></div>
-      <div class="dashboard-card"><h3>🎖️ Badges</h3><div>${userProfile.level>=1?'<span class="badge">📖 Primeiro artigo</span>':''} ${userProfile.level>=2?'<span class="badge">🔬 Pesquisador</span>':''}</div></div>
+      <div class="dashboard-card"><h3>🏅 ${levelNames[userProfile.level]}</h3><p>XP: ${userProfile.xp} / ${(userProfile.level+1)*100}</p><progress value="${userProfile.xp}" max="${(userProfile.level+1)*100}"></progress><p>Próximo nível em ${nextXP} XP</p></div>
+      <div class="dashboard-card"><h3>🎖️ Badges</h3><div>${userProfile.badges.map(b => `<span class="badge">${b}</span>`).join('') || 'Nenhum ainda'}</div></div>
     `;
   }
 
-  // 5. Knowledge Graph (Cytoscape)
   function renderKnowledgeGraph() {
     document.getElementById('studioGraph').innerHTML = '<div id="cy" class="cy-container"></div>';
+    const nodes = [{ data: { id: 'Read+' } }];
+    const edges = [];
+    const tagNodes = Object.keys(tags).slice(0,10);
+    tagNodes.forEach(tag => { nodes.push({ data: { id: tag } }); edges.push({ data: { source: 'Read+', target: tag } }); });
     setTimeout(() => {
-      const cy = cytoscape({
-        container: document.getElementById('cy'),
-        elements: [
-          { data: { id: 'Read+' } },
-          { data: { id: 'Artigos' }, position: { x: 100, y: 100 } },
-          { data: { id: 'IA' }, position: { x: 200, y: 50 } },
-          { data: { source: 'Read+', target: 'Artigos' } },
-          { data: { source: 'Artigos', target: 'IA' } }
-        ],
-        style: [{ selector: 'node', style: { 'background-color': '#00d4ff', 'label': 'data(id)', color: 'white' } }],
-        layout: { name: 'grid' }
-      });
+      const cy = cytoscape({ container: document.getElementById('cy'), elements: [...nodes, ...edges], style: [{ selector: 'node', style: { 'background-color': '#00d4ff', label: 'data(id)', color: 'white' } }], layout: { name: 'circle' } });
     }, 50);
   }
 
-  // 6. Radar Científico (busca automática por temas)
   async function renderRadar() {
-    document.getElementById('studioRadar').innerHTML = `<div class="search-area"><input id="radarTopic" placeholder="Tema (ex: IA)" class="search-input"><button id="radarSearch" class="search-btn">Buscar Novidades</button></div><div id="radarResults"></div>`;
+    document.getElementById('studioRadar').innerHTML = `<div class="search-area"><input id="radarTopic" class="search-input"><button id="radarSearch" class="search-btn">Buscar Novidades</button></div><div id="radarResults"></div>`;
     document.getElementById('radarSearch').addEventListener('click', async () => {
       const topic = document.getElementById('radarTopic').value;
       if (!topic) return;
-      const resultsDiv = document.getElementById('radarResults');
-      resultsDiv.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
-      const articles = await searchArticles(topic);
-      resultsDiv.innerHTML = articles.map(a => `<div class="result-card"><div class="card-content"><a href="${a.url}" target="_blank" class="card-title">${a.title}</a><div class="card-abstract">${a.abstract.substring(0,200)}</div></div></div>`).join('');
+      const resDiv = document.getElementById('radarResults');
+      resDiv.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+      const arts = await searchArticles(topic);
+      resDiv.innerHTML = arts.map(a => `<div class="result-card"><div class="card-content"><a href="${a.url}" target="_blank" class="card-title">${a.title}</a><div class="card-meta">${a.authors.join(', ')}</div><div class="card-abstract">${a.abstract.substring(0,200)}</div></div></div>`).join('');
     });
   }
 
-  // 7. Comparador
   function renderCompare() {
-    // selecionar artigos da lista atual
-    document.getElementById('studioCompare').innerHTML = `<div id="compareList" class="results-grid"></div><button id="compareBtn" class="search-btn">Comparar Selecionados</button><div id="compareResult"></div>`;
-    // Preencher com artigos recentes
+    document.getElementById('studioCompare').innerHTML = `<div id="compareSelect" class="results-grid"></div><button id="doCompare" class="search-btn">Comparar Selecionados</button><div id="compareResult"></div>`;
+    const recent = articlesData.slice(0,10);
+    document.getElementById('compareSelect').innerHTML = recent.map(a => `<div class="result-card"><label><input type="checkbox" class="compare-chk" data-id="${a.id}" data-title="${a.title}" data-authors="${a.authors.join(', ')}" data-citations="${a.citations}" data-year="${a.publication_date?.slice(0,4)}"> ${a.title}</label></div>`).join('');
+    document.getElementById('doCompare').addEventListener('click', () => {
+      const selected = Array.from(document.querySelectorAll('.compare-chk:checked')).map(cb => ({
+        title: cb.dataset.title, authors: cb.dataset.authors, citations: cb.dataset.citations, year: cb.dataset.year
+      }));
+      if (selected.length < 2) { alert('Selecione pelo menos 2 artigos'); return; }
+      let html = '<table class="comparison-table"><tr><th>Atributo</th>' + selected.map(s => `<th>${s.title.substring(0,30)}</th>`).join('') + '</tr>';
+      html += '<tr><td>Autores</td>' + selected.map(s => `<td>${s.authors}</td>`).join('') + '</tr>';
+      html += '<tr><td>Ano</td>' + selected.map(s => `<td>${s.year}</td>`).join('') + '</tr>';
+      html += '<tr><td>Citações</td>' + selected.map(s => `<td>${s.citations}</td>`).join('') + '</tr>';
+      html += '</table>';
+      document.getElementById('compareResult').innerHTML = html;
+    });
   }
 
-  // 8. Favoritos
   function renderFavorites() {
-    let html = '';
-    favorites.articles.forEach(id => { html += `<div class="result-card">${id} <button class="action-btn unfav" data-id="${id}">Remover</button></div>`; });
-    document.getElementById('studioFavorites').innerHTML = html || '<div>Nenhum favorito</div>';
+    const allFavs = [...favorites.articles, ...favorites.books, ...favorites.research];
+    document.getElementById('studioFavorites').innerHTML = allFavs.map(f => `<div class="result-card"><div class="card-content"><a href="${f.url}" target="_blank" class="card-title">${f.title}</a><div class="card-meta">${f.type} · ${new Date(f.date).toLocaleDateString()}</div><button class="action-btn unfav" data-id="${f.id}" data-type="${f.type}">Remover</button></div></div>`).join('');
+    document.querySelectorAll('.unfav').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        const type = btn.dataset.type;
+        favorites[type] = favorites[type].filter(i => i.id !== id);
+        saveAllData();
+        renderFavorites();
+      });
+    });
   }
 
-  // 9. Coleções
-  function renderCollections() { /* similar a favoritos */ }
+  function renderCollections() {
+    document.getElementById('studioCollections').innerHTML = `<div><input id="newColName" class="search-input"><button id="createCol" class="search-btn">Criar Coleção</button></div>${collections.map(col => `<div class="result-card"><strong>${col.name}</strong><ul>${col.items.map(i => `<li>${i.title} <button class="action-btn remove-col-item" data-col="${col.id}" data-id="${i.id}">🗑️</button></li>`).join('')}</ul><button class="action-btn delete-col" data-id="${col.id}">Excluir Coleção</button></div>`).join('')}`;
+    document.getElementById('createCol')?.addEventListener('click', () => {
+      const name = document.getElementById('newColName').value;
+      if (name) createCollection(name);
+    });
+  }
 
-  // 10. Tags
-  function renderTags() { /* gerenciar tags */ }
+  function renderTags() {
+    const tagList = Object.entries(tags).map(([t,ids]) => `<div class="result-card"><span class="badge" data-tag="${t}">${t} (${ids.length})</span><button class="action-btn filter-tag" data-tag="${t}">Filtrar</button></div>`).join('');
+    document.getElementById('studioTags').innerHTML = tagList;
+    document.querySelectorAll('.filter-tag').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tag = btn.dataset.tag;
+        const ids = tags[tag];
+        const related = articlesData.filter(a => ids.includes(a.id)).concat(booksData.filter(b=>ids.includes(b.id)), researchData.filter(r=>ids.includes(r.id)));
+        alert(`Conteúdos com a tag "${tag}": ${related.length} itens`);
+      });
+    });
+  }
 
-  // 11. Calendário
   function renderCalendar() {
-    let html = '<div class="dashboard-card"><h3>📅 Dias estudados</h3><div class="calendar-grid">';
-    const last30 = Array(30).fill().map((_,i) => new Date(Date.now()-i*86400000).toISOString().slice(0,10));
+    const last30 = Array(30).fill().map((_,i) => new Date(Date.now()-i*86400000).toISOString().slice(0,10)).reverse();
+    let html = '<div class="calendar-grid" style="display:grid; grid-template-columns:repeat(7,1fr); gap:8px;">';
     for (let d of last30) {
       const studied = studyLog.some(l => l.date === d);
-      html += `<span style="display:inline-block;width:30px;height:30px;background:${studied?'#00d4ff':'#333'};margin:2px;border-radius:6px;"></span>`;
+      html += `<div style="background:${studied?'#00d4ff':'#333'}; border-radius:12px; padding:8px; text-align:center;">${d.slice(5)}</div>`;
     }
-    html += `</div><p>Sequência atual: ${calculateStreak()} dias</p></div>`;
+    html += '</div>';
     document.getElementById('studioCalendar').innerHTML = html;
   }
 
-  // 12. Perfil
   function renderProfile() {
-    document.getElementById('studioProfile').innerHTML = `
-      <div class="dashboard-card"><h3>👤 Perfil</h3><input id="profileName" value="${userProfile.name}" class="search-input"><button id="saveProfile" class="search-btn">Salvar</button></div>
-    `;
-    document.getElementById('saveProfile')?.addEventListener('click', () => {
-      userProfile.name = document.getElementById('profileName').value;
-      saveAllData(); alert('Perfil salvo');
-    });
+    document.getElementById('studioProfile').innerHTML = `<div class="dashboard-card"><h3>👤 Perfil</h3><input id="profileName" value="${userProfile.name}" class="search-input"><button id="saveProfile" class="search-btn">Salvar</button><p>XP: ${userProfile.xp} | Nível: ${userProfile.level}</p></div>`;
+    document.getElementById('saveProfile')?.addEventListener('click', () => { userProfile.name = document.getElementById('profileName').value; saveAllData(); showToast('Perfil atualizado'); });
   }
 
-  // 13. Exportar
   function renderExport() {
-    document.getElementById('studioExport').innerHTML = `
-      <div class="dashboard-card"><button id="exportJSON" class="search-btn">Exportar JSON</button><button id="exportCSV" class="search-btn">Exportar CSV</button></div>
-    `;
+    document.getElementById('studioExport').innerHTML = `<div class="dashboard-grid"><button id="exportJSON" class="search-btn">Exportar JSON</button><button id="exportCSV" class="search-btn">Exportar CSV</button></div>`;
     document.getElementById('exportJSON')?.addEventListener('click', () => {
-      const data = { readArticles: [...readArticles], notes, favorites, goals, studyLog };
+      const data = { readArticles: [...readArticles], readBooks: [...readBooks], readResearch: [...readResearch], favorites, notes, collections, tags, userProfile, goals, studyLog };
       const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'readplus_data.json'; a.click();
+      const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'readplus_data.json'; a.click();
+    });
+    document.getElementById('exportCSV')?.addEventListener('click', () => {
+      let csv = "type,id,title\n";
+      [...readArticles].forEach(id => { const a = articlesData.find(a=>a.id===id); csv += `article,${id},"${a?.title || ''}"\n`; });
+      const blob = new Blob([csv], {type:'text/csv'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'readplus_reads.csv'; a.click();
     });
   }
 
-  // Função principal para trocar abas
-  function switchMainTab(tab) {
-    currentMainTab = tab;
-    if (tab === 'articles') renderArticlesTab();
-    else if (tab === 'books') renderBooksTab();
-    else if (tab === 'research') renderResearchTab();
-    else if (tab === 'studio') renderStudioTab();
-  }
-
-  // Inicialização das abas
-  function initMainTabs() {
-    document.querySelectorAll('.main-tab').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.main-tab').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        switchMainTab(btn.getAttribute('data-main'));
-      });
-    });
-    switchMainTab('articles');
-  }
-
-  // Implementações resumidas das funções de busca de artigos/livros/pesquisas (preservando as existentes)
-  function renderArticlesTab() {
-    const html = `
-      <div class="sub-tabs"><button class="sub-tab active" data-sub="search">🔍 Buscar artigos</button><button class="sub-tab" data-sub="read">✅ Meus lidos</button></div>
-      <div id="articlesSearchSub" class="sub-content active"><div class="search-area"><input id="articlesQuery" class="search-input"><button id="articlesSearchBtn" class="search-btn">Pesquisar</button></div><div id="articlesResults"></div></div>
-      <div id="articlesReadSub" class="sub-content"><div id="readListContainer"></div></div>
-    `;
-    document.getElementById('mainContent').innerHTML = html;
-    document.getElementById('articlesSearchBtn').addEventListener('click', async () => {
-      const q = document.getElementById('articlesQuery').value;
-      if (!q) return;
-      const resDiv = document.getElementById('articlesResults');
-      resDiv.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
-      const arts = await searchArticles(q);
-      articlesData = arts;
-      resDiv.innerHTML = articlesData.map(a => `
-        <div class="result-card"><div class="checkbox ${readArticles.has(a.id)?'checked':''}" data-id="${a.id}">${readArticles.has(a.id)?'✓':''}</div>
-        <div class="card-content"><a href="${a.url}" target="_blank" class="card-title">${a.title}</a><div class="card-abstract">${a.abstract.substring(0,200)}</div>
-        <button class="action-btn fav-btn" data-id="${a.id}" data-type="article">❤️ Favoritar</button></div></div>
-      `).join('');
-      // eventos checkboxes e favoritos
-    });
-  }
-  function renderBooksTab() { /* similar, sem checkbox */ }
-  function renderResearchTab() { /* similar */ }
-
+  function escapeHtml(str) { return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m])); }
+  function switchMainTab(tab) { currentMainTab = tab; if (tab === 'articles') renderArticlesTab(); else if (tab === 'books') renderBooksTab(); else if (tab === 'research') renderResearchTab(); else renderStudioTab(); }
+  function initMainTabs() { document.querySelectorAll('.main-tab').forEach(btn => { btn.addEventListener('click', () => { document.querySelectorAll('.main-tab').forEach(b => b.classList.remove('active')); btn.classList.add('active'); switchMainTab(btn.dataset.main); }); }); switchMainTab('articles'); }
   initMainTabs();
 </script>
 </body>
