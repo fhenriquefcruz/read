@@ -263,7 +263,7 @@
   async function removeReadLog(id, type) {
     const tx = db.transaction(['reading_log','study_log'],'readwrite');
     tx.objectStore('reading_log').delete(id);
-    // não remove do study_log para manter histórico, mas pode ser ajustado
+    // não remove do study_log para manter histórico
   }
 
   // ========== TAGS ==========
@@ -311,6 +311,56 @@
     }
   }
 
+  // ========== BUSCAS CORRIGIDAS ==========
+  async function searchOpenAlex(query, type = 'article') {
+    let filter = 'open_access.is_oa:true';
+    if (type === 'research') filter += ',type:article,type:report';
+    const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=${filter}&sort=relevance_score:desc&per-page=20`;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      return data.results.map(w => ({
+        id: stableHash(w.id || w.title),
+        title: w.title || 'Sem título',
+        authors: w.authorships?.map(a => a.author.display_name) || [],
+        abstract: w.abstract || (w.abstract_inverted_index ? Object.entries(w.abstract_inverted_index).sort((a,b)=>a[1][0]-b[1][0]).map(([w])=>w).join(' ') : 'Resumo não disponível'),
+        url: w.open_access?.oa_url || w.best_oa_location?.pdf_url || w.id,
+        source: 'OpenAlex',
+        publication_date: w.publication_date
+      }));
+    } catch (e) {
+      console.error('OpenAlex error:', e);
+      return [];
+    }
+  }
+
+  async function searchBooks(query) {
+    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20&printType=books`;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (!data.items || data.items.length === 0) return [];
+      return data.items.map(item => ({
+        id: item.id,
+        title: item.volumeInfo.title || 'Sem título',
+        authors: item.volumeInfo.authors || ['Autor não informado'],
+        abstract: item.volumeInfo.description || 'Sinopse não disponível',
+        url: item.volumeInfo.previewLink || item.volumeInfo.infoLink || '#',
+        source: 'Google Books',
+        publishedDate: item.volumeInfo.publishedDate
+      }));
+    } catch (e) {
+      console.error('Google Books error:', e);
+      return [];
+    }
+  }
+
+  async function searchResearch(query) {
+    return searchOpenAlex(query, 'research');
+  }
+
   // ========== RADAR CIENTÍFICO ==========
   async function searchOpenAlexForRadar(topic) {
     const url = `https://api.openalex.org/works?search=${encodeURIComponent(topic)}&filter=open_access.is_oa:true&sort=publication_date:desc&per-page=5`;
@@ -327,7 +377,6 @@
     listDiv.innerHTML = radarTopics.map((t,i)=>`<span class="badge">${escapeHtml(t)} <button class="removeRadarTopic" data-idx="${i}" style="background:none;border:none;color:white;">❌</button></span>`).join('');
     resultsDiv.innerHTML = '<div class="no-results">Selecione um tema para ver novidades.</div>';
     document.querySelectorAll('.removeRadarTopic').forEach(btn => btn.onclick = async () => { radarTopics.splice(btn.dataset.idx,1); await saveToStore('radar', { topic: radarTopics }); renderRadarModal(); });
-    // Eventos nos badges para buscar notícias
     document.querySelectorAll('#radarTopicsList .badge').forEach(badge => {
       badge.onclick = async () => {
         const topic = badge.innerText.replace('❌','').trim();
@@ -362,7 +411,7 @@
     const blob = new Blob([md], {type:'text/markdown'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'readplus_obsidian.md'; a.click();
   }
 
-  // ========== RENDERIZAÇÃO DE RESULTADOS (com tags, coleções, favoritos corrigidos) ==========
+  // ========== RENDERIZAÇÃO DE RESULTADOS ==========
   function renderResults(containerId, items, type, readSet) {
     const container = document.getElementById(containerId);
     if (!items.length) { container.innerHTML = '<div class="no-results">🔍 Nenhum resultado encontrado.</div>'; return; }
@@ -400,11 +449,11 @@
         }
         renderResults(containerId, items, type, readSet);
         if (type === 'article') updateReadArticlesList();
-        renderDashboard(); // atualiza gráfico
+        renderDashboard();
       };
     });
 
-    // Favoritos (corrigido: salvar cada item individualmente)
+    // Favoritos
     container.querySelectorAll('.fav-btn').forEach(btn => {
       btn.onclick = async () => {
         const id = btn.dataset.id, t = btn.dataset.type, item = items.find(i=>i.id===id);
@@ -416,7 +465,6 @@
             showToast('⭐ Adicionado aos favoritos');
           } else {
             favorites[t].splice(idx,1);
-            await saveToStore('favorites', { id, _delete: true }); // simplificado: remover via delete
             const tx = db.transaction(['favorites'],'readwrite');
             tx.objectStore('favorites').delete(id);
             showToast('🗑️ Removido dos favoritos');
@@ -470,7 +518,7 @@
     container.innerHTML = readItems.map(a => `<div class="result-card"><div class="card-content"><a href="${sanitizeUrl(a.url)}" target="_blank" class="card-title">📄 ${escapeHtml(a.title)}</a><div class="card-meta">${escapeHtml(a.authors.join(', '))}</div></div></div>`).join('');
   }
 
-  // ========== DASHBOARD COM DADOS REAIS ==========
+  // ========== DASHBOARD ==========
   async function renderDashboard() {
     const totalRead = readArticles.size + readBooks.size + readResearch.size;
     const streak = (()=>{
@@ -497,7 +545,7 @@
     else if (ctx) currentChart = new Chart(ctx, { type: 'line', data: { labels: ['Nenhum dado'], datasets: [{ label: 'Leituras', data: [0] }] } });
   }
 
-  // ========== ZETTELKASTEN COM BACKLINKS ==========
+  // ========== ZETTELKASTEN ==========
   async function renderZettelList() {
     const container = document.getElementById('zettelList');
     if (!container) return;
@@ -595,7 +643,7 @@
       const q = document.getElementById('articlesQuery').value.trim();
       if (!q) return;
       showLoading();
-      const results = await searchOpenAlex(q);
+      const results = await searchOpenAlex(q, 'article');
       articlesData = results;
       renderResults('articlesResults', results, 'article', readArticles);
       hideLoading();
@@ -610,42 +658,6 @@
         if (target === 'read') updateReadArticlesList();
       };
     });
-  }
-
-  async function searchOpenAlex(query, type='article') {
-    const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=open_access.is_oa:true&sort=relevance_score:desc&per-page=20`;
-    try {
-      const res = await fetch(url);
-      if (!res.ok) return [];
-      const data = await res.json();
-      return data.results.map(w => ({
-        id: stableHash(w.id || w.title),
-        title: w.title || 'Sem título',
-        authors: w.authorships?.map(a=>a.author.display_name)||[],
-        abstract: w.abstract || (w.abstract_inverted_index ? Object.entries(w.abstract_inverted_index).sort((a,b)=>a[1][0]-b[1][0]).map(([w])=>w).join(' ') : 'Resumo não disponível'),
-        url: w.open_access?.oa_url || w.best_oa_location?.pdf_url || w.id,
-        source: 'OpenAlex',
-        publication_date: w.publication_date
-      }));
-    } catch(e) { console.error(e); return []; }
-  }
-
-  async function searchBooks(query) {
-    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20`;
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (!data.items) return [];
-      return data.items.map(item => ({
-        id: item.id,
-        title: item.volumeInfo.title || 'Sem título',
-        authors: item.volumeInfo.authors || ['Autor não informado'],
-        abstract: item.volumeInfo.description || 'Sinopse não disponível',
-        url: item.volumeInfo.previewLink || item.volumeInfo.infoLink,
-        source: 'Google Books'
-      }));
-    } catch(e) { console.error('Books API error:', e); return []; }
   }
 
   async function renderBooksTab() {
@@ -669,14 +681,14 @@
       const q = document.getElementById('researchQuery').value.trim();
       if (!q) return;
       showLoading();
-      const results = await searchOpenAlex(q, 'research');
+      const results = await searchResearch(q);
       researchData = results;
       renderResults('researchResults', results, 'research', readResearch);
       hideLoading();
     };
   }
 
-  // ========== MIND FORGE (antigo Segundo Cérebro) ==========
+  // ========== MIND FORGE ==========
   async function renderBrainTab() {
     const html = `
       <div class="sub-tabs">
