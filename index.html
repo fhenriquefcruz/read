@@ -2,713 +2,925 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+  <meta name="theme-color" content="#05070f">
   <title>Read+ · Mind Forge</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    /* ESTILOS GLOBAIS (garantia de que a página não fique em branco) */
+    /* ========== ESTILOS COMPLETOS (preservados) ========== */
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg-dark: #05070f;
+      --bg-card: rgba(12, 18, 28, 0.65);
+      --glow-primary: #00d4ff;
+      --glow-secondary: #7b2cbf;
+      --accent: #00d4ff;
+      --text-primary: #f0f3fa;
+      --text-secondary: #9aa4bf;
+      --border-light: rgba(0, 212, 255, 0.2);
+      --shadow-neon: 0 0 12px rgba(0,212,255,0.3);
+    }
     body {
       font-family: 'Inter', sans-serif;
       background: radial-gradient(circle at 10% 20%, #0a0f1c, #02040c);
-      color: #f0f3fa;
-      transition: background 0.2s, color 0.2s;
-    }
-    body.light {
-      background: radial-gradient(circle at 10% 20%, #e2e8f0, #f1f5f9);
-      color: #1e2a2e;
-    }
-    .app {
-      max-width: 1400px;
-      margin: 0 auto;
+      color: var(--text-primary);
+      min-height: 100vh;
       padding: 20px;
     }
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background-image: linear-gradient(var(--border-light) 1px, transparent 1px),
+                        linear-gradient(90deg, var(--border-light) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      opacity: 0.2;
+      z-index: 0;
+    }
+    .container { max-width: 1400px; margin: 0 auto; position: relative; z-index: 2; }
+    .header { text-align: center; margin-bottom: 40px; }
+    .logo-wrapper { display: inline-block; position: relative; }
     .logo {
-      font-size: 3.5rem;
-      font-weight: 800;
-      background: linear-gradient(135deg, #fff, #00d4ff, #7b2cbf);
-      background-clip: text;
-      color: transparent;
+      font-size: 4.2rem; font-weight: 800; letter-spacing: -3px;
+      background: linear-gradient(135deg, #fff 0%, var(--glow-primary) 40%, var(--glow-secondary) 80%);
+      background-clip: text; color: transparent;
+      text-shadow: 0 0 30px rgba(0,212,255,0.3);
       display: inline-block;
       clip-path: polygon(0% 0%, 95% 0%, 100% 50%, 95% 100%, 0% 100%);
       padding-right: 15px;
-      animation: float 4s infinite;
+      animation: float 4s ease-in-out infinite;
     }
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-5px); }
+    @keyframes float { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-5px); } }
+    .logo span { font-size: 1.2rem; vertical-align: super; background: linear-gradient(135deg, var(--glow-primary), var(--glow-secondary)); background-clip: text; color: transparent; font-weight: 700; margin-left: 4px; }
+    .tagline { font-size: 0.85rem; letter-spacing: 2px; text-transform: uppercase; background: linear-gradient(90deg, var(--text-secondary), var(--glow-primary), var(--text-secondary)); background-clip: text; color: transparent; margin-top: 12px; font-weight: 400; }
+    .description { max-width: 650px; margin: 16px auto 0; font-size: 0.85rem; line-height: 1.5; color: var(--text-secondary); background: rgba(0,0,0,0.3); backdrop-filter: blur(8px); border-radius: 60px; padding: 10px 24px; border: 1px solid var(--border-light); }
+    .main-tabs {
+      display: flex; justify-content: center; gap: 20px; margin-bottom: 28px;
+      border-bottom: 1px solid var(--border-light); padding-bottom: 8px; flex-wrap: wrap;
     }
-    .tagline {
-      font-size: 0.8rem;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      background: linear-gradient(90deg, #9aa4bf, #00d4ff, #9aa4bf);
-      background-clip: text;
-      color: transparent;
-      margin-top: 8px;
+    .main-tab {
+      background: none; border: none; font-size: 1.1rem; font-weight: 600;
+      padding: 10px 24px; border-radius: 60px; cursor: pointer;
+      color: var(--text-secondary); transition: all 0.3s; backdrop-filter: blur(4px);
     }
-    .description {
-      background: rgba(0,0,0,0.3);
-      backdrop-filter: blur(8px);
-      border-radius: 60px;
-      padding: 10px 24px;
-      font-size: 0.85rem;
-      text-align: center;
-      margin-top: 16px;
-      display: inline-block;
-      max-width: 650px;
-    }
-    .tabs {
-      display: flex;
-      justify-content: center;
-      gap: 20px;
-      margin: 30px 0;
-      border-bottom: 1px solid rgba(0,212,255,0.2);
-      padding-bottom: 8px;
-      flex-wrap: wrap;
-    }
-    .tab {
-      background: none;
-      border: none;
-      font-size: 1.1rem;
-      font-weight: 600;
-      padding: 8px 24px;
-      border-radius: 60px;
-      cursor: pointer;
-      color: #9aa4bf;
-      transition: all 0.2s;
-    }
-    .tab.active {
+    .main-tab.active {
       background: linear-gradient(135deg, rgba(0,212,255,0.2), rgba(123,44,191,0.2));
-      color: #00d4ff;
-      box-shadow: 0 0 12px rgba(0,212,255,0.3);
-      border: 1px solid rgba(0,212,255,0.2);
+      color: var(--glow-primary); box-shadow: var(--shadow-neon); border: 1px solid var(--glow-primary);
     }
-    .card {
-      background: rgba(12,18,28,0.65);
-      backdrop-filter: blur(16px);
-      border-radius: 2rem;
-      border: 1px solid rgba(0,212,255,0.1);
-      padding: 24px;
+    .glass-card {
+      background: var(--bg-card); backdrop-filter: blur(16px); border-radius: 2rem;
+      border: 1px solid var(--border-light); padding: 24px 28px;
+      box-shadow: 0 20px 35px -10px rgba(0,0,0,0.5);
     }
-    .sub-tabs {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 20px;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      padding-bottom: 8px;
-      flex-wrap: wrap;
-    }
+    .sub-tabs { display: flex; gap: 12px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; flex-wrap: wrap; }
     .sub-tab {
-      background: none;
-      border: none;
-      padding: 6px 16px;
-      border-radius: 40px;
-      cursor: pointer;
-      color: #9aa4bf;
-      font-size: 0.85rem;
+      background: none; border: none; padding: 6px 16px; font-size: 0.85rem; font-weight: 500;
+      cursor: pointer; border-radius: 40px; color: var(--text-secondary); transition: 0.2s;
     }
-    .sub-tab.active {
-      background: #00d4ff;
-      color: #02040c;
+    .sub-tab.active { background: var(--glow-primary); color: #02040c; box-shadow: 0 0 8px var(--glow-primary); }
+    .sub-content { display: none; animation: fadeIn 0.25s ease; }
+    .sub-content.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .search-area { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
+    .search-input {
+      flex: 1; padding: 12px 20px; border-radius: 60px; border: 1px solid var(--border-light);
+      background: rgba(0,0,0,0.4); color: white; font-size: 0.95rem;
     }
-    .search-area {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 24px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-    input, button, .action-btn {
-      border-radius: 60px;
-      border: none;
-      padding: 10px 20px;
-      font-family: inherit;
-    }
-    input {
-      background: rgba(0,0,0,0.4);
-      border: 1px solid rgba(0,212,255,0.2);
-      color: white;
-      flex: 1;
-    }
-    button {
-      background: linear-gradient(135deg, #00d4ff, #7b2cbf);
-      color: white;
-      font-weight: 600;
-      cursor: pointer;
+    .search-input:focus { outline: none; border-color: var(--glow-primary); box-shadow: 0 0 0 3px rgba(0,212,255,0.3); }
+    .search-btn {
+      background: linear-gradient(135deg, var(--glow-primary), var(--glow-secondary));
+      border: none; padding: 10px 28px; border-radius: 60px; font-weight: 700; color: white; cursor: pointer;
       transition: transform 0.2s;
     }
-    button:hover { transform: scale(1.02); }
-    .results-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      max-height: 500px;
-      overflow-y: auto;
-      padding-right: 6px;
-    }
+    .search-btn:hover { transform: scale(1.02); }
+    .results-grid { display: flex; flex-direction: column; gap: 14px; max-height: 550px; overflow-y: auto; padding-right: 4px; }
     .result-card {
-      background: rgba(0,0,0,0.35);
-      backdrop-filter: blur(8px);
-      border-radius: 24px;
-      padding: 16px;
-      border: 1px solid rgba(0,212,255,0.2);
-      display: flex;
-      gap: 12px;
+      background: rgba(0,0,0,0.35); backdrop-filter: blur(8px); border-radius: 24px; padding: 16px;
+      transition: all 0.2s; border: 1px solid rgba(0,212,255,0.2); display: flex; gap: 14px; align-items: flex-start;
     }
+    .result-card:hover { transform: translateX(4px); border-color: var(--glow-primary); }
     .checkbox {
-      width: 22px;
-      height: 22px;
-      border: 2px solid #00d4ff;
-      border-radius: 8px;
-      background: rgba(255,255,255,0.1);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      width: 22px; height: 22px; background: rgba(255,255,255,0.1); border: 2px solid var(--glow-primary);
+      border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer;
     }
-    .checkbox.checked {
-      background: #00d4ff;
-      color: black;
-    }
+    .checkbox.checked { background: var(--glow-primary); color: black; }
+    .card-content { flex: 1; }
+    .card-title { font-size: 1rem; font-weight: 700; color: var(--glow-primary); text-decoration: none; }
+    .card-meta { font-size: 0.7rem; color: var(--text-secondary); margin: 4px 0; }
+    .card-abstract { font-size: 0.8rem; margin: 6px 0; opacity: 0.9; line-height: 1.4; }
     .action-btn {
-      background: rgba(0,212,255,0.2);
-      color: white;
-      font-size: 0.7rem;
-      padding: 4px 10px;
-      margin-right: 6px;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
+      display: inline-flex; align-items: center; gap: 4px; background: rgba(0,212,255,0.2);
+      padding: 4px 10px; border-radius: 30px; border: none; color: white; cursor: pointer;
+      font-size: 0.65rem; margin-right: 6px;
     }
-    .badge {
-      background: linear-gradient(135deg, #00d4ff, #7b2cbf);
-      border-radius: 30px;
-      padding: 3px 10px;
-      font-size: 0.65rem;
-      display: inline-block;
-      margin: 2px;
+    .action-btn:hover { background: var(--glow-primary); color: #02040c; }
+    .badge { background: linear-gradient(135deg, #00d4ff, #7b2cbf); border-radius: 30px; padding: 3px 10px; font-size: 0.65rem; display: inline-block; margin: 2px; cursor: pointer; }
+    .no-results { text-align: center; padding: 40px; color: var(--text-secondary); }
+    .footer { text-align: center; margin-top: 24px; font-size: 0.65rem; color: var(--text-secondary); }
+    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin: 20px 0; }
+    .dashboard-card { background: rgba(0,0,0,0.3); backdrop-filter: blur(8px); border-radius: 24px; padding: 18px; }
+    .inline-edit { background: rgba(0,0,0,0.5); border: 1px solid var(--glow-primary); border-radius: 12px; padding: 10px; width: 100%; color: white; margin: 8px 0; }
+    .loading-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 9999;
+      display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 20px;
+      opacity: 0; visibility: hidden; transition: all 0.3s ease;
     }
-    .dashboard-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 20px;
-      margin-top: 20px;
+    .loading-overlay.active { opacity: 1; visibility: visible; }
+    .loading-spinner { width: 50px; height: 50px; border: 3px solid rgba(0,212,255,0.2); border-top-color: var(--glow-primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    .loading-text { font-size: 0.9rem; letter-spacing: 2px; background: linear-gradient(90deg, var(--glow-primary), var(--glow-secondary)); background-clip: text; color: transparent; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .modal {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8); backdrop-filter: blur(12px); z-index: 10000;
+      align-items: center; justify-content: center;
     }
-    .dashboard-card {
-      background: rgba(0,0,0,0.3);
-      border-radius: 24px;
-      padding: 20px;
+    .modal-content {
+      background: var(--bg-card); backdrop-filter: blur(16px); border-radius: 32px;
+      padding: 24px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto;
+      border: 1px solid var(--border-light);
     }
-    .theme-toggle {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: rgba(0,0,0,0.5);
-      border-radius: 60px;
-      padding: 8px 12px;
-      cursor: pointer;
-      z-index: 100;
+    .modal-content .close { float: right; font-size: 24px; cursor: pointer; }
+    .calendar-wrapper {
+      background: rgba(0,0,0,0.3); border-radius: 28px; padding: 16px; margin-top: 12px;
     }
+    .calendar-header {
+      display: grid; grid-template-columns: repeat(7, 1fr); text-align: center;
+      margin-bottom: 12px; font-size: 0.75rem; color: var(--text-secondary);
+    }
+    .calendar-grid {
+      display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
+    }
+    .calendar-day {
+      aspect-ratio: 1; background: rgba(255,255,255,0.05); border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; font-size: 0.7rem;
+      transition: all 0.2s; cursor: pointer;
+    }
+    .calendar-day:hover { transform: scale(1.05); background: rgba(0,212,255,0.2); }
+    .calendar-day[data-level="1"] { background: #0f5b4a; }
+    .calendar-day[data-level="2"] { background: #1f8a6e; }
+    .calendar-day[data-level="3"] { background: #2fba92; }
+    .calendar-day[data-level="4"] { background: #4fd4ae; }
     @media (max-width: 700px) {
+      .calendar-grid { gap: 3px; }
+      .calendar-day { font-size: 0.6rem; }
+      .glass-card { padding: 16px; }
+      .main-tab { padding: 8px 16px; font-size: 0.9rem; }
       .result-card { flex-direction: column; }
       .search-area { flex-direction: column; }
-      .tabs { gap: 12px; }
-      .tab { font-size: 0.9rem; padding: 6px 16px; }
-    }
-    .error-boundary {
-      background: rgba(255,0,0,0.2);
-      border: 1px solid red;
-      border-radius: 16px;
-      padding: 20px;
-      margin: 20px;
-      text-align: center;
     }
   </style>
 </head>
 <body>
-<div id="root"></div>
-<script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/zustand@4.4.7/index.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/zod@3.22.4/index.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<div class="container">
+  <div class="header">
+    <div class="logo-wrapper"><div class="logo">Read<span>+</span></div></div>
+    <div class="tagline">forge your second brain</div>
+    <div class="description">Conecte artigos, livros e ideias. Construa seu conhecimento com Zettelkasten e backlinks.</div>
+  </div>
+
+  <div class="main-tabs">
+    <button class="main-tab active" data-main="articles">📄 Artigos</button>
+    <button class="main-tab" data-main="books">📚 Livros</button>
+    <button class="main-tab" data-main="research">🔬 Pesquisas</button>
+    <button class="main-tab" data-main="brain">🧠 Mind Forge</button>
+  </div>
+
+  <div class="glass-card" id="mainContent"></div>
+  <div class="footer">🔎 Fontes: OpenAlex · Google Books · IndexedDB · Backlinks</div>
+</div>
+
+<!-- Modais -->
+<div id="collectionModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="collectionModalTitle">
+  <div class="modal-content">
+    <span class="close" aria-label="Fechar">&times;</span>
+    <h3 id="collectionModalTitle">📂 Coleções</h3>
+    <div id="collectionList"></div>
+    <input type="text" id="newCollectionName" placeholder="Nova coleção">
+    <button id="createCollectionBtn" class="search-btn" style="margin-top:10px;">Criar</button>
+  </div>
+</div>
+<div id="exportModal" class="modal" role="dialog" aria-modal="true">
+  <div class="modal-content">
+    <span class="close" aria-label="Fechar">&times;</span>
+    <h3>💾 Exportar</h3>
+    <button id="exportJSONBtn" class="search-btn">JSON</button>
+    <button id="exportCSVBtn" class="search-btn">CSV</button>
+    <button id="exportObsidianBtn" class="search-btn">Markdown (Obsidian)</button>
+  </div>
+</div>
+<div id="radarModal" class="modal" role="dialog" aria-modal="true">
+  <div class="modal-content">
+    <span class="close" aria-label="Fechar">&times;</span>
+    <h3>📡 Radar Científico</h3>
+    <input type="text" id="radarTopicInput" placeholder="Novo tema">
+    <button id="addRadarTopicBtn" class="search-btn">Adicionar</button>
+    <div id="radarTopicsList"></div>
+    <div id="radarResults"></div>
+  </div>
+</div>
+
+<div id="loadingOverlay" class="loading-overlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">carregando conhecimento...</div>
+</div>
+
 <script>
-  // Verificação de carregamento das bibliotecas
-  if (typeof React === 'undefined') console.error('React não carregou');
-  if (typeof ReactDOM === 'undefined') console.error('ReactDOM não carregou');
-  if (typeof window.zustand === 'undefined') console.error('Zustand não carregou');
-  
-  // Captura de erros globais
-  window.addEventListener('error', (event) => {
-    console.error('Erro global capturado:', event.error);
-    const root = document.getElementById('root');
-    if (root && !root.innerHTML.trim()) {
-      root.innerHTML = '<div class="error-boundary">❌ Erro ao carregar a aplicação. Verifique o console.</div>';
+  (function(){
+    // Captura de erros globais (evita tela branca)
+    window.addEventListener('error', function(e) {
+      console.error('Erro global capturado:', e.error);
+      const container = document.getElementById('mainContent');
+      if (container && !container.innerHTML.trim()) {
+        container.innerHTML = '<div class="no-results" style="padding:40px; text-align:center">❌ Ocorreu um erro inesperado. Recarregue a página.</div>';
+      }
+    });
+
+    // ==================== ESTADO CENTRALIZADO ====================
+    const store = {
+      articles: [], books: [], research: [],
+      read: { article: new Set(), book: new Set(), research: new Set() },
+      favorites: { article: [], book: [], research: [] },
+      notes: new Map(),
+      tags: new Map(),
+      collections: [],
+      zettels: [],
+      backlinks: new Map(),
+      studyLog: [],
+      radarTopics: [],
+      userProfile: { name: "Pesquisador", xp: 0, level: 0, badges: [] },
+      currentTab: 'articles',
+      isLoading: false,
+      loadingTimeout: null,
+      lastDashboardKey: null,
+      currentChart: null,
+      db: null
+    };
+
+    const events = {
+      listeners: {},
+      on(event, callback) { if (!this.listeners[event]) this.listeners[event] = []; this.listeners[event].push(callback); },
+      emit(event, data) { (this.listeners[event] || []).forEach(cb => cb(data)); }
+    };
+
+    function escapeHtml(str) { if (!str) return ''; return String(str).replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[m])); }
+    function sanitizeUrl(url) { if (!url || typeof url !== 'string') return '#'; const t = url.trim(); if (t.startsWith('http://') || t.startsWith('https://')) return t; return '#'; }
+    function stableHash(str) { let h = 0; for (let i = 0; i < str.length; i++) h = ((h << 5) - h) + str.charCodeAt(i) | 0; return Math.abs(h).toString(36); }
+
+    function showToast(msg, duration = 3000) {
+      const toast = document.createElement('div');
+      toast.textContent = msg;
+      toast.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#00d4ff;color:#02040c;padding:12px 20px;border-radius:40px;z-index:10001;font-size:0.85rem;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), duration);
     }
-  });
 
-  (function() {
-    try {
-      const { useState, useEffect, useCallback, useRef } = React;
-      const { create } = window.zustand;
-      const { z } = window.zod;
-
-      // ========== ZOD SCHEMAS ==========
-      const ArticleSchema = z.object({
-        id: z.string(),
-        title: z.string(),
-        authors: z.array(z.string()),
-        abstract: z.string(),
-        url: z.string().url(),
-        source: z.string(),
-      });
-
-      // ========== ZUSTAND STORE ==========
-      const useStore = create((set, get) => ({
-        articles: [],
-        books: [],
-        research: [],
-        read: { article: new Set(), book: new Set(), research: new Set() },
-        favorites: { article: [], book: [], research: [] },
-        notes: new Map(),
-        tags: new Map(),
-        collections: [],
-        zettels: [],
-        backlinks: new Map(),
-        studyLog: [],
-        radarTopics: [],
-        userProfile: { name: "Pesquisador", xp: 0, level: 0, badges: [] },
-        searchHistory: [],
-        theme: 'dark',
-        activeTab: 'articles',
-        activeSubTab: 'dashboard',
-        isLoading: false,
-        setTheme: (theme) => set({ theme }),
-        setActiveTab: (tab) => set({ activeTab: tab }),
-        setActiveSubTab: (sub) => set({ activeSubTab: sub }),
-        setLoading: (loading) => set({ isLoading: loading }),
-        addToSearchHistory: (query) => set((state) => ({
-          searchHistory: [query, ...state.searchHistory.filter(h => h !== query)].slice(0, 20)
-        })),
-        updateArticles: (arts) => set({ articles: arts }),
-        updateBooks: (books) => set({ books }),
-        updateResearch: (res) => set({ research: res }),
-        markRead: (id, type, isRead) => {
-          const readSet = get().read[type];
-          if (isRead) readSet.add(id);
-          else readSet.delete(id);
-          set({ read: { ...get().read, [type]: readSet } });
-        },
-        addFavorite: (item, type) => {
-          const favs = [...get().favorites[type]];
-          if (!favs.some(f => f.id === item.id)) favs.push(item);
-          set({ favorites: { ...get().favorites, [type]: favs } });
-        },
-        removeFavorite: (id, type) => {
-          const favs = get().favorites[type].filter(f => f.id !== id);
-          set({ favorites: { ...get().favorites, [type]: favs } });
-        },
-        addNote: (id, comment) => {
-          const newNotes = new Map(get().notes);
-          newNotes.set(id, { id, comment });
-          set({ notes: newNotes });
-        },
-        addTag: (contentId, tag) => {
-          const norm = tag.trim().toLowerCase();
-          const newTags = new Map(get().tags);
-          if (!newTags.has(norm)) newTags.set(norm, []);
-          if (!newTags.get(norm).includes(contentId)) newTags.get(norm).push(contentId);
-          set({ tags: newTags });
-        },
-        createCollection: (name) => {
-          const newCol = { id: Date.now(), name, items: [] };
-          set({ collections: [...get().collections, newCol] });
-          return newCol;
-        },
-        addToCollection: (colId, item) => {
-          const collections = get().collections.map(col => {
-            if (col.id === colId && !col.items.some(i => i.id === item.id)) {
-              return { ...col, items: [...col.items, item] };
-            }
-            return col;
-          });
-          set({ collections });
-        },
-        addZettel: (zettel) => set({ zettels: [...get().zettels, zettel] }),
-        updateZettel: (id, content) => set((state) => ({
-          zettels: state.zettels.map(z => z.id === id ? { ...z, content, updated: Date.now() } : z)
-        })),
-        deleteZettel: (id) => set((state) => ({ zettels: state.zettels.filter(z => z.id !== id) })),
-        addRadarTopic: (topic) => set((state) => ({ radarTopics: [...state.radarTopics, topic] })),
-        removeRadarTopic: (idx) => set((state) => ({ radarTopics: state.radarTopics.filter((_, i) => i !== idx) })),
-        addStudyLog: (date, type) => {
-          const log = [...get().studyLog];
-          const existing = log.find(l => l.date === date && l.type === type);
-          if (existing) existing.count++;
-          else log.push({ date, type, count: 1 });
-          set({ studyLog: log });
-        },
-        addXP: (amount) => {
-          const profile = { ...get().userProfile, xp: get().userProfile.xp + amount };
-          const newLevel = Math.min(4, Math.floor(profile.xp / 100));
-          if (newLevel > profile.level) {
-            profile.level = newLevel;
-            const levels = ['Explorador','Pesquisador','Analista','Especialista','Mestre'];
-            if (!profile.badges.includes(levels[newLevel])) profile.badges.push(levels[newLevel]);
-          }
-          set({ userProfile: profile });
-        }
-      }));
-
-      // ========== INDEXEDDB SERVICE ==========
-      const dbPromise = new Promise((resolve, reject) => {
-        const req = indexedDB.open('ReadPlusDB', 14);
+    // ==================== INDEXEDDB ====================
+    async function openDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open('ReadPlusDB', 12);
         req.onupgradeneeded = (e) => {
           const db = e.target.result;
-          ['articles','books','research','notes','collections','tags','favorites','reading_log','study_log','radar','settings','zettels','backlinks'].forEach(s => {
-            if (!db.objectStoreNames.contains(s)) db.createObjectStore(s, { keyPath: s === 'settings' ? 'key' : 'id' });
-          });
+          const stores = ['articles','books','research','notes','collections','tags','favorites','reading_log','study_log','radar','settings','zettels','backlinks'];
+          stores.forEach(s => { if (!db.objectStoreNames.contains(s)) db.createObjectStore(s, { keyPath: s === 'settings' ? 'key' : 'id' }); });
         };
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
+        req.onsuccess = (e) => resolve(e.target.result);
+        req.onerror = (e) => reject(e.target.error);
+      });
+    }
+
+    async function saveToDB(storeName, item) {
+      const tx = store.db.transaction([storeName], 'readwrite');
+      tx.objectStore(storeName).put(item);
+    }
+    async function deleteFromDB(storeName, id) {
+      const tx = store.db.transaction([storeName], 'readwrite');
+      tx.objectStore(storeName).delete(id);
+    }
+
+    async function loadAllDataFromDB() {
+      const stores = ['articles','books','research','notes','collections','tags','favorites','reading_log','study_log','radar','settings','zettels','backlinks'];
+      for (let s of stores) {
+        const data = await new Promise(res => {
+          const tx = store.db.transaction([s], 'readonly');
+          tx.objectStore(s).getAll().onsuccess = e => res(e.target.result);
+        });
+        switch(s) {
+          case 'articles': store.articles = data; break;
+          case 'books': store.books = data; break;
+          case 'research': store.research = data; break;
+          case 'notes': data.forEach(n => store.notes.set(n.id, n)); break;
+          case 'collections': store.collections = data; break;
+          case 'tags': data.forEach(t => store.tags.set(t.id, t.items)); break;
+          case 'favorites': data.forEach(f => { store.favorites[f.type].push(f); }); break;
+          case 'reading_log':
+            store.read.article.clear(); store.read.book.clear(); store.read.research.clear();
+            data.forEach(log => store.read[log.type].add(log.id));
+            break;
+          case 'study_log': store.studyLog = data; break;
+          case 'radar': store.radarTopics = data.map(r => r.topic); break;
+          case 'settings':
+            const prof = data.find(d => d.key === 'profile');
+            if (prof) store.userProfile = prof.value;
+            break;
+          case 'zettels': store.zettels = data; break;
+          case 'backlinks': data.forEach(b => store.backlinks.set(b.id, b)); break;
+        }
+      }
+      if (store.studyLog.length === 0 && (store.read.article.size || store.read.book.size || store.read.research.size)) {
+        const tx = store.db.transaction(['reading_log'], 'readonly');
+        const allReads = await new Promise(res => tx.objectStore('reading_log').getAll().onsuccess = e => res(e.target.result));
+        const logMap = new Map();
+        for (let r of allReads) {
+          const date = new Date(r.date).toLocaleDateString('en-CA');
+          const key = `${date}_${r.type}`;
+          if (!logMap.has(key)) logMap.set(key, { date, type: r.type, count: 0 });
+          logMap.get(key).count++;
+        }
+        store.studyLog = Array.from(logMap.values());
+        for (let entry of store.studyLog) {
+          const tx2 = store.db.transaction(['study_log'], 'readwrite');
+          tx2.objectStore('study_log').put({ id: `${entry.date}_${entry.type}`, date: entry.date, type: entry.type, count: entry.count });
+        }
+      }
+    }
+
+    async function addXP(amount) {
+      store.userProfile.xp += amount;
+      const newLevel = Math.min(4, Math.floor(store.userProfile.xp / 100));
+      if (newLevel > store.userProfile.level) {
+        store.userProfile.level = newLevel;
+        const levels = ['Explorador','Pesquisador','Analista','Especialista','Mestre'];
+        if (!store.userProfile.badges.includes(levels[newLevel])) store.userProfile.badges.push(levels[newLevel]);
+        showToast(`🎉 Nível ${levels[newLevel]} alcançado!`);
+      }
+      await saveToDB('settings', { key: 'profile', value: store.userProfile });
+    }
+
+    async function markAsRead(id, type, isRead) {
+      const tx = store.db.transaction(['reading_log', 'study_log'], 'readwrite');
+      if (isRead) {
+        tx.objectStore('reading_log').put({ id, type, date: new Date().toISOString() });
+        const today = new Date().toLocaleDateString('en-CA');
+        const studyKey = `${today}_${type}`;
+        let existing = store.studyLog.find(l => l.date === today && l.type === type);
+        if (existing) {
+          existing.count++;
+          tx.objectStore('study_log').put({ id: studyKey, date: today, type, count: existing.count });
+        } else {
+          const newEntry = { id: studyKey, date: today, type, count: 1 };
+          store.studyLog.push(newEntry);
+          tx.objectStore('study_log').put(newEntry);
+        }
+        await addXP(10);
+      } else {
+        tx.objectStore('reading_log').delete(id);
+        const today = new Date().toLocaleDateString('en-CA');
+        const existing = store.studyLog.find(l => l.date === today && l.type === type);
+        if (existing && existing.count > 0) {
+          existing.count--;
+          if (existing.count === 0) {
+            store.studyLog = store.studyLog.filter(l => !(l.date === today && l.type === type));
+            tx.objectStore('study_log').delete(`${today}_${type}`);
+          } else {
+            tx.objectStore('study_log').put({ id: `${today}_${type}`, date: today, type, count: existing.count });
+          }
+        }
+      }
+      await new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onerror = () => reject(tx.error); });
+      store.read[type][isRead ? 'add' : 'delete'](id);
+    }
+
+    // ==================== APIS ====================
+    async function fetchOpenAlex(query, type = 'article', oaOnly = true) {
+      let filter = oaOnly ? 'open_access.is_oa:true' : '';
+      if (type === 'research') filter += (filter ? ',' : '') + 'type:article,type:report';
+      const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=${filter}&sort=relevance_score:desc&per-page=20`;
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!data.results) return [];
+        return data.results.map(w => ({
+          id: stableHash(w.id || w.title),
+          title: w.title || 'Sem título',
+          authors: w.authorships?.map(a => a.author.display_name) || [],
+          abstract: w.abstract || (w.abstract_inverted_index ? Object.entries(w.abstract_inverted_index).sort((a,b)=>a[1][0]-b[1][0]).map(([w])=>w).join(' ') : 'Resumo indisponível'),
+          url: w.open_access?.oa_url || w.best_oa_location?.pdf_url || w.id,
+          source: 'OpenAlex'
+        }));
+      } catch (e) {
+        console.error(e);
+        showToast(`Erro na busca de ${type === 'research' ? 'pesquisas' : 'artigos'}: ${e.message}`);
+        return [];
+      }
+    }
+
+    async function fetchBooks(query) {
+      const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20&printType=books`;
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!data.items) return [];
+        return data.items.map(item => ({
+          id: item.id,
+          title: item.volumeInfo.title || 'Sem título',
+          authors: item.volumeInfo.authors || ['Autor não informado'],
+          abstract: item.volumeInfo.description || 'Sinopse indisponível',
+          url: item.volumeInfo.previewLink || item.volumeInfo.infoLink || '#',
+          source: 'Google Books'
+        }));
+      } catch (e) {
+        console.error(e);
+        showToast(`Erro ao buscar livros: ${e.message}`);
+        return [];
+      }
+    }
+
+    // ==================== RENDERIZAÇÃO PRINCIPAL ====================
+    function renderResults(containerId, items, type, readSet) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      if (!items.length) {
+        container.innerHTML = '<div class="no-results">🔍 Nenhum resultado encontrado.</div>';
+        return;
+      }
+      container.innerHTML = items.map(item => `
+        <div class="result-card" data-id="${escapeHtml(item.id)}">
+          <div class="checkbox ${readSet.has(item.id) ? 'checked' : ''}" data-id="${escapeHtml(item.id)}" data-type="${type}">${readSet.has(item.id) ? '✓' : ''}</div>
+          <div class="card-content">
+            <a href="${sanitizeUrl(item.url)}" target="_blank" class="card-title">📄 ${escapeHtml(item.title)}</a>
+            <div class="card-meta">${escapeHtml(item.authors.slice(0,3).join(', '))} · ${escapeHtml(item.source)}</div>
+            <div class="card-abstract">${escapeHtml((item.abstract||'').substring(0,260))}…</div>
+            <div>
+              <button class="action-btn fav-btn" data-id="${escapeHtml(item.id)}" data-type="${type}" data-title="${escapeHtml(item.title)}" data-url="${sanitizeUrl(item.url)}">${store.favorites[type]?.some(f=>f.id===item.id)?'❤️ Favoritado':'🤍 Favoritar'}</button>
+              <button class="action-btn note-btn" data-id="${escapeHtml(item.id)}">📝 Nota</button>
+              <button class="action-btn tag-btn" data-id="${escapeHtml(item.id)}" data-type="${type}">🏷️ Tag</button>
+              <button class="action-btn collection-btn" data-id="${escapeHtml(item.id)}" data-type="${type}" data-title="${escapeHtml(item.title)}" data-url="${sanitizeUrl(item.url)}">📂 Coleção</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      container.querySelectorAll('.checkbox').forEach(cb => {
+        cb.onclick = async (e) => {
+          e.stopPropagation();
+          const id = cb.dataset.id, t = cb.dataset.type;
+          const isCurrentlyRead = store.read[t].has(id);
+          await markAsRead(id, t, !isCurrentlyRead);
+          renderResults(containerId, items, t, store.read[t]);
+          if (t === 'article') updateReadArticlesList();
+          events.emit('dashboardUpdate');
+        };
       });
 
-      async function saveToDB(store, data) {
-        const db = await dbPromise;
-        const tx = db.transaction(store, 'readwrite');
-        tx.objectStore(store).put(data);
-      }
-
-      // Carregar dados iniciais
-      (async () => {
-        try {
-          const db = await dbPromise;
-          const tx = db.transaction(['articles','books','research','notes','collections','tags','favorites','reading_log','study_log','radar','settings','zettels','backlinks'], 'readonly');
-          const getStoreData = (store) => new Promise(res => tx.objectStore(store).getAll().onsuccess = e => res(e.target.result));
-          const articles = await getStoreData('articles');
-          const books = await getStoreData('books');
-          const research = await getStoreData('research');
-          const notesArr = await getStoreData('notes');
-          const collections = await getStoreData('collections');
-          const tagsArr = await getStoreData('tags');
-          const favoritesArr = await getStoreData('favorites');
-          const readingLog = await getStoreData('reading_log');
-          const studyLog = await getStoreData('study_log');
-          const radar = await getStoreData('radar');
-          const settings = await getStoreData('settings');
-          const zettels = await getStoreData('zettels');
-          const backlinks = await getStoreData('backlinks');
-
-          const read = { article: new Set(), book: new Set(), research: new Set() };
-          readingLog.forEach(log => read[log.type].add(log.id));
-          const favorites = { article: [], book: [], research: [] };
-          favoritesArr.forEach(f => favorites[f.type].push(f));
-          const notes = new Map(notesArr.map(n => [n.id, n]));
-          const tags = new Map(tagsArr.map(t => [t.id, t.items]));
-          const radarTopics = radar.map(r => r.topic);
-          const profile = settings.find(s => s.key === 'profile')?.value || { name: "Pesquisador", xp: 0, level: 0, badges: [] };
-          useStore.setState({
-            articles, books, research, read, favorites, notes, tags, collections, zettels, backlinks: new Map(backlinks.map(b => [b.id, b])),
-            studyLog, radarTopics, userProfile: profile
-          });
-        } catch (err) {
-          console.error('Erro ao carregar dados do IndexedDB', err);
-        }
-      })();
-
-      // ========== API SERVICES ==========
-      async function fetchOpenAlex(query, type = 'article', oaOnly = true) {
-        let filter = oaOnly ? 'open_access.is_oa:true' : '';
-        if (type === 'research') filter += (filter ? ',' : '') + 'type:article,type:report';
-        const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=${filter}&sort=relevance_score:desc&per-page=20`;
-        try {
-          const res = await fetch(url);
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const data = await res.json();
-          return data.results.map(w => ({
-            id: `oa_${(w.id || w.title).replace(/[^a-zA-Z0-9]/g, '')}`,
-            title: w.title || 'Sem título',
-            authors: w.authorships?.map(a => a.author.display_name) || [],
-            abstract: w.abstract || (w.abstract_inverted_index ? Object.entries(w.abstract_inverted_index).sort((a,b)=>a[1][0]-b[1][0]).map(([w])=>w).join(' ') : ''),
-            url: w.open_access?.oa_url || w.best_oa_location?.pdf_url || w.id,
-            source: 'OpenAlex'
-          }));
-        } catch (e) {
-          console.error(e);
-          return [];
-        }
-      }
-
-      async function fetchBooks(query) {
-        const proxyUrl = 'https://corsproxy.io/?';
-        const directUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20&printType=books`;
-        try {
-          const res = await fetch(proxyUrl + encodeURIComponent(directUrl));
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const data = await res.json();
-          if (data.items && data.items.length) {
-            return data.items.map(item => ({
-              id: item.id,
-              title: item.volumeInfo.title || 'Sem título',
-              authors: item.volumeInfo.authors || ['Autor não informado'],
-              abstract: item.volumeInfo.description || '',
-              url: item.volumeInfo.previewLink || '#',
-              source: 'Google Books'
-            }));
+      container.querySelectorAll('.fav-btn').forEach(btn => {
+        btn.onclick = async () => {
+          const id = btn.dataset.id, t = btn.dataset.type, item = items.find(i => i.id === id);
+          if (!item) return;
+          const idx = store.favorites[t].findIndex(f => f.id === id);
+          if (idx === -1) {
+            store.favorites[t].push({ id, title: item.title, type: t, url: item.url, date: new Date().toISOString() });
+            await saveToDB('favorites', store.favorites[t][store.favorites[t].length-1]);
+            showToast('⭐ Adicionado aos favoritos');
+          } else {
+            store.favorites[t].splice(idx,1);
+            await deleteFromDB('favorites', id);
+            showToast('🗑️ Removido dos favoritos');
           }
-          throw new Error('No items');
-        } catch (err) {
-          console.warn('Google Books falhou, tentando OpenAlex como fallback...', err);
-          const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=type:book&sort=relevance_score:desc&per-page=20`;
-          try {
-            const res = await fetch(url);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
-            return data.results.map(w => ({
-              id: `book_${(w.id || w.title).replace(/[^a-zA-Z0-9]/g, '')}`,
-              title: w.title || 'Sem título',
-              authors: w.authorships?.map(a => a.author.display_name) || [],
-              abstract: w.abstract || '',
-              url: w.open_access?.oa_url || w.best_oa_location?.pdf_url || w.id,
-              source: 'OpenAlex (books)'
-            }));
-          } catch (e) {
-            console.error('OpenAlex fallback falhou:', e);
-            return [];
+          renderResults(containerId, items, t, store.read[t]);
+        };
+      });
+
+      container.querySelectorAll('.note-btn').forEach(btn => {
+        btn.onclick = async () => {
+          const id = btn.dataset.id, txt = prompt('Adicione uma nota:');
+          if (txt) {
+            store.notes.set(id, { id, comment: txt });
+            await saveToDB('notes', { id, comment: txt });
+            showToast('Nota salva! +5 XP');
+            await addXP(5);
           }
-        }
-      }
+        };
+      });
 
-      async function fetchResearch(query) {
-        return fetchOpenAlex(query, 'research', true);
-      }
+      container.querySelectorAll('.tag-btn').forEach(btn => {
+        btn.onclick = async () => {
+          const id = btn.dataset.id, tag = prompt('Tag:');
+          if (tag) {
+            const norm = tag.trim().toLowerCase();
+            if (!store.tags.has(norm)) store.tags.set(norm, []);
+            if (!store.tags.get(norm).includes(id)) store.tags.get(norm).push(id);
+            await saveToDB('tags', { id: norm, items: store.tags.get(norm) });
+            showToast(`🏷️ Tag "${norm}" adicionada`);
+            await addXP(5);
+          }
+        };
+      });
 
-      // ========== REACT COMPONENTS ==========
-      const ThemeToggle = () => {
-        const { theme, setTheme } = useStore();
-        useEffect(() => {
-          document.body.classList.toggle('light', theme === 'light');
-        }, [theme]);
-        return React.createElement('div', { className: 'theme-toggle', onClick: () => setTheme(theme === 'dark' ? 'light' : 'dark') },
-          theme === 'dark' ? '☀️' : '🌙'
-        );
-      };
-
-      const ResultCard = ({ item, type }) => {
-        const { read, favorites, markRead, addFavorite, removeFavorite, addNote, addTag, addToCollection, collections, addXP } = useStore();
-        const isRead = read[type].has(item.id);
-        const isFav = favorites[type].some(f => f.id === item.id);
-        const handleMarkRead = () => {
-          markRead(item.id, type, !isRead);
-          addXP(5);
-          const today = new Date().toLocaleDateString('en-CA');
-          useStore.getState().addStudyLog(today, type);
-        };
-        const handleFav = () => {
-          if (isFav) removeFavorite(item.id, type);
-          else addFavorite(item, type);
-          addXP(3);
-        };
-        const handleNote = () => {
-          const txt = prompt('Nota:');
-          if (txt) { addNote(item.id, txt); addXP(5); }
-        };
-        const handleTag = () => {
-          const tag = prompt('Tag:');
-          if (tag) { addTag(item.id, tag); addXP(2); }
-        };
-        const handleCollection = () => {
-          const colName = prompt('Nome da coleção (nova ou existente):');
+      container.querySelectorAll('.collection-btn').forEach(btn => {
+        btn.onclick = async () => {
+          const id = btn.dataset.id, title = btn.dataset.title, url = btn.dataset.url, type = btn.dataset.type;
+          const colName = prompt('Nome da coleção (existente ou nova):');
           if (!colName) return;
-          let col = useStore.getState().collections.find(c => c.name === colName);
-          if (!col) col = useStore.getState().createCollection(colName);
-          useStore.getState().addToCollection(col.id, { id: item.id, title: item.title, type, url: item.url });
-        };
-        return React.createElement('div', { className: 'result-card' },
-          React.createElement('div', { className: `checkbox ${isRead ? 'checked' : ''}`, onClick: handleMarkRead }, isRead ? '✓' : ''),
-          React.createElement('div', { className: 'card-content' },
-            React.createElement('a', { href: item.url, target: '_blank', className: 'card-title' }, `📄 ${item.title}`),
-            React.createElement('div', { className: 'card-meta' }, item.authors.slice(0,3).join(', ') + ' · ' + item.source),
-            React.createElement('div', { className: 'card-abstract' }, (item.abstract || '').substring(0, 200)),
-            React.createElement('div', null,
-              React.createElement('button', { className: 'action-btn', onClick: handleFav }, isFav ? '❤️ Favoritado' : '🤍 Favoritar'),
-              React.createElement('button', { className: 'action-btn', onClick: handleNote }, '📝 Nota'),
-              React.createElement('button', { className: 'action-btn', onClick: handleTag }, '🏷️ Tag'),
-              React.createElement('button', { className: 'action-btn', onClick: handleCollection }, '📂 Coleção')
-            )
-          )
-        );
-      };
-
-      const SearchPanel = ({ type }) => {
-        const [query, setQuery] = useState('');
-        const [results, setResults] = useState([]);
-        const { addToSearchHistory, setLoading, isLoading, updateArticles, updateBooks, updateResearch } = useStore();
-        let fetchFn, updateFn, resultType;
-        if (type === 'articles') {
-          fetchFn = fetchOpenAlex;
-          updateFn = updateArticles;
-          resultType = 'article';
-        } else if (type === 'books') {
-          fetchFn = fetchBooks;
-          updateFn = updateBooks;
-          resultType = 'book';
-        } else {
-          fetchFn = fetchResearch;
-          updateFn = updateResearch;
-          resultType = 'research';
-        }
-        const handleSearch = async () => {
-          if (!query.trim()) return;
-          setLoading(true);
-          addToSearchHistory(query);
-          const res = await fetchFn(query);
-          updateFn(res);
-          setResults(res);
-          setLoading(false);
-        };
-        return React.createElement('div', null,
-          React.createElement('div', { className: 'search-area' },
-            React.createElement('input', { value: query, onChange: e => setQuery(e.target.value), placeholder: type === 'articles' ? 'Ex: machine learning' : type === 'books' ? 'Ex: inteligência artificial' : 'Ex: climate change', onKeyPress: e => e.key === 'Enter' && handleSearch() }),
-            React.createElement('button', { onClick: handleSearch }, '🔍 Pesquisar')
-          ),
-          isLoading && React.createElement('div', { className: 'loader' }, 'Buscando...'),
-          React.createElement('div', { className: 'results-grid' }, results.map(item => React.createElement(ResultCard, { key: item.id, item, type: resultType })))
-        );
-      };
-
-      const Dashboard = () => {
-        const { studyLog, tags, read, zettels, userProfile } = useStore();
-        const totalRead = read.article.size + read.book.size + read.research.size;
-        const chartRef = useRef(null);
-        useEffect(() => {
-          if (chartRef.current) {
-            const monthly = {};
-            studyLog.forEach(l => { const m = l.date.slice(0,7); monthly[m] = (monthly[m]||0) + l.count; });
-            const months = Object.keys(monthly).sort().slice(-12);
-            const counts = months.map(m => monthly[m]);
-            new Chart(chartRef.current, { type: 'line', data: { labels: months, datasets: [{ label: 'Leituras', data: counts, borderColor: '#00d4ff' }] } });
+          let col = store.collections.find(c => c.name === colName);
+          if (!col) {
+            col = { id: Date.now(), name: colName, items: [] };
+            store.collections.push(col);
+            await saveToDB('collections', col);
           }
-        }, [studyLog]);
-        const tagEntries = Array.from(tags.entries()).map(([t,ids]) => [t, ids.length]).sort((a,b)=>b[1]-a[1]).slice(0,6);
-        return React.createElement('div', null,
-          React.createElement('div', { className: 'dashboard-grid' },
-            React.createElement('div', { className: 'dashboard-card' }, React.createElement('h3', null, '📊 Estatísticas'), React.createElement('p', null, `Total lidos: ${totalRead}`), React.createElement('p', null, `XP: ${userProfile.xp} | Nível: ${userProfile.level}`), React.createElement('p', null, `Zettels: ${zettels.length}`)),
-            React.createElement('div', { className: 'dashboard-card' }, React.createElement('h3', null, '🏷️ Tags'), tagEntries.map(([t,c]) => React.createElement('span', { key: t, className: 'badge' }, `${t} (${c})`))),
-            React.createElement('div', { className: 'dashboard-card' }, React.createElement('h3', null, '📈 Evolução'), React.createElement('canvas', { ref: chartRef, height: '150' }))
-          )
-        );
-      };
-
-      const Zettelkasten = () => {
-        const { zettels, addZettel, updateZettel, deleteZettel, addXP } = useStore();
-        const [newTitle, setNewTitle] = useState('');
-        const handleCreate = () => {
-          if (!newTitle.trim()) return;
-          const id = `z_${Date.now()}_${Math.random().toString(36)}`;
-          addZettel({ id, title: newTitle, content: '', tags: [], created: Date.now(), updated: Date.now() });
-          setNewTitle('');
-          addXP(5);
+          if (!col.items.some(i => i.id === id)) {
+            col.items.push({ id, title, type, url });
+            await saveToDB('collections', col);
+            showToast(`Adicionado à coleção "${col.name}"`);
+            if (document.getElementById('collectionsMainView')) renderCollectionsMainView();
+          }
         };
-        return React.createElement('div', null,
-          React.createElement('div', { className: 'search-area' },
-            React.createElement('input', { value: newTitle, onChange: e => setNewTitle(e.target.value), placeholder: 'Título da nota atômica' }),
-            React.createElement('button', { onClick: handleCreate }, '➕ Nova nota')
-          ),
-          React.createElement('div', { className: 'results-grid' }, zettels.map(z =>
-            React.createElement('div', { key: z.id, className: 'result-card' },
-              React.createElement('div', { className: 'card-content' },
-                React.createElement('div', { className: 'card-title' }, `📄 ${z.title}`),
-                React.createElement('textarea', { className: 'inline-edit', rows: '3', defaultValue: z.content, onBlur: (e) => { updateZettel(z.id, e.target.value); addXP(2); } }),
-                React.createElement('button', { className: 'action-btn', onClick: () => { if (confirm('Excluir?')) deleteZettel(z.id); } }, '🗑️ Excluir')
-              )
-            )
-          ))
-        );
-      };
+      });
+    }
 
-      const Radar = () => {
-        const { radarTopics, addRadarTopic, removeRadarTopic } = useStore();
-        const [topic, setTopic] = useState('');
-        const [articles, setArticles] = useState({});
-        useEffect(() => {
-          radarTopics.forEach(async t => {
-            const res = await fetchOpenAlex(t, 'article', true);
-            setArticles(prev => ({ ...prev, [t]: res.slice(0,3) }));
+    async function updateReadArticlesList() {
+      const container = document.getElementById('readArticlesList');
+      if (!container) return;
+      const readIds = [...store.read.article];
+      if (!readIds.length) { container.innerHTML = '<div class="no-results">Nenhum artigo lido ainda.</div>'; return; }
+      const articles = [];
+      for (let id of readIds) {
+        let art = store.articles.find(a => a.id === id);
+        if (!art) {
+          const tx = store.db.transaction(['articles'], 'readonly');
+          art = await new Promise(res => tx.objectStore('articles').get(id).onsuccess = e => res(e.target.result));
+        }
+        if (art) articles.push(art);
+      }
+      if (!articles.length) { container.innerHTML = '<div class="no-results">Nenhum artigo lido ainda.</div>'; return; }
+      container.innerHTML = articles.map(a => `<div class="result-card"><div class="card-content"><a href="${sanitizeUrl(a.url)}" target="_blank" class="card-title">📄 ${escapeHtml(a.title)}</a><div class="card-meta">${escapeHtml(a.authors.join(', '))}</div></div></div>`).join('');
+    }
+
+    async function renderDashboard() {
+      const totalRead = store.read.article.size + store.read.book.size + store.read.research.size;
+      const streak = (()=>{
+        let s=0;
+        const dates = [...new Set(store.studyLog.flatMap(l => Array(l.count||1).fill(l.date)))].sort().reverse();
+        let last = new Date().toLocaleDateString('en-CA');
+        for (let d of dates) {
+          if (d === last) { s++; last = new Date(Date.parse(last)-86400000).toLocaleDateString('en-CA'); }
+          else break;
+        }
+        return s;
+      })();
+      const tagCounts = Array.from(store.tags.entries()).map(([t,ids]) => [t, ids.length]).sort((a,b)=>b[1]-a[1]).slice(0,8);
+      const now = new Date();
+      const startDate = new Date(now);
+      startDate.setDate(now.getDate() - 90);
+      const days = [];
+      for (let d = new Date(startDate); d <= now; d.setDate(d.getDate()+1)) {
+        const dateStr = d.toLocaleDateString('en-CA');
+        const count = store.studyLog.filter(l => l.date === dateStr).reduce((s,l)=>s+(l.count||0),0);
+        days.push({ date: dateStr, day: d.getDate(), month: d.getMonth(), count });
+      }
+      const weeks = [];
+      for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i+7));
+      const calendarHtml = `<div class="calendar-wrapper">
+        <div class="calendar-header">${['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(d => `<div>${d}</div>`).join('')}</div>
+        ${weeks.map(week => `<div class="calendar-grid">${week.map(day => `<div class="calendar-day" data-level="${Math.min(4, day.count)}" title="${day.date}: ${day.count} leitura(s)">${day.day}</div>`).join('')}</div>`).join('')}
+      </div>`;
+      const dataKey = `${totalRead}_${streak}_${tagCounts.map(t=>t[0]+t[1]).join('_')}_${store.studyLog.length}`;
+      if (store.lastDashboardKey === dataKey) return;
+      store.lastDashboardKey = dataKey;
+      const execDashboard = document.getElementById('execDashboard');
+      if (!execDashboard) return;
+      execDashboard.innerHTML = `
+        <div class="dashboard-grid">
+          <div class="dashboard-card"><h3>📊 Estatísticas</h3><p>Total lidos: ${totalRead}</p><p>Sequência atual: ${streak} dias</p><p>Zettels: ${store.zettels.length}</p><p>XP: ${store.userProfile.xp} | Nível: ${store.userProfile.level}</p></div>
+          <div class="dashboard-card"><h3>🏷️ Tags mais usadas</h3>${tagCounts.map(([t,c])=>`<span class="badge">${escapeHtml(t)} (${c})</span>`).join('')||'Nenhuma tag ainda'}</div>
+          <div class="dashboard-card"><h3>📈 Evolução mensal</h3><canvas id="monthlyChart" height="200"></canvas></div>
+        </div>
+        <div class="dashboard-card"><h3>📅 Calendário de estudos</h3>${calendarHtml}</div>
+      `;
+      const monthly = {};
+      store.studyLog.forEach(l => { let m = l.date.slice(0,7); monthly[m] = (monthly[m]||0) + (l.count||1); });
+      const months = Object.keys(monthly).sort().reverse().slice(0,12).reverse();
+      const counts = months.map(m => monthly[m]);
+      if (store.currentChart) store.currentChart.destroy();
+      const ctx = document.getElementById('monthlyChart')?.getContext('2d');
+      if (ctx && months.length) {
+        store.currentChart = new Chart(ctx, { type: 'line', data: { labels: months, datasets: [{ label: 'Leituras', data: counts, borderColor: '#00d4ff', tension: 0.3, fill: false }] } });
+      }
+    }
+
+    async function renderZettelList() {
+      const container = document.getElementById('zettelList');
+      if (!container) return;
+      if (!store.zettels.length) { container.innerHTML = '<div class="no-results">Nenhuma nota criada.</div>'; return; }
+      container.innerHTML = store.zettels.map(z => `
+        <div class="result-card">
+          <div class="card-content">
+            <div class="card-title">📄 ${escapeHtml(z.title)}</div>
+            <textarea id="zettel-${z.id}" class="inline-edit" rows="3">${escapeHtml(z.content)}</textarea>
+            <button class="action-btn save-zettel" data-id="${z.id}">💾 Salvar</button>
+            <button class="action-btn delete-zettel" data-id="${z.id}">🗑️ Excluir</button>
+          </div>
+        </div>
+      `).join('');
+      document.querySelectorAll('.save-zettel').forEach(btn => {
+        btn.onclick = async () => {
+          const id = btn.dataset.id;
+          const z = store.zettels.find(z=>z.id===id);
+          if (z) {
+            z.content = document.getElementById(`zettel-${id}`).value;
+            z.updated = Date.now();
+            await saveToDB('zettels', z);
+            showToast('Zettel salvo!');
+          }
+        };
+      });
+      document.querySelectorAll('.delete-zettel').forEach(btn => {
+        btn.onclick = async () => {
+          if (confirm('Excluir nota permanentemente?')) {
+            const id = btn.dataset.id;
+            store.zettels = store.zettels.filter(z=>z.id!==id);
+            await deleteFromDB('zettels', id);
+            renderZettelList();
+          }
+        };
+      });
+    }
+
+    async function renderCollectionsMainView() {
+      const container = document.getElementById('collectionsMainView');
+      if (!container) return;
+      if (!store.collections.length) { container.innerHTML = '<div class="no-results">Nenhuma coleção criada.</div>'; return; }
+      container.innerHTML = `<div class="collections-grid">${store.collections.map(col => `
+        <div class="dashboard-card">
+          <h3>📁 ${escapeHtml(col.name)}</h3>
+          <p>${col.items.length} itens</p>
+          <ul>${col.items.slice(0,5).map(i => `<li>📄 ${escapeHtml(i.title)}</li>`).join('')}</ul>
+          ${col.items.length > 5 ? '<small>...</small>' : ''}
+        </div>
+      `).join('')}</div>`;
+    }
+
+    function renderCollectionsModal() {
+      const container = document.getElementById('collectionList');
+      if (!container) return;
+      container.innerHTML = store.collections.map(col => `
+        <div class="result-card">
+          <div><strong>${escapeHtml(col.name)}</strong> (${col.items.length} itens)</div>
+          <button class="action-btn view-collection" data-id="${col.id}">Ver</button>
+          <button class="action-btn delete-collection" data-id="${col.id}">Excluir</button>
+          <div id="col-items-${col.id}" style="font-size:0.7rem;"></div>
+        </div>
+      `).join('');
+      document.querySelectorAll('.view-collection').forEach(btn => {
+        btn.onclick = () => {
+          const col = store.collections.find(c => c.id == btn.dataset.id);
+          const itemsDiv = document.getElementById(`col-items-${col.id}`);
+          if (itemsDiv) itemsDiv.innerHTML = col.items.map(i => `<div>📄 ${escapeHtml(i.title)} <button class="action-btn remove-item" data-col="${col.id}" data-item="${i.id}">Remover</button></div>`).join('');
+        };
+      });
+      document.querySelectorAll('.delete-collection').forEach(btn => {
+        btn.onclick = async () => {
+          if (confirm('Excluir coleção?')) {
+            const id = parseInt(btn.dataset.id);
+            store.collections = store.collections.filter(c => c.id !== id);
+            await deleteFromDB('collections', id);
+            renderCollectionsModal();
+            if (document.getElementById('collectionsMainView')) renderCollectionsMainView();
+          }
+        };
+      });
+      document.querySelectorAll('.remove-item').forEach(btn => {
+        btn.onclick = async () => {
+          const colId = parseInt(btn.dataset.col), itemId = btn.dataset.item;
+          const col = store.collections.find(c => c.id === colId);
+          if (col) {
+            col.items = col.items.filter(i => i.id !== itemId);
+            await saveToDB('collections', col);
+            renderCollectionsModal();
+            if (document.getElementById('collectionsMainView')) renderCollectionsMainView();
+          }
+        };
+      });
+    }
+
+    async function renderRadarModal() {
+      const listDiv = document.getElementById('radarTopicsList');
+      const resultsDiv = document.getElementById('radarResults');
+      if (!listDiv || !resultsDiv) return;
+      listDiv.innerHTML = store.radarTopics.map((t,i) => `<span class="badge">${escapeHtml(t)} <button class="removeRadarTopic" data-idx="${i}" style="background:none;border:none;color:white;">❌</button></span>`).join('');
+      resultsDiv.innerHTML = '<div class="no-results">Clique em um tema.</div>';
+      document.querySelectorAll('.removeRadarTopic').forEach(btn => btn.onclick = async () => {
+        store.radarTopics.splice(btn.dataset.idx,1);
+        await saveToDB('radar', { topic: store.radarTopics });
+        renderRadarModal();
+      });
+      document.querySelectorAll('#radarTopicsList .badge').forEach(badge => {
+        badge.onclick = async () => {
+          const topic = badge.innerText.replace('❌','').trim();
+          resultsDiv.innerHTML = '<div class="loader"><div class="spinner"></div><div>Buscando...</div></div>';
+          const articles = await fetchOpenAlex(topic, 'article', true);
+          if (!articles.length) resultsDiv.innerHTML = '<div class="no-results">Nenhum artigo recente.</div>';
+          else resultsDiv.innerHTML = articles.slice(0,5).map(a => `<div class="result-card"><div class="card-content"><a href="${sanitizeUrl(a.url)}" target="_blank" class="card-title">${escapeHtml(a.title)}</a></div></div>`).join('');
+        };
+      });
+    }
+
+    function showLoading() { document.getElementById('loadingOverlay')?.classList.add('active'); }
+    function hideLoading() { document.getElementById('loadingOverlay')?.classList.remove('active'); }
+
+    async function renderArticlesTab() {
+      const html = `
+        <div class="sub-tabs"><button class="sub-tab active" data-sub="search">🔍 Buscar artigos</button><button class="sub-tab" data-sub="read">✅ Meus lidos</button></div>
+        <div id="articlesSearchSub" class="sub-content active">
+          <div class="search-area"><input id="articlesQuery" class="search-input" placeholder="Ex: machine learning"><button id="articlesSearchBtn" class="search-btn">Pesquisar</button></div>
+          <div id="articlesResults"></div>
+        </div>
+        <div id="articlesReadSub" class="sub-content"><div id="readArticlesList"></div></div>
+      `;
+      document.getElementById('mainContent').innerHTML = html;
+      updateReadArticlesList();
+      let debounceTimeout;
+      document.getElementById('articlesSearchBtn').onclick = async () => {
+        if (debounceTimeout) clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(async () => {
+          const q = document.getElementById('articlesQuery').value.trim();
+          if (!q) return;
+          showLoading();
+          const results = await fetchOpenAlex(q, 'article', true);
+          store.articles = results;
+          renderResults('articlesResults', results, 'article', store.read.article);
+          hideLoading();
+        }, 300);
+      };
+      document.querySelectorAll('.sub-tab').forEach(btn => {
+        btn.onclick = () => {
+          const target = btn.dataset.sub;
+          document.querySelectorAll('.sub-tab').forEach(b=>b.classList.remove('active'));
+          btn.classList.add('active');
+          document.querySelectorAll('.sub-content').forEach(c=>c.classList.remove('active'));
+          document.getElementById(`articles${target==='search'?'SearchSub':'ReadSub'}`).classList.add('active');
+          if (target === 'read') updateReadArticlesList();
+        };
+      });
+    }
+
+    async function renderBooksTab() {
+      const html = `<div class="search-area"><input id="booksQuery" class="search-input"><button id="booksSearchBtn" class="search-btn">Pesquisar livros</button></div><div id="booksResults"></div>`;
+      document.getElementById('mainContent').innerHTML = html;
+      let debounceTimeout;
+      document.getElementById('booksSearchBtn').onclick = async () => {
+        if (debounceTimeout) clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(async () => {
+          const q = document.getElementById('booksQuery').value.trim();
+          if (!q) return;
+          showLoading();
+          const results = await fetchBooks(q);
+          store.books = results;
+          renderResults('booksResults', results, 'book', store.read.book);
+          hideLoading();
+        }, 300);
+      };
+    }
+
+    async function renderResearchTab() {
+      const html = `<div class="search-area"><input id="researchQuery" class="search-input"><button id="researchSearchBtn" class="search-btn">Pesquisar pesquisas</button></div><div id="researchResults"></div>`;
+      document.getElementById('mainContent').innerHTML = html;
+      let debounceTimeout;
+      document.getElementById('researchSearchBtn').onclick = async () => {
+        if (debounceTimeout) clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(async () => {
+          const q = document.getElementById('researchQuery').value.trim();
+          if (!q) return;
+          showLoading();
+          const results = await fetchOpenAlex(q, 'research', true);
+          store.research = results;
+          renderResults('researchResults', results, 'research', store.read.research);
+          hideLoading();
+        }, 300);
+      };
+    }
+
+    async function renderBrainTab() {
+      const html = `
+        <div class="sub-tabs">
+          <button class="sub-tab active" data-sub="dashboard">📊 Dashboard</button>
+          <button class="sub-tab" data-sub="zettel">📔 Zettelkasten</button>
+          <button class="sub-tab" data-sub="collections">📚 Coleções</button>
+          <button class="sub-tab" data-sub="radar">📡 Radar</button>
+          <button class="sub-tab" data-sub="export">💾 Exportar</button>
+        </div>
+        <div id="brainDashboard" class="sub-content active"><div id="execDashboard"></div></div>
+        <div id="brainZettel" class="sub-content"><div id="zettelList"></div><button id="newZettelBtn" class="search-btn" style="margin-top:16px;">➕ Nova nota atômica</button></div>
+        <div id="brainCollections" class="sub-content"><div id="collectionsMainView"></div></div>
+        <div id="brainRadar" class="sub-content"><div id="radarPlaceholder"></div></div>
+        <div id="brainExport" class="sub-content"><div id="exportPlaceholder"></div></div>
+      `;
+      document.getElementById('mainContent').innerHTML = html;
+      await renderDashboard();
+      document.getElementById('newZettelBtn').onclick = () => {
+        const title = prompt('Título da nota atômica:');
+        if (title) {
+          const newZ = { id: stableHash(title+Date.now()), title, content: '', type: 'fleeting', created: Date.now(), updated: Date.now(), tags: [], links: [] };
+          store.zettels.push(newZ);
+          saveToDB('zettels', newZ);
+          renderZettelList();
+        }
+      };
+      document.getElementById('radarPlaceholder').innerHTML = '<button id="openRadarModal" class="search-btn">Abrir Radar Científico</button>';
+      document.getElementById('openRadarModal').onclick = () => document.getElementById('radarModal').style.display = 'flex';
+      document.getElementById('exportPlaceholder').innerHTML = '<button id="openExportModal" class="search-btn">Exportar Dados</button>';
+      document.getElementById('openExportModal').onclick = () => document.getElementById('exportModal').style.display = 'flex';
+      document.querySelectorAll('.sub-tab').forEach(btn => {
+        btn.onclick = () => {
+          const target = btn.dataset.sub;
+          document.querySelectorAll('.sub-tab').forEach(b=>b.classList.remove('active'));
+          btn.classList.add('active');
+          document.querySelectorAll('.sub-content').forEach(c=>c.classList.remove('active'));
+          document.getElementById(`brain${target==='dashboard'?'Dashboard':target==='zettel'?'Zettel':target==='collections'?'Collections':target==='radar'?'Radar':'Export'}`).classList.add('active');
+          if (target === 'dashboard') renderDashboard();
+          if (target === 'zettel') renderZettelList();
+          if (target === 'collections') renderCollectionsMainView();
+        };
+      });
+    }
+
+    // ==================== INICIALIZAÇÃO ====================
+    (async function init() {
+      try {
+        store.db = await openDB();
+        await loadAllDataFromDB();
+        // Configurar modais
+        document.querySelectorAll('.modal .close').forEach(close => {
+          close.onclick = () => close.closest('.modal').style.display = 'none';
+        });
+        window.onclick = (e) => {
+          document.querySelectorAll('.modal').forEach(modal => {
+            if (e.target === modal) modal.style.display = 'none';
           });
-        }, [radarTopics]);
-        const handleAdd = () => { if (topic.trim() && !radarTopics.includes(topic)) addRadarTopic(topic); setTopic(''); };
-        return React.createElement('div', null,
-          React.createElement('div', { className: 'search-area' },
-            React.createElement('input', { value: topic, onChange: e => setTopic(e.target.value), placeholder: 'Novo tema' }),
-            React.createElement('button', { onClick: handleAdd }, 'Adicionar')
-          ),
-          React.createElement('div', null, radarTopics.map((t,i) => React.createElement('span', { key: i, className: 'badge' }, t, React.createElement('button', { onClick: () => removeRadarTopic(i), style: { background: 'none', border: 'none', color: 'white', marginLeft: '6px' } }, '❌')))),
-          radarTopics.map(t => React.createElement('div', { key: t, className: 'dashboard-card' },
-            React.createElement('h3', null, `📡 ${t}`),
-            (articles[t] || []).map(a => React.createElement('div', { key: a.id }, React.createElement('a', { href: a.url, target: '_blank' }, a.title)))
-          ))
-        );
-      };
+        };
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
+        });
 
-      const Export = () => {
-        const store = useStore.getState();
-        const exportJSON = () => {
-          const data = { articles: store.articles, books: store.books, research: store.research, favorites: store.favorites, notes: Array.from(store.notes.entries()), tags: Array.from(store.tags.entries()), collections: store.collections, zettels: store.zettels, studyLog: store.studyLog, userProfile: store.userProfile };
+        document.getElementById('createCollectionBtn').onclick = async () => {
+          const name = document.getElementById('newCollectionName').value.trim();
+          if (name) {
+            store.collections.push({ id: Date.now(), name, items: [] });
+            await saveToDB('collections', store.collections[store.collections.length-1]);
+            showToast(`📂 Coleção "${name}" criada`);
+            document.getElementById('newCollectionName').value = '';
+            renderCollectionsModal();
+            renderCollectionsMainView();
+          }
+        };
+        document.getElementById('addRadarTopicBtn').onclick = async () => {
+          const topic = document.getElementById('radarTopicInput').value.trim();
+          if (topic && !store.radarTopics.includes(topic)) {
+            store.radarTopics.push(topic);
+            await saveToDB('radar', { topic });
+            document.getElementById('radarTopicInput').value = '';
+            renderRadarModal();
+          }
+        };
+        document.getElementById('exportJSONBtn').onclick = () => {
+          const data = { articles: store.articles, books: store.books, research: store.research, readArticles: [...store.read.article], favorites: store.favorites, notes: [...store.notes.entries()], tags: [...store.tags.entries()], collections: store.collections, zettels: store.zettels, studyLog: store.studyLog, userProfile: store.userProfile };
           const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
           const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'readplus_backup.json'; a.click();
         };
-        return React.createElement('div', null, React.createElement('button', { onClick: exportJSON, className: 'search-btn' }, 'Exportar JSON'));
-      };
-
-      const App = () => {
-        const { activeTab, setActiveTab, activeSubTab, setActiveSubTab, searchHistory } = useStore();
-        const renderContent = () => {
-          if (activeTab === 'articles') return React.createElement(SearchPanel, { type: 'articles' });
-          if (activeTab === 'books') return React.createElement(SearchPanel, { type: 'books' });
-          if (activeTab === 'research') return React.createElement(SearchPanel, { type: 'research' });
-          if (activeTab === 'brain') {
-            return React.createElement('div', null,
-              React.createElement('div', { className: 'sub-tabs' },
-                ['dashboard','zettel','radar','export'].map(sub =>
-                  React.createElement('button', { key: sub, className: `sub-tab ${activeSubTab === sub ? 'active' : ''}`, onClick: () => setActiveSubTab(sub) },
-                    sub === 'dashboard' ? '📊 Dashboard' : sub === 'zettel' ? '📔 Zettelkasten' : sub === 'radar' ? '📡 Radar' : '💾 Exportar'
-                  )
-                )
-              ),
-              activeSubTab === 'dashboard' && React.createElement(Dashboard, null),
-              activeSubTab === 'zettel' && React.createElement(Zettelkasten, null),
-              activeSubTab === 'radar' && React.createElement(Radar, null),
-              activeSubTab === 'export' && React.createElement(Export, null)
-            );
-          }
-          return React.createElement('div', null, 'Selecione uma aba');
+        document.getElementById('exportCSVBtn').onclick = () => {
+          let csv = "type,id,title\n";
+          const escapeCSV = s => s ? `"${s.replace(/"/g, '""')}"` : '';
+          store.articles.forEach(a => csv += `article,${a.id},${escapeCSV(a.title)}\n`);
+          const blob = new Blob([csv], {type:'text/csv'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'readplus_data.csv'; a.click();
         };
-        return React.createElement('div', { className: 'app' },
-          React.createElement(ThemeToggle, null),
-          React.createElement('div', { className: 'header', style: { textAlign: 'center' } },
-            React.createElement('div', { className: 'logo' }, 'Read', React.createElement('span', null, '+')),
-            React.createElement('div', { className: 'tagline' }, 'forge your second brain'),
-            React.createElement('div', { className: 'description' }, 'Conecte artigos, livros e ideias. Construa seu conhecimento com Zettelkasten e backlinks.')
-          ),
-          React.createElement('div', { className: 'tabs' },
-            ['articles','books','research','brain'].map(tab =>
-              React.createElement('button', { key: tab, className: `tab ${activeTab === tab ? 'active' : ''}`, onClick: () => setActiveTab(tab) },
-                tab === 'articles' ? '📄 Artigos' : tab === 'books' ? '📚 Livros' : tab === 'research' ? '🔬 Pesquisas' : '🧠 Mind Forge'
-              )
-            )
-          ),
-          React.createElement('div', { className: 'card' }, renderContent()),
-          searchHistory.length > 0 && React.createElement('div', { style: { marginTop: '20px', fontSize: '0.7rem', color: '#9aa4bf', textAlign: 'center' } }, `Últimas buscas: ${searchHistory.slice(0,5).join(' · ')}`)
-        );
-      };
+        document.getElementById('exportObsidianBtn').onclick = () => {
+          let md = store.zettels.map(z => `---\ntitle: ${z.title}\ntags: ${(z.tags||[]).join(',')}\n---\n\n${z.content}\n`).join('\n');
+          const blob = new Blob([md], {type:'text/markdown'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'readplus_obsidian.md'; a.click();
+        };
 
-      ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App, null));
-    } catch (err) {
-      console.error('Erro fatal na inicialização:', err);
-      document.getElementById('root').innerHTML = '<div class="error-boundary">❌ Erro interno ao iniciar a aplicação. Verifique o console.</div>';
-    }
+        events.on('dashboardUpdate', () => renderDashboard());
+        document.querySelectorAll('.main-tab').forEach(btn => {
+          btn.addEventListener('click', () => {
+            document.querySelectorAll('.main-tab').forEach(b=>b.classList.remove('active'));
+            btn.classList.add('active');
+            const tab = btn.dataset.main;
+            if (tab === 'articles') renderArticlesTab();
+            else if (tab === 'books') renderBooksTab();
+            else if (tab === 'research') renderResearchTab();
+            else if (tab === 'brain') renderBrainTab();
+          });
+        });
+        renderArticlesTab();
+      } catch (err) {
+        console.error('Falha na inicialização:', err);
+        document.getElementById('mainContent').innerHTML = '<div class="no-results" style="padding:40px;text-align:center">❌ Erro ao carregar o aplicativo. Recarregue a página.</div>';
+      }
+    })();
   })();
 </script>
 </body>
