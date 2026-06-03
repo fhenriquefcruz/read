@@ -9,6 +9,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
+    /* ========== ESTILOS COMPLETOS (preservados e otimizados) ========== */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
       --bg-dark: #05070f;
@@ -157,6 +158,7 @@
     .heatmap-day-3 { background-color: #2fba92; }
     .heatmap-day-4 { background-color: #4fd4ae; }
     .pagination-btn { margin-top: 16px; text-align: center; }
+    .collections-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
     @media (max-width: 700px) { .glass-card { padding: 16px; } .main-tab { padding: 8px 16px; font-size: 0.9rem; } .result-card { flex-direction: column; } .search-area { flex-direction: column; } }
   </style>
 </head>
@@ -202,7 +204,7 @@
   let radarTopics = [];
   let currentChart = null;
   let loadingTimeout = null;
-  // Paginação
+  let lastDashboardData = null;
   let currentPage = { articles: 1, books: 1, research: 1 };
   let currentQuery = { articles: '', books: '', research: '' };
   let currentOaOnly = true;
@@ -221,7 +223,7 @@
   // ========== INDEXEDDB ==========
   async function initDB() {
     return new Promise((resolve) => {
-      const req = indexedDB.open('ReadPlusDB', 9);
+      const req = indexedDB.open('ReadPlusDB', 10);
       req.onupgradeneeded = (e) => {
         const db = e.target.result;
         const stores = ['articles','books','research','notes','collections','tags','favorites','reading_log','study_log','radar','settings','zettels','backlinks'];
@@ -257,7 +259,6 @@
       else if (s === 'zettels') zettels = data;
       else if (s === 'backlinks') data.forEach(b=>backlinks.set(b.id, b));
     }
-    // Migração se necessário
     if (studyLog.length === 0 && (readArticles.size || readBooks.size || readResearch.size)) {
       const tx = db.transaction(['reading_log'],'readonly');
       const allReads = await new Promise(res => tx.objectStore('reading_log').getAll().onsuccess = e => res(e.target.result));
@@ -282,25 +283,43 @@
     tx.objectStore(storeName).delete(id);
   }
 
+  async function reloadReadSets() {
+    const tx = db.transaction(['reading_log'], 'readonly');
+    const allReads = await new Promise(res => tx.objectStore('reading_log').getAll().onsuccess = e => res(e.target.result));
+    readArticles.clear(); readBooks.clear(); readResearch.clear();
+    allReads.forEach(log => {
+      if (log.type === 'article') readArticles.add(log.id);
+      else if (log.type === 'book') readBooks.add(log.id);
+      else if (log.type === 'research') readResearch.add(log.id);
+    });
+  }
+
+  // Transação atômica (reading_log + study_log)
   async function saveReadLog(id, type) {
-    const tx = db.transaction(['reading_log','study_log'],'readwrite');
-    tx.objectStore('reading_log').put({ id, type, date: new Date().toISOString() });
+    const tx = db.transaction(['reading_log', 'study_log'], 'readwrite');
+    const readingStore = tx.objectStore('reading_log');
+    const studyStore = tx.objectStore('study_log');
+    readingStore.put({ id, type, date: new Date().toISOString() });
     const today = new Date().toLocaleDateString('en-CA');
     const studyKey = `${today}_${type}`;
     let existing = studyLog.find(l => l.date === today && l.type === type);
     if (existing) {
       existing.count++;
-      await tx.objectStore('study_log').put({ id: studyKey, date: today, type, count: existing.count });
+      studyStore.put({ id: studyKey, date: today, type, count: existing.count });
     } else {
       const newEntry = { id: studyKey, date: today, type, count: 1 };
       studyLog.push(newEntry);
-      await tx.objectStore('study_log').put(newEntry);
+      studyStore.put(newEntry);
     }
-    addXP(10);
+    await new Promise((resolve, reject) => {
+      tx.oncomplete = () => { addXP(10); resolve(); };
+      tx.onerror = () => reject(tx.error);
+    });
+    await reloadReadSets();
   }
 
   async function removeReadLog(id, type) {
-    const tx = db.transaction(['reading_log','study_log'],'readwrite');
+    const tx = db.transaction(['reading_log', 'study_log'], 'readwrite');
     tx.objectStore('reading_log').delete(id);
     const today = new Date().toLocaleDateString('en-CA');
     const existing = studyLog.find(l => l.date === today && l.type === type);
@@ -308,11 +327,16 @@
       existing.count--;
       if (existing.count === 0) {
         studyLog = studyLog.filter(l => !(l.date === today && l.type === type));
-        await tx.objectStore('study_log').delete(`${today}_${type}`);
+        tx.objectStore('study_log').delete(`${today}_${type}`);
       } else {
-        await tx.objectStore('study_log').put({ id: `${today}_${type}`, date: today, type, count: existing.count });
+        tx.objectStore('study_log').put({ id: `${today}_${type}`, date: today, type, count: existing.count });
       }
     }
+    await new Promise((resolve, reject) => {
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+    await reloadReadSets();
   }
 
   // ========== TAGS ==========
@@ -332,6 +356,7 @@
     await saveToStore('collections', newCol);
     showToast(`📂 Coleção "${name}" criada`);
     if (document.getElementById('collectionModal').style.display === 'flex') renderCollectionsModal();
+    if (document.getElementById('collectionsMainView')) renderCollectionsMainView();
   }
   async function deleteCollection(id) {
     if (confirm('Excluir coleção permanentemente?')) {
@@ -339,6 +364,7 @@
       await deleteFromStore('collections', id);
       showToast('Coleção excluída');
       if (document.getElementById('collectionModal').style.display === 'flex') renderCollectionsModal();
+      if (document.getElementById('collectionsMainView')) renderCollectionsMainView();
     }
   }
   async function addToCollection(colId, item) {
@@ -347,6 +373,7 @@
       col.items.push(item);
       await saveToStore('collections', col);
       showToast(`Adicionado à coleção "${col.name}"`);
+      if (document.getElementById('collectionsMainView')) renderCollectionsMainView();
     }
   }
   async function removeFromCollection(colId, itemId) {
@@ -355,6 +382,7 @@
       col.items = col.items.filter(i=>i.id!==itemId);
       await saveToStore('collections', col);
       if (document.getElementById('collectionModal').style.display === 'flex') renderCollectionsModal();
+      if (document.getElementById('collectionsMainView')) renderCollectionsMainView();
     }
   }
 
@@ -372,7 +400,7 @@
     }
   }
 
-  // ========== BUSCAS COM PAGINAÇÃO ==========
+  // ========== BUSCAS ==========
   async function searchOpenAlex(query, type = 'article', oaOnly = true, page = 1) {
     let filter = oaOnly ? 'open_access.is_oa:true' : '';
     if (type === 'research') filter += (filter ? ',' : '') + 'type:article,type:report';
@@ -416,7 +444,7 @@
 
   async function searchResearch(query, oaOnly = true, page = 1) { return searchOpenAlex(query, 'research', oaOnly, page); }
 
-  // ========== RADAR CIENTÍFICO ==========
+  // ========== RADAR ==========
   async function searchOpenAlexForRadar(topic) {
     const url = `https://api.openalex.org/works?search=${encodeURIComponent(topic)}&filter=open_access.is_oa:true&sort=publication_date:desc&per-page=5`;
     try {
@@ -448,7 +476,7 @@
   function exportCSV() { let csv = "type,id,title\n"; const escapeCSV = (s) => s ? `"${s.replace(/"/g, '""')}"` : ''; articlesData.forEach(a=>csv+=`article,${a.id},${escapeCSV(a.title)}\n`); booksData.forEach(b=>csv+=`book,${b.id},${escapeCSV(b.title)}\n`); researchData.forEach(r=>csv+=`research,${r.id},${escapeCSV(r.title)}\n`); const blob = new Blob([csv], {type:'text/csv'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'readplus_data.csv'; a.click(); }
   function exportObsidian() { let md = ''; zettels.forEach(z => { md += `---\ntitle: ${z.title}\ntags: ${(z.tags||[]).join(',')}\n---\n\n${z.content}\n\n`; if (z.links) z.links.forEach(l=>md+=`[[${l}]]\n`); md += '\n\n'; }); const blob = new Blob([md], {type:'text/markdown'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'readplus_obsidian.md'; a.click(); }
 
-  // ========== RENDERIZAÇÃO DE RESULTADOS (com aria-label) ==========
+  // ========== RENDERIZAÇÃO DE RESULTADOS ==========
   function renderResults(containerId, items, type, readSet) {
     const container = document.getElementById(containerId);
     if (!items.length) { container.innerHTML = '<div class="no-results">🔍 Nenhum resultado encontrado.</div>'; return; }
@@ -501,7 +529,6 @@
     });
   }
 
-  // "Meus lidos" – carrega diretamente do IndexedDB
   async function updateReadArticlesList() {
     const container = document.getElementById('readArticlesList');
     if (!container) return;
@@ -522,7 +549,7 @@
     container.innerHTML = articles.map(a => `<div class="result-card"><div class="card-content"><a href="${sanitizeUrl(a.url)}" target="_blank" class="card-title">📄 ${escapeHtml(a.title)}</a><div class="card-meta">${escapeHtml(a.authors.join(', '))}</div></div></div>`).join('');
   }
 
-  // ========== DASHBOARD PROFISSIONAL ==========
+  // ========== DASHBOARD (com cache e limite de meses) ==========
   async function renderDashboard() {
     const totalRead = readArticles.size + readBooks.size + readResearch.size;
     const streak = (()=>{ let s=0, dates = [...new Set(studyLog.flatMap(l=>Array(l.count||1).fill(l.date)))].sort().reverse(); let last = new Date().toLocaleDateString('en-CA'); for (let d of dates) { if (d === last) { s++; last = new Date(Date.parse(last)-86400000).toLocaleDateString('en-CA'); } else break; } return s; })();
@@ -530,6 +557,9 @@
     const heatmapDays = [];
     for (let i=89; i>=0; i--) { let d = new Date(); d.setDate(d.getDate()-i); let dateStr = d.toLocaleDateString('en-CA'); let count = studyLog.filter(l=>l.date===dateStr).reduce((s,l)=>s+(l.count||0),0); heatmapDays.push({ date: dateStr, count }); }
     const heatmapHtml = '<div class="heatmap-grid">' + heatmapDays.map(day => `<div class="heatmap-day ${day.count>0?`heatmap-day-${Math.min(4,day.count)}`:''}" title="${day.date}: ${day.count} leituras"></div>`).join('') + '</div>';
+    const dataKey = `${totalRead}_${streak}_${tagCounts.map(t=>t[0]+t[1]).join('_')}_${studyLog.length}`;
+    if (lastDashboardData === dataKey) return;
+    lastDashboardData = dataKey;
     document.getElementById('execDashboard').innerHTML = `
       <div class="dashboard-grid">
         <div class="dashboard-card"><h3>📊 Estatísticas</h3><p>Total lidos: ${totalRead}</p><p>Sequência atual: ${streak} dias</p><p>Zettels: ${zettels.length}</p><p>XP: ${userProfile.xp} | Nível: ${userProfile.level}</p></div>
@@ -540,12 +570,20 @@
     `;
     const monthly = {};
     studyLog.forEach(l=>{ let m = l.date.slice(0,7); monthly[m] = (monthly[m]||0) + (l.count||1); });
-    const months = Object.keys(monthly).sort();
-    const counts = months.map(m=>monthly[m]);
+    let sortedMonths = Object.keys(monthly).sort().reverse();
+    let lastMonths = sortedMonths.slice(0, 12).reverse();
+    let counts = lastMonths.map(m => monthly[m]);
     if (currentChart) currentChart.destroy();
     const ctx = document.getElementById('monthlyChart')?.getContext('2d');
-    if (ctx && months.length) currentChart = new Chart(ctx, { type: 'line', data: { labels: months, datasets: [{ label: 'Leituras', data: counts, borderColor: '#00d4ff', tension: 0.3, fill: false }] } });
-    else if (ctx) currentChart = new Chart(ctx, { type: 'line', data: { labels: ['Nenhum dado'], datasets: [{ label: 'Leituras', data: [0] }] } });
+    if (ctx && lastMonths.length) {
+      currentChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels: lastMonths, datasets: [{ label: 'Leituras', data: counts, borderColor: '#00d4ff', tension: 0.3, fill: false }] },
+        options: { responsive: true, maintainAspectRatio: true }
+      });
+    } else if (ctx) {
+      currentChart = new Chart(ctx, { type: 'line', data: { labels: ['Nenhum dado'], datasets: [{ label: 'Leituras', data: [0] }] } });
+    }
   }
 
   // ========== ZETTELKASTEN ==========
@@ -591,7 +629,7 @@
     });
   }
 
-  // ========== MODAIS ==========
+  // ========== COLEÇÕES MODAL ==========
   function renderCollectionsModal() {
     const container = document.getElementById('collectionList');
     if (!container) return;
@@ -609,7 +647,31 @@
     document.querySelectorAll('.remove-item').forEach(btn => btn.onclick = async () => { await removeFromCollection(parseInt(btn.dataset.col), btn.dataset.item); renderCollectionsModal(); });
   }
 
-  // ========== ABAS PRINCIPAIS COM PAGINAÇÃO ==========
+  // ========== COLEÇÕES MAIN VIEW (nova sub-aba) ==========
+  async function renderCollectionsMainView() {
+    const container = document.getElementById('collectionsMainView');
+    if (!container) return;
+    if (!collections.length) { container.innerHTML = '<div class="no-results">Nenhuma coleção criada. Vá em "Gerenciar Coleções" para criar.</div>'; return; }
+    container.innerHTML = `<div class="collections-grid">${collections.map(col => `
+      <div class="dashboard-card">
+        <h3>📁 ${escapeHtml(col.name)}</h3>
+        <p>${col.items.length} itens</p>
+        <ul style="margin-top:8px; padding-left:16px;">${col.items.slice(0,5).map(i => `<li>📄 ${escapeHtml(i.title)}</li>`).join('')}</ul>
+        ${col.items.length > 5 ? '<small>...</small>' : ''}
+        <button class="action-btn view-collection-detail" data-id="${col.id}" style="margin-top:8px;">Ver todos</button>
+      </div>
+    `).join('')}</div>`;
+    document.querySelectorAll('.view-collection-detail').forEach(btn => {
+      btn.onclick = () => {
+        const col = collections.find(c=>c.id==btn.dataset.id);
+        if (col) {
+          alert(`📚 ${col.name}\n\n${col.items.map(i=>`- ${i.title}`).join('\n')}`);
+        }
+      };
+    });
+  }
+
+  // ========== ABAS PRINCIPAIS ==========
   async function renderArticlesTab() {
     const html = `
       <div class="sub-tabs"><button class="sub-tab active" data-sub="search">🔍 Buscar artigos</button><button class="sub-tab" data-sub="read">✅ Meus lidos</button></div>
@@ -628,22 +690,22 @@
     `;
     document.getElementById('mainContent').innerHTML = html;
     updateReadArticlesList();
-    let currentPage = 1;
+    let currentPageLocal = 1;
     document.getElementById('articlesSearchBtn').onclick = async () => {
       const q = document.getElementById('articlesQuery').value.trim(); if (!q) return;
-      currentPage = 1;
+      currentPageLocal = 1;
       currentQuery.articles = q;
       currentOaOnly = document.getElementById('oaOnlyCheckbox').checked;
       showLoading();
-      const results = await searchOpenAlex(q, 'article', currentOaOnly, currentPage);
+      const results = await searchOpenAlex(q, 'article', currentOaOnly, currentPageLocal);
       articlesData = results;
       renderResults('articlesResults', results, 'article', readArticles);
       const paginationDiv = document.getElementById('articlesPagination');
       if (results.length === 20) {
         paginationDiv.innerHTML = `<button class="search-btn" id="loadMoreArticles">Carregar mais</button>`;
         document.getElementById('loadMoreArticles').onclick = async () => {
-          currentPage++;
-          const more = await searchOpenAlex(q, 'article', currentOaOnly, currentPage);
+          currentPageLocal++;
+          const more = await searchOpenAlex(q, 'article', currentOaOnly, currentPageLocal);
           if (more.length) {
             articlesData = [...articlesData, ...more];
             renderResults('articlesResults', articlesData, 'article', readArticles);
@@ -659,21 +721,21 @@
   async function renderBooksTab() {
     const html = `<div class="search-area"><input id="booksQuery" class="search-input"><button id="booksSearchBtn" class="search-btn">Pesquisar livros</button></div><div id="booksResults"></div><div id="booksPagination" class="pagination-btn"></div>`;
     document.getElementById('mainContent').innerHTML = html;
-    let currentPage = 1;
+    let currentPageLocal = 1;
     document.getElementById('booksSearchBtn').onclick = async () => {
       const q = document.getElementById('booksQuery').value.trim(); if (!q) return;
-      currentPage = 1;
+      currentPageLocal = 1;
       currentQuery.books = q;
       showLoading();
-      const results = await searchBooks(q, currentPage);
+      const results = await searchBooks(q, currentPageLocal);
       booksData = results;
       renderResults('booksResults', results, 'book', readBooks);
       const paginationDiv = document.getElementById('booksPagination');
       if (results.length === 20) {
         paginationDiv.innerHTML = `<button class="search-btn" id="loadMoreBooks">Carregar mais</button>`;
         document.getElementById('loadMoreBooks').onclick = async () => {
-          currentPage++;
-          const more = await searchBooks(q, currentPage);
+          currentPageLocal++;
+          const more = await searchBooks(q, currentPageLocal);
           if (more.length) {
             booksData = [...booksData, ...more];
             renderResults('booksResults', booksData, 'book', readBooks);
@@ -688,21 +750,21 @@
   async function renderResearchTab() {
     const html = `<div class="search-area"><input id="researchQuery" class="search-input"><button id="researchSearchBtn" class="search-btn">Pesquisar pesquisas</button></div><div id="researchResults"></div><div id="researchPagination" class="pagination-btn"></div>`;
     document.getElementById('mainContent').innerHTML = html;
-    let currentPage = 1;
+    let currentPageLocal = 1;
     document.getElementById('researchSearchBtn').onclick = async () => {
       const q = document.getElementById('researchQuery').value.trim(); if (!q) return;
-      currentPage = 1;
+      currentPageLocal = 1;
       currentQuery.research = q;
       showLoading();
-      const results = await searchResearch(q, true, currentPage);
+      const results = await searchResearch(q, true, currentPageLocal);
       researchData = results;
       renderResults('researchResults', results, 'research', readResearch);
       const paginationDiv = document.getElementById('researchPagination');
       if (results.length === 20) {
         paginationDiv.innerHTML = `<button class="search-btn" id="loadMoreResearch">Carregar mais</button>`;
         document.getElementById('loadMoreResearch').onclick = async () => {
-          currentPage++;
-          const more = await searchResearch(q, true, currentPage);
+          currentPageLocal++;
+          const more = await searchResearch(q, true, currentPageLocal);
           if (more.length) {
             researchData = [...researchData, ...more];
             renderResults('researchResults', researchData, 'research', readResearch);
@@ -719,23 +781,22 @@
       <div class="sub-tabs">
         <button class="sub-tab active" data-sub="dashboard">📊 Dashboard</button>
         <button class="sub-tab" data-sub="zettel">📔 Zettelkasten</button>
+        <button class="sub-tab" data-sub="collections">📚 Coleções</button>
         <button class="sub-tab" data-sub="radar">📡 Radar</button>
-        <button class="sub-tab" data-sub="collections">📂 Coleções</button>
         <button class="sub-tab" data-sub="export">💾 Exportar</button>
       </div>
       <div id="brainDashboard" class="sub-content active"><div id="execDashboard"></div></div>
       <div id="brainZettel" class="sub-content"><div id="zettelList"></div><button id="newZettelBtn" class="search-btn" style="margin-top:16px;">➕ Nova nota atômica</button></div>
+      <div id="brainCollections" class="sub-content"><div id="collectionsMainView"></div></div>
       <div id="brainRadar" class="sub-content"><div id="radarPlaceholder"></div></div>
-      <div id="brainCollections" class="sub-content"><div id="collectionsPlaceholder"></div></div>
       <div id="brainExport" class="sub-content"><div id="exportPlaceholder"></div></div>
     `;
     document.getElementById('mainContent').innerHTML = html;
-    renderDashboard(); renderZettelList();
+    renderDashboard(); renderZettelList(); renderCollectionsMainView();
     document.getElementById('newZettelBtn').onclick = () => { const title = prompt('Título da nota atômica:'); if (title) { const newZ = { id: stableHash(title+Date.now()), title, content: '', type: 'fleeting', created: Date.now(), updated: Date.now(), tags: [], links: [] }; zettels.push(newZ); saveToStore('zettels', newZ); renderZettelList(); } };
     document.getElementById('radarPlaceholder').innerHTML = '<button id="openRadarModal" class="search-btn">Abrir Radar Científico</button>'; document.getElementById('openRadarModal').onclick = () => { document.getElementById('radarModal').style.display = 'flex'; renderRadarModal(); };
-    document.getElementById('collectionsPlaceholder').innerHTML = '<button id="openCollectionsModal" class="search-btn">Gerenciar Coleções</button>'; document.getElementById('openCollectionsModal').onclick = () => { document.getElementById('collectionModal').style.display = 'flex'; renderCollectionsModal(); };
     document.getElementById('exportPlaceholder').innerHTML = '<button id="openExportModal" class="search-btn">Exportar Dados</button>'; document.getElementById('openExportModal').onclick = () => { document.getElementById('exportModal').style.display = 'flex'; };
-    document.querySelectorAll('.sub-tab').forEach(btn => btn.onclick = () => { const target = btn.dataset.sub; document.querySelectorAll('.sub-tab').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); document.querySelectorAll('.sub-content').forEach(c=>c.classList.remove('active')); document.getElementById(`brain${target==='dashboard'?'Dashboard':target==='zettel'?'Zettel':target==='radar'?'Radar':target==='collections'?'Collections':'Export'}`).classList.add('active'); if (target === 'dashboard') renderDashboard(); if (target === 'zettel') renderZettelList(); });
+    document.querySelectorAll('.sub-tab').forEach(btn => btn.onclick = () => { const target = btn.dataset.sub; document.querySelectorAll('.sub-tab').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); document.querySelectorAll('.sub-content').forEach(c=>c.classList.remove('active')); document.getElementById(`brain${target==='dashboard'?'Dashboard':target==='zettel'?'Zettel':target==='collections'?'Collections':target==='radar'?'Radar':'Export'}`).classList.add('active'); if (target === 'dashboard') renderDashboard(); if (target === 'zettel') renderZettelList(); if (target === 'collections') renderCollectionsMainView(); });
   }
 
   // ========== INICIALIZAÇÃO ==========
