@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+  <meta name="theme-color" content="#14191c">
+  <title>📚 PaperSeek · Buscador de Artigos + Contador de Leituras</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --accent: #2D7A6E;
+      --accent-glow: rgba(45, 122, 110, 0.3);
+      --card-bg: rgba(20, 25, 28, 0.65);
+      --border-light: rgba(255,255,255,0.1);
+      --text-primary: #FCF7F0;
+      --text-secondary: #CBD5E1;
+      --overlay: rgba(0,0,0,0.55);
+      --input-bg: rgba(255,255,255,0.08);
+      --checkbox-bg: rgba(255,255,255,0.1);
+    }
+
+    body.light {
+      --card-bg: rgba(245, 248, 250, 0.75);
+      --border-light: rgba(0, 0, 0, 0.08);
+      --text-primary: #1e2a2e;
+      --text-secondary: #2c3e3e;
+      --overlay: rgba(255,255,255,0.4);
+      --input-bg: rgba(0,0,0,0.04);
+      --checkbox-bg: rgba(0,0,0,0.05);
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      transition: background 0.3s;
+      padding: 20px 16px;
+    }
+    body.light {
+      background: linear-gradient(135deg, #e2e8f0 0%, #f1f5f9 100%);
+    }
+
+    .overlay-bg {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: var(--overlay);
+      z-index: -1;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    /* HEADER com contador circular */
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+      position: relative;
+    }
+    .header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.5rem;
+      background: linear-gradient(135deg, #F5E7D3 0%, var(--accent) 100%);
+      background-clip: text;
+      color: transparent;
+      letter-spacing: -0.5px;
+    }
+    .header p {
+      color: var(--text-secondary);
+      margin-top: 8px;
+    }
+
+    /* Botão tema */
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--card-bg);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-light);
+      border-radius: 60px;
+      padding: 8px 16px;
+      display: flex;
+      gap: 8px;
+      cursor: pointer;
+      z-index: 100;
+      font-size: 1rem;
+    }
+
+    /* Card principal */
+    .search-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      border-radius: 32px;
+      border: 1px solid var(--border-light);
+      padding: 28px 32px;
+      transition: all 0.3s;
+    }
+
+    /* Área de pesquisa */
+    .input-group {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    #queryInput {
+      flex: 1;
+      padding: 16px 22px;
+      border-radius: 60px;
+      border: 1px solid var(--border-light);
+      background: var(--input-bg);
+      color: var(--text-primary);
+      font-size: 1rem;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.2s;
+    }
+    #queryInput:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    #searchBtn {
+      background: var(--accent);
+      border: none;
+      padding: 12px 32px;
+      border-radius: 60px;
+      font-weight: 600;
+      color: white;
+      cursor: pointer;
+      transition: transform 0.2s, background 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #searchBtn:hover {
+      background: #1e5f55;
+      transform: scale(1.02);
+    }
+
+    /* Barra de estatísticas e ações */
+    .stats-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 12px;
+      border-top: 1px solid var(--border-light);
+      padding-top: 20px;
+    }
+    .counter-circle {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(0,0,0,0.3);
+      backdrop-filter: blur(4px);
+      padding: 6px 18px;
+      border-radius: 60px;
+    }
+    .progress-ring {
+      width: 48px;
+      height: 48px;
+    }
+    .progress-ring-circle {
+      transition: stroke-dashoffset 0.35s;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
+      stroke: var(--accent);
+      fill: none;
+      stroke-width: 4;
+    }
+    .counter-text {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .action-buttons {
+      display: flex;
+      gap: 12px;
+    }
+    .action-btn {
+      background: rgba(255,255,255,0.1);
+      border: none;
+      padding: 8px 20px;
+      border-radius: 40px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      color: var(--text-primary);
+      transition: background 0.2s;
+    }
+    .action-btn:hover {
+      background: var(--accent);
+      color: white;
+    }
+
+    /* Lista de artigos */
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .results-header h2 {
+      font-size: 1.2rem;
+      font-weight: 500;
+    }
+    .article-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-height: 550px;
+      overflow-y: auto;
+      padding-right: 6px;
+    }
+    .article-card {
+      background: rgba(0,0,0,0.25);
+      backdrop-filter: blur(4px);
+      border-radius: 24px;
+      padding: 18px;
+      transition: all 0.2s;
+      border: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    .article-card:hover {
+      background: rgba(0,0,0,0.4);
+      transform: translateX(4px);
+    }
+    .checkbox-wrapper {
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+    .custom-checkbox {
+      width: 24px;
+      height: 24px;
+      background: var(--checkbox-bg);
+      border: 2px solid var(--accent);
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: white;
+      font-size: 14px;
+    }
+    .custom-checkbox.checked {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .article-content {
+      flex: 1;
+    }
+    .article-title {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--accent);
+      text-decoration: none;
+      display: inline-block;
+      margin-bottom: 6px;
+    }
+    .article-title:hover {
+      text-decoration: underline;
+    }
+    .article-authors {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+    .article-abstract {
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      margin: 8px 0;
+      opacity: 0.9;
+      line-height: 1.4;
+    }
+    .btn-pdf {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(45,122,110,0.85);
+      padding: 6px 14px;
+      border-radius: 40px;
+      text-decoration: none;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: white;
+      transition: background 0.2s;
+    }
+    .btn-pdf:hover {
+      background: var(--accent);
+    }
+    .no-results, .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-secondary);
+    }
+    .footer {
+      text-align: center;
+      margin-top: 32px;
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+    }
+
+    /* scroll */
+    .article-list::-webkit-scrollbar { width: 6px; }
+    .article-list::-webkit-scrollbar-track { background: rgba(255,255,255,0.1); border-radius: 10px; }
+    .article-list::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
+
+    @media (max-width: 640px) {
+      .search-card { padding: 18px; }
+      .input-group { flex-direction: column; }
+      #searchBtn { width: 100%; justify-content: center; }
+      .article-card { flex-direction: column; }
+      .stats-bar { flex-direction: column; align-items: stretch; }
+    }
+  </style>
+</head>
+<body>
+<div class="overlay-bg"></div>
+<div class="theme-toggle" id="themeToggle">
+  <span>🌙</span> <span>☀️</span>
+</div>
+<div class="container">
+  <div class="header">
+    <h1>📚 PaperSeek</h1>
+    <p>Busque artigos acadêmicos gratuitos · Marque seus lidos</p>
+  </div>
+  <div class="search-card">
+    <div class="input-group">
+      <input type="text" id="queryInput" placeholder="Ex: machine learning in healthcare, climate change, theology..." autocomplete="off">
+      <button id="searchBtn">🔍 Pesquisar</button>
+    </div>
+    <div id="resultsArea" style="display: none;">
+      <div class="stats-bar">
+        <div class="counter-circle">
+          <svg class="progress-ring" width="48" height="48">
+            <circle class="progress-ring-circle" cx="24" cy="24" r="20" stroke-width="4" fill="none" stroke="currentColor" stroke-dasharray="125.6" stroke-dashoffset="0"></circle>
+          </svg>
+          <span id="counterText" class="counter-text">0 / 0 lidos</span>
+        </div>
+        <div class="action-buttons">
+          <button id="markAllBtn" class="action-btn">✅ Marcar todos</button>
+          <button id="clearAllBtn" class="action-btn">🗑️ Limpar leituras</button>
+        </div>
+      </div>
+      <div class="results-header">
+        <h2>📄 Artigos encontrados</h2>
+        <span id="resultCount" style="font-size:0.8rem;"></span>
+      </div>
+      <div id="articleList" class="article-list"></div>
+    </div>
+  </div>
+  <div class="footer">
+    <span>🔎 Fontes: CORE API + arXiv · Links para PDF · Leituras salvas no navegador</span>
+  </div>
+</div>
+
+<script>
+  // ---------------------- BUSCADOR DE ARTIGOS ----------------------
+  const queryInput = document.getElementById('queryInput');
+  const searchBtn = document.getElementById('searchBtn');
+  const resultsArea = document.getElementById('resultsArea');
+  const articleListDiv = document.getElementById('articleList');
+  const resultCountSpan = document.getElementById('resultCount');
+  const counterTextSpan = document.getElementById('counterText');
+  const progressCircle = document.querySelector('.progress-ring-circle');
+  const markAllBtn = document.getElementById('markAllBtn');
+  const clearAllBtn = document.getElementById('clearAllBtn');
+
+  // Tema
+  const themeToggle = document.getElementById('themeToggle');
+  if (localStorage.getItem('theme') === 'light') document.body.classList.add('light');
+  themeToggle.addEventListener('click', () => {
+    document.body.classList.toggle('light');
+    localStorage.setItem('theme', document.body.classList.contains('light') ? 'light' : 'dark');
+  });
+
+  // Armazenamento dos artigos lidos (chave: identificador único)
+  let readArticles = new Set(); // guarda identificadores (ex: título + URL ou index)
+  let currentArticles = [];     // artigos da busca atual (cada um com id único)
+
+  function loadReadStatus() {
+    const stored = localStorage.getItem('paperseek_read');
+    if (stored) {
+      readArticles = new Set(JSON.parse(stored));
+    }
+  }
+  function saveReadStatus() {
+    localStorage.setItem('paperseek_read', JSON.stringify([...readArticles]));
+  }
+
+  function updateCounter() {
+    const total = currentArticles.length;
+    let readCount = 0;
+    currentArticles.forEach(art => {
+      if (readArticles.has(art.id)) readCount++;
+    });
+    counterTextSpan.innerText = `${readCount} / ${total} lidos`;
+    // atualizar anel de progresso (circunferência = 2*pi*20 ≈ 125.66)
+    const percent = total === 0 ? 0 : readCount / total;
+    const dashoffset = 125.66 * (1 - percent);
+    progressCircle.style.strokeDashoffset = dashoffset;
+  }
+
+  function renderArticles(articles) {
+    currentArticles = articles;
+    if (!articles.length) {
+      articleListDiv.innerHTML = `<div class="no-results">😕 Nenhum artigo encontrado. Tente outro termo.</div>`;
+      resultCountSpan.textContent = '0 resultados';
+      updateCounter();
+      return;
+    }
+    resultCountSpan.textContent = `${articles.length} resultados`;
+    articleListDiv.innerHTML = articles.map(art => {
+      const isChecked = readArticles.has(art.id);
+      return `
+        <div class="article-card" data-id="${art.id}">
+          <div class="checkbox-wrapper">
+            <div class="custom-checkbox ${isChecked ? 'checked' : ''}" data-id="${art.id}">${isChecked ? '✓' : ''}</div>
+          </div>
+          <div class="article-content">
+            <div>
+              <a href="${art.pdfUrl || '#'}" target="_blank" class="article-title" style="${!art.pdfUrl ? 'opacity:0.6; cursor:default;' : ''}">
+                📄 ${escapeHtml(art.title)}
+              </a>
+              <div class="article-authors">${art.authors.slice(0, 3).join(', ') || 'Autor(es) não informado'} ${art.authors.length > 3 ? '…' : ''}</div>
+              <div class="article-abstract">${escapeHtml(art.abstract.substring(0, 300))}${art.abstract.length > 300 ? '…' : ''}</div>
+              <div style="margin-top: 12px; display: flex; gap: 12px; align-items: center;">
+                ${art.pdfUrl ? `<a href="${art.pdfUrl}" target="_blank" class="btn-pdf">📖 Ler PDF</a>` : '<span style="font-size:0.75rem; opacity:0.6;">📄 PDF não disponível</span>'}
+                <span style="font-size:0.7rem; background:rgba(0,0,0,0.3); padding:2px 8px; border-radius:20px;">${art.source}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Adicionar eventos de clique nos checkboxes
+    document.querySelectorAll('.custom-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = checkbox.getAttribute('data-id');
+        if (readArticles.has(id)) {
+          readArticles.delete(id);
+          checkbox.classList.remove('checked');
+          checkbox.innerText = '';
+        } else {
+          readArticles.add(id);
+          checkbox.classList.add('checked');
+          checkbox.innerText = '✓';
+        }
+        saveReadStatus();
+        updateCounter();
+        // Atualizar visualmente o checkbox na lista (já foi)
+      });
+    });
+    updateCounter();
+  }
+
+  function markAllAsRead() {
+    currentArticles.forEach(art => {
+      readArticles.add(art.id);
+    });
+    saveReadStatus();
+    renderArticles(currentArticles); // recarrega a lista (atualiza checkboxes)
+  }
+
+  function clearAllRead() {
+    currentArticles.forEach(art => {
+      readArticles.delete(art.id);
+    });
+    saveReadStatus();
+    renderArticles(currentArticles);
+  }
+
+  markAllBtn.addEventListener('click', markAllAsRead);
+  clearAllBtn.addEventListener('click', clearAllRead);
+
+  // Funções de busca (CORE + arXiv)
+  async function searchCore(query) {
+    const url = `https://api.core.ac.uk/v3/search/works?q=${encodeURIComponent(query)}&limit=10`;
+    try {
+      const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.results.map(article => ({
+        title: article.title || 'Sem título',
+        authors: article.authors?.map(a => a.name) || [],
+        abstract: article.abstract || 'Resumo não disponível.',
+        pdfUrl: article.downloadUrl || article.pdfUrl || null,
+        source: 'CORE'
+      }));
+    } catch (e) { return []; }
+  }
+
+  async function searchArXiv(query) {
+    const url = `https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&max_results=8`;
+    try {
+      const res = await fetch(url);
+      const text = await res.text();
+      const parser = new DOMParser();
+      const xml = parser.parseFromString(text, 'text/xml');
+      const entries = xml.querySelectorAll('entry');
+      const results = [];
+      entries.forEach(entry => {
+        let pdfUrl = '';
+        const links = entry.querySelectorAll('link');
+        links.forEach(link => {
+          if (link.getAttribute('title') === 'pdf' || link.getAttribute('type') === 'application/pdf') {
+            pdfUrl = link.getAttribute('href');
+          }
+        });
+        if (!pdfUrl) {
+          const id = entry.querySelector('id')?.textContent;
+          if (id) pdfUrl = id.replace('abs', 'pdf') + '.pdf';
+        }
+        results.push({
+          title: entry.querySelector('title')?.textContent?.trim() || 'Sem título',
+          authors: Array.from(entry.querySelectorAll('author name')).map(el => el.textContent),
+          abstract: entry.querySelector('summary')?.textContent?.trim()?.substring(0, 500) || '',
+          pdfUrl,
+          source: 'arXiv'
+        });
+      });
+      return results;
+    } catch (e) { return []; }
+  }
+
+  async function performSearch() {
+    const query = queryInput.value.trim();
+    if (!query) return;
+    resultsArea.style.display = 'block';
+    articleListDiv.innerHTML = `<div class="loading">🔍 Buscando artigos em CORE e arXiv... Aguarde.</div>`;
+    resultCountSpan.textContent = 'buscando...';
+    const [core, arxiv] = await Promise.all([searchCore(query), searchArXiv(query)]);
+    let all = [...core, ...arxiv];
+    // remover duplicados simples por título
+    const unique = [];
+    const titles = new Set();
+    for (const art of all) {
+      if (!titles.has(art.title.toLowerCase())) {
+        titles.add(art.title.toLowerCase());
+        unique.push(art);
+      }
+    }
+    // Atribuir ids únicos (baseados no título + fonte)
+    const articlesWithId = unique.slice(0, 18).map((art, idx) => ({
+      ...art,
+      id: btoa(art.title + art.source + idx).replace(/[^a-zA-Z0-9]/g, '')
+    }));
+    renderArticles(articlesWithId);
+  }
+
+  searchBtn.addEventListener('click', performSearch);
+  queryInput.addEventListener('keypress', (e) => e.key === 'Enter' && performSearch());
+
+  function escapeHtml(str) {
+    return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m]));
+  }
+
+  loadReadStatus();
+</script>
+</body>
+</html>
