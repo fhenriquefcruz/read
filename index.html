@@ -41,8 +41,6 @@
       z-index: 0;
     }
     .container { max-width: 1400px; margin: 0 auto; position: relative; z-index: 2; }
-    
-    /* Logo assimétrica moderna */
     .header { text-align: center; margin-bottom: 40px; }
     .logo-wrapper {
       display: inline-block;
@@ -63,28 +61,8 @@
     }
     @keyframes float { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-5px); } }
     .logo span { font-size: 1.2rem; vertical-align: super; background: linear-gradient(135deg, var(--glow-primary), var(--glow-secondary)); background-clip: text; color: transparent; font-weight: 700; margin-left: 4px; }
-    .tagline {
-      font-size: 0.85rem;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      background: linear-gradient(90deg, var(--text-secondary), var(--glow-primary), var(--text-secondary));
-      background-clip: text;
-      color: transparent;
-      margin-top: 12px;
-      font-weight: 400;
-    }
-    .description {
-      max-width: 650px;
-      margin: 16px auto 0;
-      font-size: 0.85rem;
-      line-height: 1.5;
-      color: var(--text-secondary);
-      background: rgba(0,0,0,0.3);
-      backdrop-filter: blur(8px);
-      border-radius: 60px;
-      padding: 10px 24px;
-      border: 1px solid var(--border-light);
-    }
+    .tagline { font-size: 0.85rem; letter-spacing: 2px; text-transform: uppercase; background: linear-gradient(90deg, var(--text-secondary), var(--glow-primary), var(--text-secondary)); background-clip: text; color: transparent; margin-top: 12px; font-weight: 400; }
+    .description { max-width: 650px; margin: 16px auto 0; font-size: 0.85rem; line-height: 1.5; color: var(--text-secondary); background: rgba(0,0,0,0.3); backdrop-filter: blur(8px); border-radius: 60px; padding: 10px 24px; border: 1px solid var(--border-light); }
     .main-tabs {
       display: flex; justify-content: center; gap: 20px; margin-bottom: 28px;
       border-bottom: 1px solid var(--border-light); padding-bottom: 8px; flex-wrap: wrap;
@@ -112,7 +90,6 @@
     .sub-content { display: none; animation: fadeIn 0.25s ease; }
     .sub-content.active { display: block; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-    
     .search-area { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
     .search-input {
       flex: 1; padding: 12px 20px; border-radius: 60px; border: 1px solid var(--border-light);
@@ -146,7 +123,7 @@
       font-size: 0.65rem; margin-right: 6px;
     }
     .action-btn:hover { background: var(--glow-primary); color: #02040c; }
-    .badge { background: linear-gradient(135deg, #00d4ff, #7b2cbf); border-radius: 30px; padding: 3px 10px; font-size: 0.65rem; display: inline-block; margin: 2px; }
+    .badge { background: linear-gradient(135deg, #00d4ff, #7b2cbf); border-radius: 30px; padding: 3px 10px; font-size: 0.65rem; display: inline-block; margin: 2px; cursor: pointer; }
     .no-results { text-align: center; padding: 40px; color: var(--text-secondary); }
     .footer { text-align: center; margin-top: 24px; font-size: 0.65rem; color: var(--text-secondary); }
     .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin: 20px 0; }
@@ -162,6 +139,17 @@
     .loading-spinner { width: 50px; height: 50px; border: 3px solid rgba(0,212,255,0.2); border-top-color: var(--glow-primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
     .loading-text { font-size: 0.9rem; letter-spacing: 2px; background: linear-gradient(90deg, var(--glow-primary), var(--glow-secondary)); background-clip: text; color: transparent; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    .modal {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8); backdrop-filter: blur(12px); z-index: 10000;
+      align-items: center; justify-content: center;
+    }
+    .modal-content {
+      background: var(--bg-card); backdrop-filter: blur(16px); border-radius: 32px;
+      padding: 24px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto;
+      border: 1px solid var(--border-light);
+    }
+    .modal-content .close { float: right; font-size: 24px; cursor: pointer; }
     @media (max-width: 700px) { .glass-card { padding: 16px; } .main-tab { padding: 8px 16px; font-size: 0.9rem; } .result-card { flex-direction: column; } .search-area { flex-direction: column; } }
   </style>
 </head>
@@ -183,6 +171,12 @@
   <div class="glass-card" id="mainContent"></div>
   <div class="footer">🔎 Fontes: OpenAlex · Google Books · IndexedDB · Backlinks</div>
 </div>
+
+<!-- Modais -->
+<div id="collectionModal" class="modal"><div class="modal-content"><span class="close">&times;</span><h3>📂 Coleções</h3><div id="collectionList"></div><input type="text" id="newCollectionName" placeholder="Nova coleção"><button id="createCollectionBtn" class="search-btn" style="margin-top:10px;">Criar</button></div></div>
+<div id="exportModal" class="modal"><div class="modal-content"><span class="close">&times;</span><h3>💾 Exportar</h3><button id="exportJSONBtn" class="search-btn">JSON</button><button id="exportCSVBtn" class="search-btn">CSV</button><button id="exportObsidianBtn" class="search-btn">Markdown (Obsidian)</button></div></div>
+<div id="radarModal" class="modal"><div class="modal-content"><span class="close">&times;</span><h3>📡 Radar Científico</h3><input type="text" id="radarTopicInput" placeholder="Novo tema"><button id="addRadarTopicBtn" class="search-btn">Adicionar</button><div id="radarTopicsList"></div><div id="radarResults"></div></div></div>
+
 <div id="loadingOverlay" class="loading-overlay">
   <div class="loading-spinner"></div>
   <div class="loading-text">carregando conhecimento...</div>
@@ -194,23 +188,28 @@
   let articlesData = [], booksData = [], researchData = [];
   let readArticles = new Set(), readBooks = new Set(), readResearch = new Set();
   let favorites = { articles: [], books: [], research: [] };
-  let notes = {}, tags = {}, userProfile = { name: "Pesquisador", xp: 0, level: 0 };
-  let zettels = [];
-  let studyLog = [];
+  let notes = {}, tags = {}, collections = [];
+  let userProfile = { name: "Pesquisador", xp: 0, level: 0, badges: [] };
+  let zettels = [], backlinks = new Map(); // backlinks: target -> { incoming: [], outgoing: [] }
+  let studyLog = []; // { date, type, id }
+  let radarTopics = [];
   let currentChart = null;
+  let loadingTimeout = null;
 
+  // Helpers
   function escapeHtml(str) { return str == null ? '' : String(str).replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[m])); }
   function sanitizeUrl(url) { return (!url || !url.startsWith('http')) ? '#' : url; }
   function stableHash(str) { let h = 0; for (let i=0;i<str.length;i++) h = ((h<<5)-h)+str.charCodeAt(i)|0; return Math.abs(h).toString(36); }
   function showToast(msg) { const t=document.createElement('div'); t.innerText=msg; t.style.cssText='position:fixed;bottom:20px;right:20px;background:var(--glow-primary);color:#02040c;padding:10px 20px;border-radius:40px;z-index:10000'; document.body.appendChild(t); setTimeout(()=>t.remove(),3000); }
-  
-  function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
-  function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+  function addXP(amount) { userProfile.xp += amount; let newLevel = Math.min(4, Math.floor(userProfile.xp/100)); if (newLevel > userProfile.level) { userProfile.level = newLevel; const lvls=['Explorador','Pesquisador','Analista','Especialista','Mestre']; if (!userProfile.badges.includes(lvls[newLevel])) userProfile.badges.push(lvls[newLevel]); showToast(`🎉 Nível ${lvls[newLevel]} alcançado!`); } saveProfile(); }
+  function saveProfile() { const tx = db.transaction(['settings'],'readwrite'); tx.objectStore('settings').put({ key: 'profile', value: userProfile }); }
+  function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); if (loadingTimeout) clearTimeout(loadingTimeout); loadingTimeout = setTimeout(() => { if (document.getElementById('loadingOverlay').classList.contains('active')) { document.getElementById('loadingOverlay').classList.remove('active'); showToast('A busca demorou muito. Tente novamente.'); } }, 15000); }
+  function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); if (loadingTimeout) clearTimeout(loadingTimeout); }
 
   // ========== INDEXEDDB ==========
   async function initDB() {
     return new Promise((resolve) => {
-      const req = indexedDB.open('ReadPlusDB', 6);
+      const req = indexedDB.open('ReadPlusDB', 7);
       req.onupgradeneeded = (e) => {
         const db = e.target.result;
         const stores = ['articles','books','research','notes','collections','tags','favorites','reading_log','study_log','radar','settings','zettels','backlinks'];
@@ -221,9 +220,9 @@
   }
 
   async function loadAllData() {
-    const stores = ['articles','books','research','notes','collections','tags','favorites','reading_log','study_log','settings','zettels'];
+    const stores = ['articles','books','research','notes','collections','tags','favorites','reading_log','study_log','radar','settings','zettels','backlinks'];
     for (let s of stores) {
-      const data = await new Promise(res => { db.transaction([s],'readonly').objectStore(s).getAll().onsuccess = e => res(e.target.result); });
+      const data = await new Promise(res => { if (!db) return res([]); try { db.transaction([s],'readonly').objectStore(s).getAll().onsuccess = e => res(e.target.result); } catch(e) { res([]); } });
       if (s === 'articles') articlesData = data;
       else if (s === 'books') booksData = data;
       else if (s === 'research') researchData = data;
@@ -241,26 +240,378 @@
         });
       }
       else if (s === 'study_log') studyLog = data;
+      else if (s === 'radar') radarTopics = data.map(r=>r.topic);
       else if (s === 'settings') { let p = data.find(d=>d.key==='profile'); if (p) userProfile = p.value; }
       else if (s === 'zettels') zettels = data;
+      else if (s === 'backlinks') data.forEach(b=>backlinks.set(b.id, b));
     }
   }
 
-  async function saveReadLog(id, type) {
-    const tx = db.transaction(['reading_log'],'readwrite');
-    tx.objectStore('reading_log').put({ id, type, date: new Date().toISOString() });
-  }
-  async function removeReadLog(id, type) {
-    const tx = db.transaction(['reading_log'],'readwrite');
-    tx.objectStore('reading_log').delete(id);
-  }
-  async function saveZettel(z) {
-    const tx = db.transaction(['zettels'],'readwrite');
-    tx.objectStore('zettels').put(z);
-    zettels = [...zettels.filter(zz=>zz.id!==z.id), z];
+  async function saveToStore(storeName, item) {
+    const tx = db.transaction([storeName],'readwrite');
+    tx.objectStore(storeName).put(item);
   }
 
-  // ========== APIS ==========
+  async function saveReadLog(id, type) {
+    const tx = db.transaction(['reading_log','study_log'],'readwrite');
+    tx.objectStore('reading_log').put({ id, type, date: new Date().toISOString() });
+    const today = new Date().toLocaleDateString('en-CA');
+    studyLog.push({ date: today, type, id });
+    tx.objectStore('study_log').put({ id: `${type}_${id}_${today}`, date: today, type, id });
+    addXP(10);
+  }
+  async function removeReadLog(id, type) {
+    const tx = db.transaction(['reading_log','study_log'],'readwrite');
+    tx.objectStore('reading_log').delete(id);
+    // não remove do study_log para manter histórico, mas pode ser ajustado
+  }
+
+  // ========== TAGS ==========
+  async function addTag(contentId, tag, contentType) {
+    const normalized = tag.trim().toLowerCase();
+    if (!tags[normalized]) tags[normalized] = [];
+    if (!tags[normalized].includes(contentId)) tags[normalized].push(contentId);
+    await saveToStore('tags', { id: normalized, items: tags[normalized] });
+    showToast(`🏷️ Tag "${normalized}" adicionada`);
+    addXP(5);
+  }
+
+  // ========== COLEÇÕES ==========
+  async function createCollection(name) {
+    const newCol = { id: Date.now(), name, items: [] };
+    collections.push(newCol);
+    await saveToStore('collections', newCol);
+    showToast(`📂 Coleção "${name}" criada`);
+    renderCollectionsModal();
+  }
+  async function addToCollection(colId, item) {
+    const col = collections.find(c=>c.id===colId);
+    if (col && !col.items.some(i=>i.id===item.id)) {
+      col.items.push(item);
+      await saveToStore('collections', col);
+      showToast(`Adicionado à coleção "${col.name}"`);
+    }
+  }
+  async function removeFromCollection(colId, itemId) {
+    const col = collections.find(c=>c.id===colId);
+    if (col) { col.items = col.items.filter(i=>i.id!==itemId); await saveToStore('collections', col); }
+  }
+
+  // ========== BACKLINKS (parsing [[links]]) ==========
+  async function updateBacklinksForZettel(zettelId, content) {
+    const regex = /\[\[(.*?)\]\]/g;
+    let match; const links = [];
+    while ((match = regex.exec(content)) !== null) links.push(match[1]);
+    for (let target of links) {
+      let entry = backlinks.get(target) || { id: target, incoming: [], outgoing: [] };
+      if (!entry.incoming.includes(zettelId)) entry.incoming.push(zettelId);
+      if (!entry.outgoing.includes(zettelId)) entry.outgoing.push(zettelId);
+      backlinks.set(target, entry);
+      await saveToStore('backlinks', entry);
+    }
+  }
+
+  // ========== RADAR CIENTÍFICO ==========
+  async function searchOpenAlexForRadar(topic) {
+    const url = `https://api.openalex.org/works?search=${encodeURIComponent(topic)}&filter=open_access.is_oa:true&sort=publication_date:desc&per-page=5`;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.results.map(w => ({ title: w.title, url: w.open_access?.oa_url || w.id, year: w.publication_date?.slice(0,4) }));
+    } catch(e) { return []; }
+  }
+  async function renderRadarModal() {
+    const listDiv = document.getElementById('radarTopicsList');
+    const resultsDiv = document.getElementById('radarResults');
+    listDiv.innerHTML = radarTopics.map((t,i)=>`<span class="badge">${escapeHtml(t)} <button class="removeRadarTopic" data-idx="${i}" style="background:none;border:none;color:white;">❌</button></span>`).join('');
+    resultsDiv.innerHTML = '<div class="no-results">Selecione um tema para ver novidades.</div>';
+    document.querySelectorAll('.removeRadarTopic').forEach(btn => btn.onclick = async () => { radarTopics.splice(btn.dataset.idx,1); await saveToStore('radar', { topic: radarTopics }); renderRadarModal(); });
+    // Eventos nos badges para buscar notícias
+    document.querySelectorAll('#radarTopicsList .badge').forEach(badge => {
+      badge.onclick = async () => {
+        const topic = badge.innerText.replace('❌','').trim();
+        resultsDiv.innerHTML = '<div class="loader"><div class="spinner"></div><div>Buscando...</div></div>';
+        const articles = await searchOpenAlexForRadar(topic);
+        if (!articles.length) resultsDiv.innerHTML = '<div class="no-results">Nenhum artigo recente encontrado.</div>';
+        else resultsDiv.innerHTML = articles.map(a => `<div class="result-card"><div class="card-content"><a href="${sanitizeUrl(a.url)}" target="_blank" class="card-title">${escapeHtml(a.title)}</a><div class="card-meta">${a.year || 's.d.'}</div></div></div>`).join('');
+      };
+    });
+  }
+
+  // ========== EXPORTAÇÃO ==========
+  function exportJSON() {
+    const data = { articles: articlesData, books: booksData, research: researchData, readArticles: [...readArticles], favorites, notes, tags, collections, zettels, studyLog, userProfile };
+    const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'readplus_backup.json'; a.click();
+  }
+  function exportCSV() {
+    let csv = "type,id,title\n";
+    articlesData.forEach(a=>csv+=`article,${a.id},"${a.title}"\n`);
+    booksData.forEach(b=>csv+=`book,${b.id},"${b.title}"\n`);
+    researchData.forEach(r=>csv+=`research,${r.id},"${r.title}"\n`);
+    const blob = new Blob([csv], {type:'text/csv'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'readplus_data.csv'; a.click();
+  }
+  function exportObsidian() {
+    let md = '';
+    zettels.forEach(z => {
+      md += `---\ntitle: ${z.title}\ntags: ${(z.tags||[]).join(',')}\n---\n\n${z.content}\n\n`;
+      if (z.links) z.links.forEach(l=>md+=`[[${l}]]\n`);
+      md += '\n\n';
+    });
+    const blob = new Blob([md], {type:'text/markdown'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'readplus_obsidian.md'; a.click();
+  }
+
+  // ========== RENDERIZAÇÃO DE RESULTADOS (com tags, coleções, favoritos corrigidos) ==========
+  function renderResults(containerId, items, type, readSet) {
+    const container = document.getElementById(containerId);
+    if (!items.length) { container.innerHTML = '<div class="no-results">🔍 Nenhum resultado encontrado.</div>'; return; }
+    container.innerHTML = items.map(item => `
+      <div class="result-card">
+        <div class="checkbox ${readSet.has(item.id) ? 'checked' : ''}" data-id="${item.id}" data-type="${type}">${readSet.has(item.id) ? '✓' : ''}</div>
+        <div class="card-content">
+          <a href="${sanitizeUrl(item.url)}" target="_blank" class="card-title">📄 ${escapeHtml(item.title)}</a>
+          <div class="card-meta">${escapeHtml(item.authors.slice(0,3).join(', '))} · ${item.source}</div>
+          <div class="card-abstract">${escapeHtml((item.abstract||'').substring(0,260))}…</div>
+          <div>
+            <button class="action-btn fav-btn" data-id="${item.id}" data-type="${type}" data-title="${escapeHtml(item.title)}" data-url="${sanitizeUrl(item.url)}">${favorites[type]?.some(f=>f.id===item.id)?'❤️ Favoritado':'🤍 Favoritar'}</button>
+            <button class="action-btn note-btn" data-id="${item.id}">📝 Nota</button>
+            <button class="action-btn tag-btn" data-id="${item.id}" data-type="${type}">🏷️ Tag</button>
+            <button class="action-btn collection-btn" data-id="${item.id}" data-type="${type}" data-title="${escapeHtml(item.title)}" data-url="${sanitizeUrl(item.url)}">📂 Coleção</button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    // Checkbox (marcar lido)
+    container.querySelectorAll('.checkbox').forEach(cb => {
+      cb.onclick = async (e) => {
+        e.stopPropagation();
+        const id = cb.dataset.id, t = cb.dataset.type;
+        if (t === 'article') {
+          if (readArticles.has(id)) { readArticles.delete(id); await removeReadLog(id,t); }
+          else { readArticles.add(id); await saveReadLog(id,t); }
+        } else if (t === 'book') {
+          if (readBooks.has(id)) { readBooks.delete(id); await removeReadLog(id,t); }
+          else { readBooks.add(id); await saveReadLog(id,t); }
+        } else {
+          if (readResearch.has(id)) { readResearch.delete(id); await removeReadLog(id,t); }
+          else { readResearch.add(id); await saveReadLog(id,t); }
+        }
+        renderResults(containerId, items, type, readSet);
+        if (type === 'article') updateReadArticlesList();
+        renderDashboard(); // atualiza gráfico
+      };
+    });
+
+    // Favoritos (corrigido: salvar cada item individualmente)
+    container.querySelectorAll('.fav-btn').forEach(btn => {
+      btn.onclick = async () => {
+        const id = btn.dataset.id, t = btn.dataset.type, item = items.find(i=>i.id===id);
+        if (item) {
+          const idx = favorites[t].findIndex(f=>f.id===id);
+          if (idx === -1) {
+            favorites[t].push({ id, title: item.title, type: t, url: item.url, date: new Date().toISOString() });
+            await saveToStore('favorites', { id, title: item.title, type: t, url: item.url, date: new Date().toISOString() });
+            showToast('⭐ Adicionado aos favoritos');
+          } else {
+            favorites[t].splice(idx,1);
+            await saveToStore('favorites', { id, _delete: true }); // simplificado: remover via delete
+            const tx = db.transaction(['favorites'],'readwrite');
+            tx.objectStore('favorites').delete(id);
+            showToast('🗑️ Removido dos favoritos');
+          }
+          renderResults(containerId, items, type, readSet);
+        }
+      };
+    });
+
+    // Notas
+    container.querySelectorAll('.note-btn').forEach(btn => {
+      btn.onclick = async () => {
+        const id = btn.dataset.id, txt = prompt('Adicione uma nota:');
+        if (txt) {
+          notes[id] = { id, comment: txt };
+          await saveToStore('notes', { id, comment: txt });
+          showToast('Nota salva! +5 XP');
+          addXP(5);
+        }
+      };
+    });
+
+    // Tags
+    container.querySelectorAll('.tag-btn').forEach(btn => {
+      btn.onclick = async () => {
+        const id = btn.dataset.id, t = btn.dataset.type, tag = prompt('Tag:');
+        if (tag) await addTag(id, tag, t);
+      };
+    });
+
+    // Coleções
+    container.querySelectorAll('.collection-btn').forEach(btn => {
+      btn.onclick = async () => {
+        const id = btn.dataset.id, title = btn.dataset.title, url = btn.dataset.url, type = btn.dataset.type;
+        const colName = prompt('Nome da coleção (existente ou nova):');
+        if (colName) {
+          let col = collections.find(c=>c.name===colName);
+          if (!col) await createCollection(colName);
+          col = collections.find(c=>c.name===colName);
+          if (col) await addToCollection(col.id, { id, title, type, url });
+        }
+      };
+    });
+  }
+
+  async function updateReadArticlesList() {
+    const container = document.getElementById('readArticlesList');
+    if (!container) return;
+    const readItems = articlesData.filter(a => readArticles.has(a.id));
+    if (!readItems.length) { container.innerHTML = '<div class="no-results">Nenhum artigo lido ainda.</div>'; return; }
+    container.innerHTML = readItems.map(a => `<div class="result-card"><div class="card-content"><a href="${sanitizeUrl(a.url)}" target="_blank" class="card-title">📄 ${escapeHtml(a.title)}</a><div class="card-meta">${escapeHtml(a.authors.join(', '))}</div></div></div>`).join('');
+  }
+
+  // ========== DASHBOARD COM DADOS REAIS ==========
+  async function renderDashboard() {
+    const totalRead = readArticles.size + readBooks.size + readResearch.size;
+    const streak = (()=>{
+      let s=0, dates = [...new Set(studyLog.map(l=>l.date))].sort().reverse();
+      let last = new Date().toLocaleDateString('en-CA');
+      for (let d of dates) { if (d === last) { s++; last = new Date(Date.parse(last)-86400000).toLocaleDateString('en-CA'); } else break; }
+      return s;
+    })();
+    const tagCounts = Object.entries(tags).map(([t,ids])=>[t, ids.length]).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    document.getElementById('execDashboard').innerHTML = `
+      <div class="dashboard-grid">
+        <div class="dashboard-card"><h3>📊 Estatísticas</h3><p>Total lidos: ${totalRead}</p><p>Streak atual: ${streak} dias</p><p>Zettels: ${zettels.length}</p><p>XP: ${userProfile.xp} | Nível: ${userProfile.level}</p></div>
+        <div class="dashboard-card"><h3>🏷️ Tags mais usadas</h3>${tagCounts.map(([t,c])=>`<span class="badge">${escapeHtml(t)} (${c})</span>`).join('')||'Nenhuma tag ainda'}</div>
+        <div class="dashboard-card"><h3>📈 Evolução mensal</h3><canvas id="monthlyChart" height="200"></canvas></div>
+      </div>
+    `;
+    const monthly = {};
+    studyLog.forEach(l=>{ let m = l.date.slice(0,7); monthly[m] = (monthly[m]||0)+1; });
+    const months = Object.keys(monthly).sort();
+    const counts = months.map(m=>monthly[m]);
+    if (currentChart) currentChart.destroy();
+    const ctx = document.getElementById('monthlyChart')?.getContext('2d');
+    if (ctx && months.length) currentChart = new Chart(ctx, { type: 'line', data: { labels: months, datasets: [{ label: 'Leituras', data: counts, borderColor: '#00d4ff', tension: 0.3 }] } });
+    else if (ctx) currentChart = new Chart(ctx, { type: 'line', data: { labels: ['Nenhum dado'], datasets: [{ label: 'Leituras', data: [0] }] } });
+  }
+
+  // ========== ZETTELKASTEN COM BACKLINKS ==========
+  async function renderZettelList() {
+    const container = document.getElementById('zettelList');
+    if (!container) return;
+    if (!zettels.length) { container.innerHTML = '<div class="no-results">Nenhuma nota criada. Crie sua primeira nota atômica.</div>'; return; }
+    container.innerHTML = zettels.map(z => `
+      <div class="result-card">
+        <div class="card-content">
+          <div class="card-title">📄 ${escapeHtml(z.title)}</div>
+          <textarea id="zettel-${z.id}" class="inline-edit" rows="3">${escapeHtml(z.content)}</textarea>
+          <div><input id="zettel-tags-${z.id}" placeholder="Tags (separadas por vírgula)" value="${(z.tags||[]).join(', ')}" class="search-input" style="margin-top:6px;"></div>
+          <button class="action-btn save-zettel" data-id="${z.id}">💾 Salvar</button>
+          <button class="action-btn delete-zettel" data-id="${z.id}">🗑️ Excluir</button>
+          <div id="backlinks-${z.id}" style="font-size:0.7rem; margin-top:6px;"></div>
+        </div>
+      </div>
+    `).join('');
+    for (let z of zettels) {
+      const backlinkInfo = backlinks.get(z.id);
+      if (backlinkInfo && backlinkInfo.incoming.length) {
+        const backDiv = document.getElementById(`backlinks-${z.id}`);
+        if (backDiv) backDiv.innerHTML = `<strong>🔗 Backlinks:</strong> ${backlinkInfo.incoming.map(inc=>`[[${inc}]]`).join(', ')}`;
+      }
+    }
+    document.querySelectorAll('.save-zettel').forEach(btn => {
+      btn.onclick = async () => {
+        const id = btn.dataset.id;
+        const z = zettels.find(z=>z.id===id);
+        if (z) {
+          z.content = document.getElementById(`zettel-${id}`).value;
+          z.tags = document.getElementById(`zettel-tags-${id}`).value.split(',').map(s=>s.trim()).filter(Boolean);
+          z.updated = Date.now();
+          await saveToStore('zettels', z);
+          await updateBacklinksForZettel(id, z.content);
+          showToast('Zettel salvo! Backlinks atualizados.');
+          renderZettelList();
+          renderDashboard();
+        }
+      };
+    });
+    document.querySelectorAll('.delete-zettel').forEach(btn => {
+      btn.onclick = async () => {
+        const id = btn.dataset.id;
+        zettels = zettels.filter(z=>z.id!==id);
+        await saveToStore('zettels', { id, _delete: true });
+        renderZettelList();
+      };
+    });
+  }
+
+  // ========== MODAIS ==========
+  function renderCollectionsModal() {
+    const container = document.getElementById('collectionList');
+    if (!container) return;
+    container.innerHTML = collections.map(col => `
+      <div class="result-card">
+        <div><strong>${escapeHtml(col.name)}</strong> (${col.items.length} itens)</div>
+        <div><button class="action-btn view-collection" data-id="${col.id}">Ver</button> <button class="action-btn delete-collection" data-id="${col.id}">Excluir</button></div>
+        <div id="col-items-${col.id}" style="font-size:0.7rem;"></div>
+      </div>
+    `).join('');
+    document.querySelectorAll('.view-collection').forEach(btn => {
+      btn.onclick = () => {
+        const col = collections.find(c=>c.id==btn.dataset.id);
+        const itemsDiv = document.getElementById(`col-items-${col.id}`);
+        if (itemsDiv) itemsDiv.innerHTML = col.items.map(i=>`<div>📄 ${escapeHtml(i.title)} <button class="action-btn remove-item" data-col="${col.id}" data-item="${i.id}">Remover</button></div>`).join('');
+      };
+    });
+    document.querySelectorAll('.delete-collection').forEach(btn => {
+      btn.onclick = async () => {
+        const id = parseInt(btn.dataset.id);
+        collections = collections.filter(c=>c.id!==id);
+        await saveToStore('collections', { id, _delete: true });
+        renderCollectionsModal();
+      };
+    });
+    document.querySelectorAll('.remove-item').forEach(btn => {
+      btn.onclick = async () => {
+        const colId = parseInt(btn.dataset.col), itemId = btn.dataset.item;
+        await removeFromCollection(colId, itemId);
+        renderCollectionsModal();
+      };
+    });
+  }
+
+  // ========== ABAS PRINCIPAIS ==========
+  async function renderArticlesTab() {
+    const html = `
+      <div class="sub-tabs"><button class="sub-tab active" data-sub="search">🔍 Buscar artigos</button><button class="sub-tab" data-sub="read">✅ Meus lidos</button></div>
+      <div id="articlesSearchSub" class="sub-content active"><div class="search-area"><input id="articlesQuery" class="search-input"><button id="articlesSearchBtn" class="search-btn">Pesquisar</button></div><div id="articlesResults"></div></div>
+      <div id="articlesReadSub" class="sub-content"><div id="readArticlesList"></div></div>
+    `;
+    document.getElementById('mainContent').innerHTML = html;
+    updateReadArticlesList();
+    document.getElementById('articlesSearchBtn').onclick = async () => {
+      const q = document.getElementById('articlesQuery').value.trim();
+      if (!q) return;
+      showLoading();
+      const results = await searchOpenAlex(q);
+      articlesData = results;
+      renderResults('articlesResults', results, 'article', readArticles);
+      hideLoading();
+    };
+    document.querySelectorAll('.sub-tab').forEach(btn => {
+      btn.onclick = () => {
+        const target = btn.dataset.sub;
+        document.querySelectorAll('.sub-tab').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.sub-content').forEach(c=>c.classList.remove('active'));
+        document.getElementById(`articles${target==='search'?'SearchSub':'ReadSub'}`).classList.add('active');
+        if (target === 'read') updateReadArticlesList();
+      };
+    });
+  }
+
   async function searchOpenAlex(query, type='article') {
     const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=open_access.is_oa:true&sort=relevance_score:desc&per-page=20`;
     try {
@@ -297,109 +648,6 @@
     } catch(e) { console.error('Books API error:', e); return []; }
   }
 
-  // ========== RENDERIZAÇÃO DE RESULTADOS ==========
-  function renderResults(containerId, items, type, readSet) {
-    const container = document.getElementById(containerId);
-    if (!items.length) { container.innerHTML = '<div class="no-results">🔍 Nenhum resultado encontrado.</div>'; return; }
-    container.innerHTML = items.map(item => `
-      <div class="result-card">
-        <div class="checkbox ${readSet.has(item.id) ? 'checked' : ''}" data-id="${item.id}" data-type="${type}">${readSet.has(item.id) ? '✓' : ''}</div>
-        <div class="card-content">
-          <a href="${sanitizeUrl(item.url)}" target="_blank" class="card-title">📄 ${escapeHtml(item.title)}</a>
-          <div class="card-meta">${escapeHtml(item.authors.slice(0,3).join(', '))} · ${item.source}</div>
-          <div class="card-abstract">${escapeHtml((item.abstract||'').substring(0,260))}…</div>
-          <div>
-            <button class="action-btn fav-btn" data-id="${item.id}" data-type="${type}" data-title="${escapeHtml(item.title)}" data-url="${sanitizeUrl(item.url)}">${favorites[type]?.some(f=>f.id===item.id)?'❤️ Favoritado':'🤍 Favoritar'}</button>
-            <button class="action-btn note-btn" data-id="${item.id}">📝 Nota</button>
-          </div>
-        </div>
-      </div>
-    `).join('');
-
-    container.querySelectorAll('.checkbox').forEach(cb => {
-      cb.onclick = async (e) => {
-        e.stopPropagation();
-        const id = cb.dataset.id, t = cb.dataset.type;
-        if (t === 'article') {
-          if (readArticles.has(id)) { readArticles.delete(id); await removeReadLog(id,t); }
-          else { readArticles.add(id); await saveReadLog(id,t); showToast('Marcado como lido +10 XP'); }
-        } else if (t === 'book') {
-          if (readBooks.has(id)) { readBooks.delete(id); await removeReadLog(id,t); }
-          else { readBooks.add(id); await saveReadLog(id,t); }
-        } else {
-          if (readResearch.has(id)) { readResearch.delete(id); await removeReadLog(id,t); }
-          else { readResearch.add(id); await saveReadLog(id,t); }
-        }
-        renderResults(containerId, items, type, readSet);
-        if (type === 'article') updateReadArticlesList();
-      };
-    });
-    container.querySelectorAll('.fav-btn').forEach(btn => {
-      btn.onclick = async () => {
-        const id = btn.dataset.id, t = btn.dataset.type, item = items.find(i=>i.id===id);
-        if (item) {
-          const idx = favorites[t].findIndex(f=>f.id===id);
-          if (idx === -1) favorites[t].push({ id, title: item.title, type: t, url: item.url, date: new Date().toISOString() });
-          else favorites[t].splice(idx,1);
-          const tx = db.transaction(['favorites'],'readwrite');
-          tx.objectStore('favorites').put(favorites[t]);
-          renderResults(containerId, items, type, readSet);
-        }
-      };
-    });
-    container.querySelectorAll('.note-btn').forEach(btn => {
-      btn.onclick = async () => {
-        const id = btn.dataset.id, txt = prompt('Adicione uma nota:');
-        if (txt) {
-          notes[id] = { id, comment: txt };
-          const tx = db.transaction(['notes'],'readwrite');
-          tx.objectStore('notes').put({ id, comment: txt });
-          showToast('Nota salva!');
-        }
-      };
-    });
-  }
-
-  async function updateReadArticlesList() {
-    const container = document.getElementById('readArticlesList');
-    if (!container) return;
-    const readItems = articlesData.filter(a => readArticles.has(a.id));
-    if (!readItems.length) { container.innerHTML = '<div class="no-results">Nenhum artigo lido ainda.</div>'; return; }
-    container.innerHTML = readItems.map(a => `
-      <div class="result-card"><div class="card-content"><a href="${sanitizeUrl(a.url)}" target="_blank" class="card-title">📄 ${escapeHtml(a.title)}</a><div class="card-meta">${escapeHtml(a.authors.join(', '))}</div></div></div>
-    `).join('');
-  }
-
-  // ========== ABAS ==========
-  async function renderArticlesTab() {
-    const html = `
-      <div class="sub-tabs"><button class="sub-tab active" data-sub="search">🔍 Buscar artigos</button><button class="sub-tab" data-sub="read">✅ Meus lidos</button></div>
-      <div id="articlesSearchSub" class="sub-content active"><div class="search-area"><input id="articlesQuery" class="search-input"><button id="articlesSearchBtn" class="search-btn">Pesquisar</button></div><div id="articlesResults"></div></div>
-      <div id="articlesReadSub" class="sub-content"><div id="readArticlesList"></div></div>
-    `;
-    document.getElementById('mainContent').innerHTML = html;
-    updateReadArticlesList();
-    document.getElementById('articlesSearchBtn').onclick = async () => {
-      const q = document.getElementById('articlesQuery').value.trim();
-      if (!q) return;
-      showLoading();
-      const results = await searchOpenAlex(q);
-      articlesData = results;
-      renderResults('articlesResults', results, 'article', readArticles);
-      hideLoading();
-    };
-    document.querySelectorAll('.sub-tab').forEach(btn => {
-      btn.onclick = () => {
-        const target = btn.dataset.sub;
-        document.querySelectorAll('.sub-tab').forEach(b=>b.classList.remove('active'));
-        btn.classList.add('active');
-        document.querySelectorAll('.sub-content').forEach(c=>c.classList.remove('active'));
-        document.getElementById(`articles${target==='search'?'SearchSub':'ReadSub'}`).classList.add('active');
-        if (target === 'read') updateReadArticlesList();
-      };
-    });
-  }
-
   async function renderBooksTab() {
     const html = `<div class="search-area"><input id="booksQuery" class="search-input"><button id="booksSearchBtn" class="search-btn">Pesquisar livros</button></div><div id="booksResults"></div>`;
     document.getElementById('mainContent').innerHTML = html;
@@ -421,7 +669,7 @@
       const q = document.getElementById('researchQuery').value.trim();
       if (!q) return;
       showLoading();
-      const results = await searchOpenAlex(q);
+      const results = await searchOpenAlex(q, 'research');
       researchData = results;
       renderResults('researchResults', results, 'research', readResearch);
       hideLoading();
@@ -434,78 +682,43 @@
       <div class="sub-tabs">
         <button class="sub-tab active" data-sub="dashboard">📊 Dashboard</button>
         <button class="sub-tab" data-sub="zettel">📔 Zettelkasten</button>
+        <button class="sub-tab" data-sub="radar">📡 Radar</button>
+        <button class="sub-tab" data-sub="collections">📂 Coleções</button>
+        <button class="sub-tab" data-sub="export">💾 Exportar</button>
       </div>
       <div id="brainDashboard" class="sub-content active"><div id="execDashboard"></div></div>
       <div id="brainZettel" class="sub-content"><div id="zettelList"></div><button id="newZettelBtn" class="search-btn" style="margin-top:16px;">➕ Nova nota atômica</button></div>
+      <div id="brainRadar" class="sub-content"><div id="radarPlaceholder"></div></div>
+      <div id="brainCollections" class="sub-content"><div id="collectionsPlaceholder"></div></div>
+      <div id="brainExport" class="sub-content"><div id="exportPlaceholder"></div></div>
     `;
     document.getElementById('mainContent').innerHTML = html;
     renderDashboard();
     renderZettelList();
     document.getElementById('newZettelBtn').onclick = () => {
-      const title = prompt('Título da nota:');
+      const title = prompt('Título da nota atômica:');
       if (title) {
-        const newZ = { id: stableHash(title+Date.now()), title, content: '', type: 'fleeting', created: Date.now(), updated: Date.now(), tags: [] };
-        saveZettel(newZ);
+        const newZ = { id: stableHash(title+Date.now()), title, content: '', type: 'fleeting', created: Date.now(), updated: Date.now(), tags: [], links: [] };
+        zettels.push(newZ);
+        saveToStore('zettels', newZ);
         renderZettelList();
       }
     };
+    document.getElementById('radarPlaceholder').innerHTML = '<button id="openRadarModal" class="search-btn">Abrir Radar Científico</button>';
+    document.getElementById('openRadarModal').onclick = () => { document.getElementById('radarModal').style.display = 'flex'; renderRadarModal(); };
+    document.getElementById('collectionsPlaceholder').innerHTML = '<button id="openCollectionsModal" class="search-btn">Gerenciar Coleções</button>';
+    document.getElementById('openCollectionsModal').onclick = () => { document.getElementById('collectionModal').style.display = 'flex'; renderCollectionsModal(); };
+    document.getElementById('exportPlaceholder').innerHTML = '<button id="openExportModal" class="search-btn">Exportar Dados</button>';
+    document.getElementById('openExportModal').onclick = () => { document.getElementById('exportModal').style.display = 'flex'; };
     document.querySelectorAll('.sub-tab').forEach(btn => {
       btn.onclick = () => {
         const target = btn.dataset.sub;
         document.querySelectorAll('.sub-tab').forEach(b=>b.classList.remove('active'));
         btn.classList.add('active');
         document.querySelectorAll('.sub-content').forEach(c=>c.classList.remove('active'));
-        document.getElementById(`brain${target==='dashboard'?'Dashboard':'Zettel'}`).classList.add('active');
+        document.getElementById(`brain${target==='dashboard'?'Dashboard':target==='zettel'?'Zettel':target==='radar'?'Radar':target==='collections'?'Collections':'Export'}`).classList.add('active');
         if (target === 'dashboard') renderDashboard();
         if (target === 'zettel') renderZettelList();
-      };
-    });
-  }
-
-  async function renderDashboard() {
-    const totalRead = readArticles.size + readBooks.size + readResearch.size;
-    const streak = (()=>{let s=0,dates=[...new Set(studyLog.map(l=>l.date))].sort().reverse(),last=new Date().toLocaleDateString('en-CA');for(let d of dates){if(d===last){s++;last=new Date(Date.parse(last)-86400000).toLocaleDateString('en-CA');}else break;}return s;})();
-    const tagCounts = Object.entries(tags).map(([t,ids])=>[t, ids.length]).sort((a,b)=>b[1]-a[1]).slice(0,5);
-    document.getElementById('execDashboard').innerHTML = `
-      <div class="dashboard-grid">
-        <div class="dashboard-card"><h3>📊 Estatísticas</h3><p>Total lidos: ${totalRead}</p><p>Streak atual: ${streak} dias</p><p>Zettels: ${zettels.length}</p></div>
-        <div class="dashboard-card"><h3>🏷️ Tags mais usadas</h3>${tagCounts.map(([t,c])=>`<span class="badge">${escapeHtml(t)} (${c})</span>`).join('')||'Nenhuma tag ainda'}</div>
-        <div class="dashboard-card"><h3>📈 Evolução mensal</h3><canvas id="monthlyChart" height="200"></canvas></div>
-      </div>
-    `;
-    const monthly = {};
-    studyLog.forEach(l=>{ let m = l.date.slice(0,7); monthly[m] = (monthly[m]||0)+1; });
-    const months = Object.keys(monthly).sort();
-    const counts = months.map(m=>monthly[m]);
-    if (currentChart) currentChart.destroy();
-    const ctx = document.getElementById('monthlyChart')?.getContext('2d');
-    if (ctx) currentChart = new Chart(ctx, { type: 'line', data: { labels: months, datasets: [{ label: 'Leituras', data: counts, borderColor: '#00d4ff', tension: 0.3 }] } });
-  }
-
-  async function renderZettelList() {
-    const container = document.getElementById('zettelList');
-    if (!container) return;
-    if (!zettels.length) { container.innerHTML = '<div class="no-results">Nenhuma nota criada. Crie sua primeira nota atômica.</div>'; return; }
-    container.innerHTML = zettels.map(z => `
-      <div class="result-card">
-        <div class="card-content">
-          <div class="card-title">📄 ${escapeHtml(z.title)}</div>
-          <textarea id="zettel-${z.id}" class="inline-edit" rows="2">${escapeHtml(z.content)}</textarea>
-          <button class="action-btn save-zettel" data-id="${z.id}">💾 Salvar</button>
-        </div>
-      </div>
-    `).join('');
-    document.querySelectorAll('.save-zettel').forEach(btn => {
-      btn.onclick = async () => {
-        const id = btn.dataset.id;
-        const z = zettels.find(z=>z.id===id);
-        if (z) {
-          z.content = document.getElementById(`zettel-${id}`).value;
-          z.updated = Date.now();
-          await saveZettel(z);
-          showToast('Zettel salvo!');
-          renderZettelList();
-        }
       };
     });
   }
@@ -524,6 +737,19 @@
         else if (tab === 'brain') renderBrainTab();
       });
     });
+    // Fechar modais
+    document.querySelectorAll('.modal .close').forEach(close => close.onclick = () => close.closest('.modal').style.display = 'none');
+    document.getElementById('createCollectionBtn').onclick = async () => {
+      const name = document.getElementById('newCollectionName').value.trim();
+      if (name) await createCollection(name);
+    };
+    document.getElementById('addRadarTopicBtn').onclick = async () => {
+      const topic = document.getElementById('radarTopicInput').value.trim();
+      if (topic && !radarTopics.includes(topic)) { radarTopics.push(topic); await saveToStore('radar', { topic }); renderRadarModal(); }
+    };
+    document.getElementById('exportJSONBtn').onclick = exportJSON;
+    document.getElementById('exportCSVBtn').onclick = exportCSV;
+    document.getElementById('exportObsidianBtn').onclick = exportObsidian;
     renderArticlesTab();
   }
   init();
