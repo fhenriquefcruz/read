@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
-  <title>Read+ · Hub do Conhecimento</title>
+  <meta name="theme-color" content="#05070f">
+  <meta name="description" content="Read+ · Segundo Cérebro | Zettelkasten · Revisão espaçada · Backlinks · Knowledge Graph">
+  <title>Read+ · Segundo Cérebro</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -18,7 +20,7 @@
       --text-primary: #f0f3fa;
       --text-secondary: #9aa4bf;
       --border-light: rgba(0, 212, 255, 0.2);
-      --shadow-neon: 0 0 12px rgba(0, 212, 255, 0.3);
+      --shadow-neon: 0 0 12px rgba(0,212,255,0.3);
     }
     body {
       font-family: 'Inter', sans-serif;
@@ -104,6 +106,10 @@
       border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s;
     }
     .checkbox.checked { background: var(--glow-primary); color: black; }
+    .status-select {
+      background: rgba(0,0,0,0.6); border: 1px solid var(--glow-primary); border-radius: 20px;
+      padding: 4px 8px; font-size: 0.7rem; color: white; cursor: pointer;
+    }
     .card-content { flex: 1; }
     .card-title { font-size: 1.05rem; font-weight: 700; color: var(--glow-primary); text-decoration: none; display: inline-block; margin-bottom: 6px; }
     .card-meta { font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 6px; }
@@ -114,20 +120,25 @@
       color: white; transition: 0.2s; border: none; cursor: pointer;
     }
     .btn-link:hover, .action-btn:hover { background: var(--glow-primary); color: #02040c; }
-    .stats-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; background: rgba(0,0,0,0.3); border-radius: 60px; padding: 8px 20px; }
-    .progress-ring { width: 44px; height: 44px; }
-    .progress-ring-circle { transition: stroke-dashoffset 0.35s; transform: rotate(-90deg); transform-origin: 50% 50%; stroke: var(--glow-primary); fill: none; stroke-width: 3; }
-    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px; }
+    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 30px; }
     .dashboard-card { background: rgba(0,0,0,0.4); backdrop-filter: blur(8px); border-radius: 28px; padding: 20px; border: 1px solid var(--border-light); }
-    .graph-container { height: 300px; position: relative; }
-    .cy-container { height: 500px; width: 100%; background: rgba(0,0,0,0.3); border-radius: 24px; margin-top: 20px; }
+    .cy-container { height: 550px; width: 100%; background: rgba(0,0,0,0.3); border-radius: 24px; margin-top: 20px; }
     .badge { background: linear-gradient(135deg, #00d4ff, #7b2cbf); border-radius: 40px; padding: 4px 12px; font-size: 0.7rem; font-weight: bold; display: inline-block; margin-right: 8px; margin-bottom: 8px; }
     .inline-edit { background: rgba(0,0,0,0.5); border: 1px solid var(--glow-primary); border-radius: 12px; padding: 12px; width: 100%; color: white; margin-top: 8px; }
     .filter-group { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
     .filter-group select, .filter-group input { background: rgba(0,0,0,0.6); border: 1px solid var(--glow-primary); padding: 8px 16px; border-radius: 40px; color: white; }
     .comparison-table { width: 100%; border-collapse: collapse; }
     .comparison-table th, .comparison-table td { border: 1px solid var(--border-light); padding: 12px; text-align: left; vertical-align: top; }
-    .subsection-desc { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 16px; border-left: 3px solid var(--glow-primary); padding-left: 12px; }
+    .loader { text-align: center; padding: 40px; }
+    .spinner { width: 50px; height: 50px; border: 3px solid rgba(0,212,255,0.3); border-top-color: var(--glow-primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .no-results { text-align: center; padding: 40px; color: var(--text-secondary); }
+    .footer { text-align: center; margin-top: 32px; font-size: 0.7rem; color: var(--text-secondary); }
+    .heatmap-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .heatmap-day { aspect-ratio: 1; border-radius: 6px; }
+    .revision-btn-group { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+    .revision-btn { background: rgba(0,212,255,0.2); border: none; padding: 4px 12px; border-radius: 20px; color: white; cursor: pointer; }
+    .backlink-badge { background: #00d4ff22; border: 1px solid var(--glow-primary); border-radius: 20px; padding: 2px 8px; font-size: 0.7rem; display: inline-block; margin: 2px; }
     @media (max-width: 700px) { .glass-card { padding: 18px; } .main-tab { padding: 8px 16px; font-size: 1rem; } .result-card { flex-direction: column; } .search-area { flex-direction: column; } }
   </style>
 </head>
@@ -135,571 +146,596 @@
 <div class="container">
   <div class="header">
     <div class="logo">Read <span>+</span></div>
-    <div class="tagline">hub do conhecimento | segundo cérebro | evolução acadêmica</div>
+    <div class="tagline">segundo cérebro · zettelkasten · revisão espaçada · graph inteligente</div>
   </div>
+
   <div class="main-tabs">
     <button class="main-tab active" data-main="articles">📄 Artigos</button>
     <button class="main-tab" data-main="books">📚 Livros</button>
     <button class="main-tab" data-main="research">🔬 Pesquisas</button>
-    <button class="main-tab" data-main="studio">📊 Insight</button>
+    <button class="main-tab" data-main="brain">🧠 Segundo Cérebro</button>
   </div>
+
   <div class="glass-card" id="mainContent"></div>
-  <div class="footer">🔎 Fontes: OpenAlex · Google Books · dados abertos | Tudo gratuito e local</div>
+  <div class="footer">🔎 Fontes: OpenAlex · Google Books · IndexedDB · Backlinks · Revisão espaçada (SM-2) · PWA</div>
 </div>
 
 <script>
-  // ======================== ESTADO GLOBAL ========================
-  let currentMainTab = 'articles';
-  let articlesData = [];
-  let booksData = [];
-  let researchData = [];
-  let readArticles = new Set();
-  let readBooks = new Set();
-  let readResearch = new Set();
+  // ========== 1. INDEXEDDB (v4) + DADOS GLOBAIS ==========
+  let db = null;
+  let migrationDone = false;
+
+  // Dados principais
+  let articlesData = [], booksData = [], researchData = [];
+  let readArticles = new Set(), readBooks = new Set(), readResearch = new Set();
+  let readingStatus = { articles: {}, books: {}, research: {} };
   let favorites = { articles: [], books: [], research: [] };
-  let notes = {};
-  let collections = [];
-  let tags = {};
-  let userProfile = { name: "Pesquisador", avatar: "👨‍🎓", level: 0, xp: 0, badges: [] };
-  let goals = [];
-  let studyLog = [];
+  let notes = {}, collections = [], tags = {}, userProfile = { name: "Pesquisador", xp: 0, level: 0, badges: [] };
+  let goals = [], studyLog = [], radarTopics = [];
+  let tagAliases = {};
 
-  function loadAllData() {
-    try {
-      const storedReadArticles = localStorage.getItem('readplus_read_articles');
-      if (storedReadArticles) readArticles = new Set(JSON.parse(storedReadArticles));
-      const storedReadBooks = localStorage.getItem('readplus_read_books');
-      if (storedReadBooks) readBooks = new Set(JSON.parse(storedReadBooks));
-      const storedReadResearch = localStorage.getItem('readplus_read_research');
-      if (storedReadResearch) readResearch = new Set(JSON.parse(storedReadResearch));
-      const storedFav = localStorage.getItem('readplus_favorites');
-      if (storedFav) favorites = JSON.parse(storedFav);
-      const storedNotes = localStorage.getItem('readplus_notes');
-      if (storedNotes) notes = JSON.parse(storedNotes);
-      const storedCollections = localStorage.getItem('readplus_collections');
-      if (storedCollections) collections = JSON.parse(storedCollections);
-      const storedTags = localStorage.getItem('readplus_tags');
-      if (storedTags) tags = JSON.parse(storedTags);
-      const storedProfile = localStorage.getItem('readplus_profile');
-      if (storedProfile) userProfile = JSON.parse(storedProfile);
-      const storedGoals = localStorage.getItem('readplus_goals');
-      if (storedGoals) goals = JSON.parse(storedGoals);
-      const storedStudyLog = localStorage.getItem('readplus_study_log');
-      if (storedStudyLog) studyLog = JSON.parse(storedStudyLog);
-    } catch(e) { console.warn(e); }
-  }
-  function saveAllData() {
-    localStorage.setItem('readplus_read_articles', JSON.stringify([...readArticles]));
-    localStorage.setItem('readplus_read_books', JSON.stringify([...readBooks]));
-    localStorage.setItem('readplus_read_research', JSON.stringify([...readResearch]));
-    localStorage.setItem('readplus_favorites', JSON.stringify(favorites));
-    localStorage.setItem('readplus_notes', JSON.stringify(notes));
-    localStorage.setItem('readplus_collections', JSON.stringify(collections));
-    localStorage.setItem('readplus_tags', JSON.stringify(tags));
-    localStorage.setItem('readplus_profile', JSON.stringify(userProfile));
-    localStorage.setItem('readplus_goals', JSON.stringify(goals));
-    localStorage.setItem('readplus_study_log', JSON.stringify(studyLog));
-  }
-  loadAllData();
+  // Zettelkasten
+  let zettels = [];
+  let backlinksMap = new Map();
 
-  function addXP(amount, action = '') {
+  // Revisão espaçada (SM-2)
+  let repetitionData = new Map();
+
+  // Cache de buscas
+  let searchCache = new Map();
+
+  function escapeHtml(str) { return str == null ? '' : String(str).replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[m])); }
+  function sanitizeUrl(url) { return (!url || !url.startsWith('http')) ? '#' : url; }
+  function stableHash(str) { let h = 0; for (let i=0;i<str.length;i++) h = ((h<<5)-h)+str.charCodeAt(i)|0; return Math.abs(h).toString(36); }
+  function normalizeTag(t) { let low = t.toLowerCase(); return tagAliases[low] || low; }
+  function addAlias(canon, ...als) { als.forEach(a=>tagAliases[a.toLowerCase()]=canon); }
+  addAlias('ia','inteligencia artificial','ai','machine learning','deep learning');
+  addAlias('filosofia','philosophy','estoicismo','epicuro');
+  addAlias('psicologia','psychology','cognitivo');
+
+  async function initDB() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open('ReadPlusDB', 4);
+      request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        const stores = ['articles', 'books', 'research', 'notes', 'collections', 'tags', 'favorites', 'reading_status', 'study_log', 'radar', 'settings', 'cache', 'zettels', 'backlinks', 'spaced_repetition'];
+        for (let store of stores) {
+          if (!db.objectStoreNames.contains(store)) db.createObjectStore(store, { keyPath: store === 'settings' || store === 'cache' ? 'key' : 'id' });
+        }
+      };
+      request.onsuccess = (event) => {
+        db = event.target.result;
+        migrateFromLocalStorage().then(resolve).catch(resolve);
+      };
+      request.onerror = (event) => reject(event.target.error);
+    });
+  }
+
+  async function migrateFromLocalStorage() {
+    if (migrationDone) return;
+    migrationDone = true;
+    const tx = db.transaction(['settings'], 'readonly');
+    const existing = await new Promise(resolve => { tx.objectStore('settings').get('migrated').onsuccess = e => resolve(e.target.result); });
+    if (existing && existing.value === true) return;
+    // Migração dos dados antigos (se existirem)
+    const map = {
+      articles: 'readplus_metadata_articles', books: 'readplus_metadata_books', research: 'readplus_metadata_research',
+      notes: 'readplus_notes', collections: 'readplus_collections', tags: 'readplus_tags', favorites: 'readplus_favorites',
+      reading_status: 'readplus_reading_status', study_log: 'readplus_study_log', radar: 'readplus_radar_topics'
+    };
+    for (let [store, lsKey] of Object.entries(map)) {
+      const data = localStorage.getItem(lsKey);
+      if (data) {
+        const parsed = JSON.parse(data);
+        const tx2 = db.transaction([store], 'readwrite');
+        const store2 = tx2.objectStore(store);
+        if (Array.isArray(parsed)) parsed.forEach(item => store2.put(item));
+        else store2.put(parsed);
+      }
+    }
+    const txSet = db.transaction(['settings'], 'readwrite');
+    txSet.objectStore('settings').put({ key: 'migrated', value: true });
+    console.log('Migração concluída');
+  }
+
+  async function loadAllData() {
+    const stores = ['articles', 'books', 'research', 'notes', 'collections', 'tags', 'favorites', 'reading_status', 'study_log', 'radar', 'settings', 'zettels', 'backlinks', 'spaced_repetition'];
+    for (let store of stores) {
+      const tx = db.transaction([store], 'readonly');
+      const data = await new Promise(resolve => { tx.objectStore(store).getAll().onsuccess = e => resolve(e.target.result); });
+      if (store === 'articles') articlesData = data;
+      else if (store === 'books') booksData = data;
+      else if (store === 'research') researchData = data;
+      else if (store === 'notes') notes = data.reduce((acc,n)=>{acc[n.id]=n; return acc;},{});
+      else if (store === 'collections') collections = data;
+      else if (store === 'tags') data.forEach(t=>tags[t.id]=t.items);
+      else if (store === 'favorites') {
+        favorites = { articles: data.filter(f=>f.type==='article'), books: data.filter(f=>f.type==='book'), research: data.filter(f=>f.type==='research') };
+      }
+      else if (store === 'reading_status') data.forEach(s=>{ if(!readingStatus[s.type]) readingStatus[s.type]={}; readingStatus[s.type][s.id]=s.status; });
+      else if (store === 'study_log') studyLog = data;
+      else if (store === 'radar') radarTopics = data.map(r=>r.topic);
+      else if (store === 'settings') {
+        let prof = data.find(s=>s.key==='profile');
+        if (prof) userProfile = prof.value;
+      }
+      else if (store === 'zettels') zettels = data;
+      else if (store === 'backlinks') data.forEach(b=>backlinksMap.set(b.id, b));
+      else if (store === 'spaced_repetition') data.forEach(d=>repetitionData.set(d.id, d));
+    }
+  }
+
+  async function saveToDB(storeName, item) {
+    const tx = db.transaction([storeName], 'readwrite');
+    tx.objectStore(storeName).put(item);
+  }
+
+  function addXP(amount) {
     userProfile.xp += amount;
-    let newLevel = Math.floor(userProfile.xp / 100);
-    if (newLevel > 4) newLevel = 4;
+    let newLevel = Math.min(4, Math.floor(userProfile.xp/100));
     if (newLevel > userProfile.level) {
       userProfile.level = newLevel;
-      const levelNames = ['Explorador','Pesquisador','Analista','Especialista','Mestre do Conhecimento'];
-      if (!userProfile.badges.includes(levelNames[newLevel])) userProfile.badges.push(levelNames[newLevel]);
-      showToast(`🎉 Parabéns! Você alcançou o nível ${levelNames[newLevel]}!`);
+      const lvls=['Explorador','Pesquisador','Analista','Especialista','Mestre'];
+      if (!userProfile.badges.includes(lvls[newLevel])) userProfile.badges.push(lvls[newLevel]);
+      showToast(`🎉 Nível ${lvls[newLevel]} alcançado!`);
     }
-    saveAllData();
-  }
-  function showToast(msg) {
-    const toast = document.createElement('div');
-    toast.innerText = msg;
-    toast.style.position = 'fixed'; toast.style.bottom = '20px'; toast.style.right = '20px';
-    toast.style.background = 'var(--glow-primary)'; toast.style.color = '#02040c'; toast.style.padding = '12px 24px';
-    toast.style.borderRadius = '40px'; toast.style.zIndex = '9999'; toast.style.fontWeight = 'bold';
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
-  }
-  function registerRead(id, type, title = '') {
-    const today = new Date().toISOString().slice(0,10);
-    if (!studyLog.find(l => l.date === today && l.id === id)) {
-      studyLog.push({ date: today, id, type });
-      saveAllData();
-      addXP(10, 'read');
-      goals.forEach(goal => {
-        if (goal.type === type && goal.current < goal.target) {
-          goal.current++;
-          if (goal.current >= goal.target) showToast(`🎯 Meta "${goal.title}" concluída! +20 XP`);
-          saveAllData();
-        }
-      });
-    }
+    saveToDB('settings', { key: 'profile', value: userProfile });
   }
 
-  // APIs corrigidas
-  async function searchArticles(query, filters = {}) {
-    let url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=open_access.is_oa:true&sort=relevance_score:desc&per-page=20`;
-    if (filters.year) url += `&filter=publication_year:${filters.year}`;
-    if (filters.minCited) url += `&filter=cited_by_count:>${filters.minCited}`;
+  function showToast(msg) { const t=document.createElement('div'); t.innerText=msg; t.style.cssText='position:fixed;bottom:20px;right:20px;background:var(--glow-primary);color:#02040c;padding:12px 24px;border-radius:40px;z-index:9999'; document.body.appendChild(t); setTimeout(()=>t.remove(),3000); }
+
+  // ========== 2. APIs (OpenAlex + Google Books) com cache ==========
+  async function setCache(key, data, ttl=3600000) {
+    const tx = db.transaction(['cache'], 'readwrite');
+    tx.objectStore('cache').put({ key, data, expires: Date.now()+ttl });
+  }
+  async function getCache(key) {
+    const tx = db.transaction(['cache'], 'readonly');
+    const res = await new Promise(resolve=>{ tx.objectStore('cache').get(key).onsuccess=e=>resolve(e.target.result); });
+    if (res && res.expires > Date.now()) return res.data;
+    return null;
+  }
+
+  async function searchOpenAlex(query, type='article', filters={}) {
+    const cacheKey = `oa_${type}_${query}_${filters.year||''}_${filters.minCited||''}`;
+    const cached = await getCache(cacheKey);
+    if (cached) return cached;
+    let filterParts = ['open_access.is_oa:true'];
+    if (filters.year) filterParts.push(`publication_year:${filters.year}`);
+    if (filters.minCited) filterParts.push(`cited_by_count:>${filters.minCited}`);
+    if (type==='research') filterParts.push('type:article,type:report');
+    const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=${filterParts.join(',')}&sort=relevance_score:desc&per-page=20`;
     const res = await fetch(url);
     if (!res.ok) return [];
     const data = await res.json();
-    return data.results.map(work => ({
-      id: btoa(work.id).replace(/[^a-zA-Z0-9]/g, ''),
-      title: work.title || 'Sem título',
-      authors: work.authorships?.map(a => a.author.display_name) || [],
-      abstract: work.abstract || 'Resumo não disponível.',
-      url: work.open_access?.oa_url || work.best_oa_location?.pdf_url || work.id,
+    const results = data.results.map(w => ({
+      id: stableHash(w.id || w.title),
+      title: w.title || 'Sem título',
+      authors: w.authorships?.map(a=>a.author.display_name)||[],
+      abstract: w.abstract || (w.abstract_inverted_index ? Object.entries(w.abstract_inverted_index).sort((a,b)=>a[1][0]-b[1][0]).map(([w])=>w).join(' ') : 'Resumo não disponível.'),
+      url: w.open_access?.oa_url || w.best_oa_location?.pdf_url || w.id,
       source: 'OpenAlex',
-      doi: work.doi,
-      citations: work.cited_by_count,
-      publication_date: work.publication_date,
-      institutions: work.authorships?.[0]?.institutions?.map(i => i.display_name) || [],
-      type: 'article'
+      doi: w.doi,
+      citations: w.cited_by_count,
+      publication_date: w.publication_date,
+      institutions: w.authorships?.[0]?.institutions?.map(i=>i.display_name)||[],
+      type: type==='article'?'article':'research'
     }));
+    await setCache(cacheKey, results, 3600000);
+    return results;
   }
+
   async function searchBooks(query) {
+    const cacheKey = `gb_${query}`;
+    const cached = await getCache(cacheKey);
+    if (cached) return cached;
     const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20`;
     const res = await fetch(url);
     if (!res.ok) return [];
     const data = await res.json();
     if (!data.items) return [];
-    return data.items.map(item => ({
+    const results = data.items.map(item => ({
       id: item.id,
-      title: item.volumeInfo.title,
-      authors: item.volumeInfo.authors || ['Autor não informado'],
-      abstract: item.volumeInfo.description || 'Sinopse não disponível.',
-      url: item.volumeInfo.previewLink || item.volumeInfo.infoLink,
+      title: item.volumeInfo.title||'Sem título',
+      authors: item.volumeInfo.authors||['Autor não informado'],
+      abstract: item.volumeInfo.description||'Sinopse não disponível.',
+      url: item.volumeInfo.previewLink||item.volumeInfo.infoLink,
       source: 'Google Books',
       publishedDate: item.volumeInfo.publishedDate,
       type: 'book'
     }));
-  }
-  // Pesquisas: busca relatórios e artigos, mas com fallback para qualquer tipo
-  async function searchResearch(query) {
-    let url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=type:report,type:article&sort=relevance_score:desc&per-page=15`;
-    try {
-      let res = await fetch(url);
-      if (!res.ok) throw new Error();
-      let data = await res.json();
-      if (!data.results || data.results.length === 0) {
-        url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&sort=relevance_score:desc&per-page=15`;
-        res = await fetch(url);
-        data = await res.json();
-      }
-      return data.results.map(work => ({
-        id: btoa(work.id).replace(/[^a-zA-Z0-9]/g, ''),
-        title: work.title || 'Sem título',
-        authors: work.authorships?.map(a => a.author.display_name) || [],
-        abstract: work.abstract || 'Resumo não disponível.',
-        url: work.open_access?.oa_url || work.best_oa_location?.pdf_url || work.id,
-        source: 'OpenAlex',
-        citations: work.cited_by_count,
-        type: 'research'
-      }));
-    } catch(e) { return []; }
+    await setCache(cacheKey, results, 3600000);
+    return results;
   }
 
-  function toggleFavorite(item, type) {
-    const list = favorites[type];
-    const index = list.findIndex(i => i.id === item.id);
-    if (index === -1) {
-      list.push({ id: item.id, title: item.title, type, url: item.url, date: new Date().toISOString() });
-      addXP(5, 'favorite');
-      showToast(`⭐ ${item.title.substring(0,50)} adicionado aos favoritos`);
+  // ========== 3. Zettelkasten e Backlinks ==========
+  async function saveZettel(z) { await saveToDB('zettels', z); await loadAllData(); }
+  async function parseAndUpdateBacklinks(content, zettelId) {
+    const regex = /\[\[(.*?)\]\]/g;
+    let match; const links = [];
+    while ((match = regex.exec(content)) !== null) links.push(match[1]);
+    const tx = db.transaction(['backlinks'], 'readwrite');
+    const store = tx.objectStore('backlinks');
+    for (let target of links) {
+      let entry = await new Promise(resolve=>{store.get(target).onsuccess=e=>resolve(e.target.result);});
+      if (!entry) entry = { id: target, incoming: [], outgoing: [] };
+      if (!entry.incoming.includes(zettelId)) entry.incoming.push(zettelId);
+      if (!entry.outgoing.includes(zettelId)) entry.outgoing.push(zettelId);
+      store.put(entry);
+    }
+  }
+
+  // Revisão espaçada SM-2
+  async function saveRepetition(cardId, ease, interval, nextReview, repetitions) {
+    const card = { id: cardId, ease, interval, nextReview, repetitions };
+    await saveToDB('spaced_repetition', card);
+    repetitionData.set(cardId, card);
+  }
+  function updateSpacedRepetition(cardId, quality) {
+    let card = repetitionData.get(cardId);
+    if (!card) card = { ease: 2.5, interval: 0, repetitions: 0, nextReview: Date.now() };
+    let { ease, interval, repetitions } = card;
+    ease = Math.max(1.3, ease + 0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+    if (quality >= 3) {
+      if (repetitions === 0) interval = 1;
+      else if (repetitions === 1) interval = 6;
+      else interval = Math.round(interval * ease);
+      repetitions++;
     } else {
-      list.splice(index,1);
-      showToast(`🗑️ Removido dos favoritos`);
+      interval = 0;
+      repetitions = 0;
     }
-    saveAllData();
-  }
-  function isFavorite(id, type) { return favorites[type].some(i => i.id === id); }
-  function createCollection(name) {
-    const newCol = { id: Date.now(), name, items: [] };
-    collections.push(newCol);
-    saveAllData();
-    addXP(10, 'collection');
-    showToast(`📂 Coleção "${name}" criada`);
-  }
-  function addToCollection(collectionId, item) {
-    const col = collections.find(c => c.id == collectionId);
-    if (col && !col.items.some(i => i.id === item.id)) {
-      col.items.push({ id: item.id, title: item.title, type: item.type, url: item.url });
-      saveAllData();
-      addXP(3, 'add_to_collection');
-    }
-  }
-  function addTag(id, tag, type) {
-    if (!tags[tag]) tags[tag] = [];
-    if (!tags[tag].includes(id)) tags[tag].push(id);
-    saveAllData();
-    addXP(2, 'tag');
+    const nextReview = Date.now() + interval * 86400000;
+    saveRepetition(cardId, ease, interval, nextReview, repetitions);
+    showToast(`Revisão registrada! Próxima revisão em ${interval} dias.`);
   }
 
-  // Renderização de resultados com tipo específico
+  // ========== 4. FUNÇÕES DE RENDERIZAÇÃO (preservadas e adaptadas) ==========
   function renderSearchResults(containerId, items, type, readSet) {
     const container = document.getElementById(containerId);
     if (!items.length) { container.innerHTML = '<div class="no-results">Nenhum resultado encontrado</div>'; return; }
-    container.innerHTML = items.map(item => `
-      <div class="result-card" data-id="${item.id}">
-        <div class="checkbox ${readSet.has(item.id) ? 'checked' : ''}" data-id="${item.id}" data-type="${type}">${readSet.has(item.id) ? '✓' : ''}</div>
-        <div class="card-content">
-          <a href="${item.url}" target="_blank" class="card-title">${escapeHtml(item.title)}</a>
-          <div class="card-meta">${item.authors.slice(0,3).join(', ')} · ${item.source} ${item.publication_date ? '· '+item.publication_date.slice(0,4) : ''}</div>
-          <div class="card-abstract">${escapeHtml(item.abstract.substring(0,280))}…</div>
-          <div>
-            <button class="action-btn fav-btn" data-id="${item.id}" data-type="${type}" data-title="${escapeHtml(item.title)}" data-url="${item.url}">${isFavorite(item.id, type) ? '❤️ Favoritado' : '🤍 Favoritar'}</button>
-            <button class="action-btn note-btn" data-id="${item.id}" data-type="${type}">📝 Nota</button>
-            <button class="action-btn tag-btn" data-id="${item.id}" data-type="${type}">🏷️ Tag</button>
-            <button class="action-btn collection-btn" data-id="${item.id}" data-type="${type}" data-title="${escapeHtml(item.title)}" data-url="${item.url}">📂 Coleção</button>
+    container.innerHTML = items.map(item => {
+      const isRead = readSet.has(item.id);
+      const status = readingStatus[type]?.[item.id] || '';
+      return `
+        <div class="result-card">
+          <div class="checkbox ${isRead ? 'checked' : ''}" data-id="${item.id}" data-type="${type}">${isRead ? '✓' : ''}</div>
+          <div class="card-content">
+            <a href="${sanitizeUrl(item.url)}" target="_blank" class="card-title">📄 ${escapeHtml(item.title)}</a>
+            <div class="card-meta">${escapeHtml(item.authors.slice(0,3).join(', '))} · ${item.source}</div>
+            <div class="card-abstract">${escapeHtml(item.abstract?.substring(0,280)||'')}…</div>
+            <div>
+              <select class="status-select" data-id="${item.id}" data-type="${type}" data-original="${status}">
+                <option value="">Sem status</option><option value="want" ${status==='want'?'selected':''}>📌 Quero ler</option>
+                <option value="reading" ${status==='reading'?'selected':''}>📖 Lendo</option>
+                <option value="reviewing" ${status==='reviewing'?'selected':''}>🔄 Revisando</option>
+                <option value="done" ${status==='done'?'selected':''}>✅ Concluído</option>
+              </select>
+              <button class="action-btn fav-btn" data-id="${item.id}" data-type="${type}" data-title="${escapeHtml(item.title)}" data-url="${sanitizeUrl(item.url)}">${favorites[type]?.some(f=>f.id===item.id)?'❤️ Favoritado':'🤍 Favoritar'}</button>
+              <button class="action-btn note-btn" data-id="${item.id}">📝 Nota</button>
+              <button class="action-btn tag-btn" data-id="${item.id}" data-type="${type}">🏷️ Tag</button>
+              <button class="action-btn zettel-btn" data-id="${item.id}" data-title="${escapeHtml(item.title)}" data-type="${type}">🧠 Criar Zettel</button>
+            </div>
           </div>
         </div>
-      </div>
-    `).join('');
-    document.querySelectorAll(`#${containerId} .checkbox`).forEach(cb => {
-      cb.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const id = cb.dataset.id;
-        const t = cb.dataset.type;
-        if (t === 'article') { if (readArticles.has(id)) readArticles.delete(id); else { readArticles.add(id); registerRead(id, 'article'); } saveAllData(); }
-        else if (t === 'book') { if (readBooks.has(id)) readBooks.delete(id); else { readBooks.add(id); registerRead(id, 'book'); } saveAllData(); }
-        else if (t === 'research') { if (readResearch.has(id)) readResearch.delete(id); else { readResearch.add(id); registerRead(id, 'research'); } saveAllData(); }
+      `;
+    }).join('');
+    // Eventos (usando delegação para evitar duplicação)
+    container.querySelectorAll('.checkbox').forEach(cb => cb.addEventListener('click', async (e) => {
+      const id = cb.dataset.id, t = cb.dataset.type;
+      if (t === 'article') readArticles.has(id) ? readArticles.delete(id) : (readArticles.add(id), addXP(10));
+      else if (t === 'book') readBooks.has(id) ? readBooks.delete(id) : (readBooks.add(id), addXP(10));
+      else readResearch.has(id) ? readResearch.delete(id) : (readResearch.add(id), addXP(10));
+      await saveToDB(t+'s', { id }); // simplificado
+      renderSearchResults(containerId, items, type, readSet);
+    }));
+    container.querySelectorAll('.status-select').forEach(sel => sel.addEventListener('change', async (e) => {
+      const id = sel.dataset.id, t = sel.dataset.type, val = sel.value;
+      if (!readingStatus[t]) readingStatus[t] = {};
+      readingStatus[t][id] = val;
+      await saveToDB('reading_status', { id, type: t, status: val });
+      renderSearchResults(containerId, items, type, readSet);
+    }));
+    container.querySelectorAll('.fav-btn').forEach(btn => btn.addEventListener('click', async () => {
+      const id = btn.dataset.id, t = btn.dataset.type, item = items.find(i=>i.id===id);
+      if (item) {
+        const idx = favorites[t].findIndex(f=>f.id===id);
+        idx === -1 ? favorites[t].push({ id, title: item.title, type: t, url: item.url, date: new Date().toISOString() }) : favorites[t].splice(idx,1);
+        await saveToDB('favorites', favorites[t]);
         renderSearchResults(containerId, items, type, readSet);
-      });
-    });
-    document.querySelectorAll(`#${containerId} .fav-btn`).forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.dataset.id;
-        const t = btn.dataset.type;
-        const item = items.find(i => i.id === id);
-        toggleFavorite(item, t);
-        renderSearchResults(containerId, items, type, readSet);
-      });
-    });
-    document.querySelectorAll(`#${containerId} .note-btn`).forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.dataset.id;
-        const txt = prompt('Adicione uma nota pessoal:');
-        if (txt) { notes[id] = { ...notes[id], comment: txt }; saveAllData(); addXP(5); showToast('Nota salva!'); }
-      });
-    });
-    document.querySelectorAll(`#${containerId} .tag-btn`).forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.dataset.id;
-        const tag = prompt('Tag (ex: IA, Filosofia):');
-        if (tag) addTag(id, tag, btn.dataset.type);
-      });
-    });
-    document.querySelectorAll(`#${containerId} .collection-btn`).forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.dataset.id;
-        const title = btn.dataset.title;
-        const url = btn.dataset.url;
-        const type = btn.dataset.type;
-        const colName = prompt('Nome da coleção existente ou nova:');
-        if (colName) {
-          let col = collections.find(c => c.name === colName);
-          if (!col) { col = { id: Date.now(), name: colName, items: [] }; collections.push(col); saveAllData(); }
-          if (!col.items.some(i => i.id === id)) {
-            col.items.push({ id, title, type, url });
-            saveAllData();
-            showToast(`Adicionado à coleção "${colName}"`);
-          }
-        }
-      });
-    });
+      }
+    }));
+    container.querySelectorAll('.note-btn').forEach(btn => btn.addEventListener('click', async () => {
+      const id = btn.dataset.id, txt = prompt('Nota pessoal:');
+      if (txt) { notes[id] = { ...notes[id], comment: txt }; await saveToDB('notes', { id, comment: txt }); addXP(5); showToast('Nota salva!'); }
+    }));
+    container.querySelectorAll('.tag-btn').forEach(btn => btn.addEventListener('click', async () => {
+      const id = btn.dataset.id, t = btn.dataset.type, tag = prompt('Tag:');
+      if (tag) {
+        const norm = normalizeTag(tag);
+        if (!tags[norm]) tags[norm] = [];
+        if (!tags[norm].includes(id)) tags[norm].push(id);
+        await saveToDB('tags', { id: norm, items: tags[norm] });
+        addXP(2);
+      }
+    }));
+    container.querySelectorAll('.zettel-btn').forEach(btn => btn.addEventListener('click', async () => {
+      const id = btn.dataset.id, title = btn.dataset.title, type = btn.dataset.type;
+      const newZettel = {
+        id: stableHash(title+Date.now()), title, content: `Referência a ${type}: [[${id}]]\n\nNotas iniciais:`, type: 'literature',
+        created: Date.now(), updated: Date.now(), tags: [], links: [id]
+      };
+      await saveZettel(newZettel);
+      showToast('Zettel criado! Vá em Segundo Cérebro → Zettelkasten.');
+    }));
   }
 
-  // Abas principais
+  // Abas principais (roteamento)
+  let currentMainTab = 'articles';
   async function renderArticlesTab() {
-    const html = `
-      <div class="sub-tabs"><button class="sub-tab active" data-sub="search">🔍 Buscar artigos</button><button class="sub-tab" data-sub="read">✅ Meus lidos</button></div>
-      <div id="articlesSearchSub" class="sub-content active">
-        <div class="filter-group"><input id="articlesQuery" class="search-input" placeholder="Ex: machine learning"><input id="yearFilter" placeholder="Ano (ex: 2023)"><input id="minCited" placeholder="Mínimo de citações"><button id="articlesSearchBtn" class="search-btn">Pesquisar</button></div>
-        <div id="articlesResults"></div>
-      </div>
-      <div id="articlesReadSub" class="sub-content"><div id="readArticlesList"></div></div>
-    `;
+    const html = `<div class="sub-tabs"><button class="sub-tab active" data-sub="search">🔍 Buscar artigos</button><button class="sub-tab" data-sub="read">✅ Meus lidos</button></div>
+      <div id="articlesSearchSub" class="sub-content active"><div class="filter-group"><input id="articlesQuery" class="search-input"><input id="yearFilter" placeholder="Ano"><input id="minCited" placeholder="Min citações"><button id="articlesSearchBtn" class="search-btn">Pesquisar</button></div><div id="articlesResults"></div></div>
+      <div id="articlesReadSub" class="sub-content"><div id="readArticlesList"></div></div>`;
     document.getElementById('mainContent').innerHTML = html;
     document.getElementById('articlesSearchBtn').addEventListener('click', async () => {
-      const q = document.getElementById('articlesQuery').value;
-      const year = document.getElementById('yearFilter').value;
-      const minCited = document.getElementById('minCited').value;
+      const q = document.getElementById('articlesQuery').value, year = document.getElementById('yearFilter').value, minCited = document.getElementById('minCited').value;
       if (!q) return;
-      const resDiv = document.getElementById('articlesResults');
-      resDiv.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
-      const arts = await searchArticles(q, { year, minCited });
+      const resDiv = document.getElementById('articlesResults'); resDiv.innerHTML='<div class="loader"><div class="spinner"></div><div>Buscando...</div></div>';
+      const arts = await searchOpenAlex(q, 'article', { year, minCited });
       articlesData = arts;
       renderSearchResults('articlesResults', arts, 'article', readArticles);
     });
-    const lidos = articlesData.filter(a => readArticles.has(a.id));
-    document.getElementById('readArticlesList').innerHTML = lidos.length ? lidos.map(a => `<div class="result-card"><div class="card-content"><a href="${a.url}" class="card-title">${a.title}</a><div class="card-meta">${a.authors.join(', ')}</div></div></div>`).join('') : '<div class="no-results">Nenhum artigo lido ainda</div>';
+    const lidos = articlesData.filter(a=>readArticles.has(a.id));
+    document.getElementById('readArticlesList').innerHTML = lidos.length ? lidos.map(a=>`<div class="result-card"><div class="card-content"><a href="${sanitizeUrl(a.url)}" class="card-title">${escapeHtml(a.title)}</a><div class="card-meta">${escapeHtml(a.authors.join(', '))}</div></div></div>`).join('') : '<div class="no-results">Nenhum artigo lido</div>';
   }
+
   async function renderBooksTab() {
     const html = `<div class="search-area"><input id="booksQuery" class="search-input"><button id="booksSearchBtn" class="search-btn">Buscar Livros</button></div><div id="booksResults"></div>`;
     document.getElementById('mainContent').innerHTML = html;
     document.getElementById('booksSearchBtn').addEventListener('click', async () => {
-      const q = document.getElementById('booksQuery').value;
-      if (!q) return;
-      const resDiv = document.getElementById('booksResults');
-      resDiv.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
+      const q = document.getElementById('booksQuery').value; if (!q) return;
+      const resDiv = document.getElementById('booksResults'); resDiv.innerHTML='<div class="loader"><div class="spinner"></div><div>Buscando...</div></div>';
       const books = await searchBooks(q);
       booksData = books;
       renderSearchResults('booksResults', books, 'book', readBooks);
     });
   }
+
   async function renderResearchTab() {
     const html = `<div class="search-area"><input id="researchQuery" class="search-input"><button id="researchSearchBtn" class="search-btn">Buscar Pesquisas</button></div><div id="researchResults"></div>`;
     document.getElementById('mainContent').innerHTML = html;
     document.getElementById('researchSearchBtn').addEventListener('click', async () => {
-      const q = document.getElementById('researchQuery').value;
-      if (!q) return;
-      const resDiv = document.getElementById('researchResults');
-      resDiv.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
-      const research = await searchResearch(q);
+      const q = document.getElementById('researchQuery').value; if (!q) return;
+      const resDiv = document.getElementById('researchResults'); resDiv.innerHTML='<div class="loader"><div class="spinner"></div><div>Buscando...</div></div>';
+      const research = await searchOpenAlex(q, 'research');
       researchData = research;
       renderSearchResults('researchResults', research, 'research', readResearch);
     });
   }
 
-  // ======================== ABA INSIGHT (antes Estúdio) com descrições ========================
-  function renderStudioTab() {
+  // ========== 5. SEGUNDO CÉREBRO (aba principal) – TUDO INTEGRADO ==========
+  async function renderBrainTab() {
     const html = `
       <div class="sub-tabs">
-        <button class="sub-tab active" data-sub="dashboard">📈 Dashboard</button>
-        <button class="sub-tab" data-sub="knowledge">🧠 Knowledge Base</button>
-        <button class="sub-tab" data-sub="goals">🎯 Metas</button>
-        <button class="sub-tab" data-sub="gamification">🏆 Gamificação</button>
+        <button class="sub-tab active" data-sub="zettel">📔 Zettelkasten</button>
+        <button class="sub-tab" data-sub="backlinks">🔗 Backlinks</button>
+        <button class="sub-tab" data-sub="spaced">🔄 Revisão Espaçada</button>
         <button class="sub-tab" data-sub="graph">🗺️ Knowledge Graph</button>
+        <button class="sub-tab" data-sub="dashboard">📊 Dashboard Executivo</button>
         <button class="sub-tab" data-sub="radar">📡 Radar Científico</button>
         <button class="sub-tab" data-sub="compare">⚖️ Comparador</button>
-        <button class="sub-tab" data-sub="favorites">❤️ Favoritos</button>
-        <button class="sub-tab" data-sub="collections">📂 Coleções</button>
-        <button class="sub-tab" data-sub="tags">🏷️ Tags</button>
-        <button class="sub-tab" data-sub="calendar">📅 Calendário</button>
-        <button class="sub-tab" data-sub="profile">👤 Perfil</button>
         <button class="sub-tab" data-sub="export">💾 Exportar</button>
       </div>
-      <div id="studioDashboard" class="sub-content active"><div class="subsection-desc">📊 Acompanhe suas estatísticas de leitura, evolução mensal e tags mais usadas.</div><div id="dashboardContent"></div></div>
-      <div id="studioKnowledge" class="sub-content"><div class="subsection-desc">🧠 Armazene notas, resumos e aprendizados sobre os conteúdos que você leu.</div><div id="knowledgeContent"></div></div>
-      <div id="studioGoals" class="sub-content"><div class="subsection-desc">🎯 Defina metas de leitura (artigos, livros, pesquisas) e acompanhe seu progresso.</div><div id="goalsContent"></div></div>
-      <div id="studioGamification" class="sub-content"><div class="subsection-desc">🏆 Ganhe XP e badges ao ler, favoritar, criar coleções e concluir metas. Suba de nível!</div><div id="gamificationContent"></div></div>
-      <div id="studioGraph" class="sub-content"><div class="subsection-desc">🗺️ Visualize um mapa interativo conectando seus temas de estudo (baseado nas tags).</div><div id="graphContent"></div></div>
-      <div id="studioRadar" class="sub-content"><div class="subsection-desc">📡 Descubra artigos recentes e populares sobre os temas que você mais pesquisa.</div><div id="radarContent"></div></div>
-      <div id="studioCompare" class="sub-content"><div class="subsection-desc">⚖️ Selecione até 5 artigos da última busca e compare títulos, autores, ano e citações.</div><div id="compareContent"></div></div>
-      <div id="studioFavorites" class="sub-content"><div class="subsection-desc">❤️ Gerencie seus favoritos: veja, abra ou remova itens salvos.</div><div id="favoritesContent"></div></div>
-      <div id="studioCollections" class="sub-content"><div class="subsection-desc">📂 Organize conteúdos em coleções personalizadas (ex: TCC, IA, Filosofia).</div><div id="collectionsContent"></div></div>
-      <div id="studioTags" class="sub-content"><div class="subsection-desc">🏷️ Explore suas tags, veja quantos itens cada uma possui e filtre por tag.</div><div id="tagsContent"></div></div>
-      <div id="studioCalendar" class="sub-content"><div class="subsection-desc">📅 Visualize seu calendário de estudos (dias em que você leu algo).</div><div id="calendarContent"></div></div>
-      <div id="studioProfile" class="sub-content"><div class="subsection-desc">👤 Edite seu perfil e acompanhe seu XP e nível.</div><div id="profileContent"></div></div>
-      <div id="studioExport" class="sub-content"><div class="subsection-desc">💾 Exporte todos os seus dados (leituras, favoritos, coleções, etc.) em JSON ou CSV.</div><div id="exportContent"></div></div>
+      <div id="brainZettel" class="sub-content active"><div id="zettelList"></div><button id="newZettelBtn" class="search-btn">➕ Nova Nota Atômica</button></div>
+      <div id="brainBacklinks" class="sub-content"><div id="backlinksList"></div></div>
+      <div id="brainSpaced" class="sub-content"><div id="spacedList"></div></div>
+      <div id="brainGraph" class="sub-content"><div id="cy" class="cy-container"></div></div>
+      <div id="brainDashboard" class="sub-content"><div id="execDashboard"></div></div>
+      <div id="brainRadar" class="sub-content"><div id="radarPanel"></div></div>
+      <div id="brainCompare" class="sub-content"><div id="comparePanel"></div></div>
+      <div id="brainExport" class="sub-content"><div id="exportPanel"></div></div>
     `;
     document.getElementById('mainContent').innerHTML = html;
-    document.querySelectorAll('.sub-tab').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const target = btn.dataset.sub;
-        document.querySelectorAll('.sub-tab').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        document.querySelectorAll('.sub-content').forEach(c => c.classList.remove('active'));
-        document.getElementById(`studio${target.charAt(0).toUpperCase() + target.slice(1)}`).classList.add('active');
-        if (target === 'dashboard') renderDashboard();
-        if (target === 'knowledge') renderKnowledgeBase();
-        if (target === 'goals') renderGoals();
-        if (target === 'gamification') renderGamification();
-        if (target === 'graph') renderKnowledgeGraph();
-        if (target === 'radar') renderRadar();
-        if (target === 'compare') renderCompare();
-        if (target === 'favorites') renderFavorites();
-        if (target === 'collections') renderCollections();
-        if (target === 'tags') renderTags();
-        if (target === 'calendar') renderCalendar();
-        if (target === 'profile') renderProfile();
-        if (target === 'export') renderExport();
-      });
-    });
-    renderDashboard();
+    // Carregar Zettels
+    await loadAllData();
+    renderZettelList();
+    renderBacklinks();
+    renderSpacedRepetition();
+    renderKnowledgeGraph();
+    renderExecDashboard();
+    renderRadarProfessional();
+    renderComparePanel();
+    renderExportPanel();
+    document.getElementById('newZettelBtn').onclick = () => {
+      const title = prompt('Título da nota (atômica):');
+      if (title) {
+        const newZ = { id: stableHash(title+Date.now()), title, content: '', type: 'fleeting', created: Date.now(), updated: Date.now(), tags: [], links: [] };
+        saveZettel(newZ);
+        renderZettelList();
+      }
+    };
   }
 
-  function renderDashboard() {
-    const totalRead = readArticles.size + readBooks.size + readResearch.size;
-    const weeklyReads = studyLog.filter(l => new Date(l.date) > new Date(Date.now()-7*86400000)).length;
-    const monthlyReads = studyLog.filter(l => new Date(l.date) > new Date(Date.now()-30*86400000)).length;
-    const streak = calculateStreak();
-    const maxStreak = calculateMaxStreak();
-    const monthly = {};
-    studyLog.forEach(l => { const m = l.date.slice(0,7); monthly[m] = (monthly[m]||0)+1; });
-    const months = Object.keys(monthly).sort();
-    const counts = months.map(m => monthly[m]);
-    const tagCounts = Object.entries(tags).map(([t,ids]) => [t, ids.length]).sort((a,b)=>b[1]-a[1]).slice(0,5);
-    document.getElementById('dashboardContent').innerHTML = `
+  async function renderZettelList() {
+    const container = document.getElementById('zettelList');
+    if (!zettels.length) { container.innerHTML = '<div class="no-results">Nenhuma nota criada. Crie sua primeira nota atômica.</div>'; return; }
+    container.innerHTML = zettels.map(z => `
+      <div class="result-card">
+        <div class="card-content">
+          <div class="card-title">📄 ${escapeHtml(z.title)} (${z.type || 'fleeting'})</div>
+          <textarea id="zettel-${z.id}" class="inline-edit" placeholder="Conteúdo da nota (use [[links]])">${escapeHtml(z.content)}</textarea>
+          <div><input id="tags-${z.id}" placeholder="Tags separadas por vírgula" value="${(z.tags||[]).join(', ')}" class="search-input" style="margin-top:8px;"></div>
+          <button class="action-btn save-zettel" data-id="${z.id}">💾 Salvar</button>
+          <button class="action-btn delete-zettel" data-id="${z.id}">🗑️ Excluir</button>
+        </div>
+      </div>
+    `).join('');
+    document.querySelectorAll('.save-zettel').forEach(btn => btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      const z = zettels.find(z=>z.id===id);
+      if (z) {
+        z.content = document.getElementById(`zettel-${id}`).value;
+        z.tags = document.getElementById(`tags-${id}`).value.split(',').map(s=>s.trim()).filter(Boolean);
+        z.updated = Date.now();
+        await saveZettel(z);
+        await parseAndUpdateBacklinks(z.content, id);
+        renderZettelList(); renderBacklinks(); renderKnowledgeGraph();
+        showToast('Zettel salvo e backlinks atualizados!');
+      }
+    }));
+    document.querySelectorAll('.delete-zettel').forEach(btn => btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      zettels = zettels.filter(z=>z.id!==id);
+      await saveToDB('zettels', { id }); // delete
+      renderZettelList(); renderBacklinks(); renderKnowledgeGraph();
+    }));
+  }
+
+  async function renderBacklinks() {
+    const container = document.getElementById('backlinksList');
+    if (backlinksMap.size === 0) { container.innerHTML = '<div class="no-results">Nenhum backlink ainda. Crie notas com [[links]] e eles aparecerão aqui.</div>'; return; }
+    let html = '';
+    for (let [target, data] of backlinksMap.entries()) {
+      html += `<div class="result-card"><strong>🔗 [[${escapeHtml(target)}]]</strong> — ${data.incoming.length} referências recebidas<ul>${data.incoming.map(inc=>`<li>${escapeHtml(zettels.find(z=>z.id===inc)?.title || inc)}</li>`).join('')}</ul></div>`;
+    }
+    container.innerHTML = html;
+  }
+
+  async function renderSpacedRepetition() {
+    const now = Date.now();
+    const due = Array.from(repetitionData.values()).filter(c => c.nextReview <= now);
+    const container = document.getElementById('spacedList');
+    if (!due.length) { container.innerHTML = '<div class="no-results">Nenhuma revisão pendente. Continue estudando!</div>'; return; }
+    container.innerHTML = due.map(c => {
+      const z = zettels.find(z=>z.id===c.id);
+      return `<div class="result-card"><div class="card-title">${escapeHtml(z?.title || c.id)}</div><div class="revision-btn-group"><button class="revision-btn" data-id="${c.id}" data-quality="1">❌ Esqueci</button><button class="revision-btn" data-id="${c.id}" data-quality="2">⚠️ Difícil</button><button class="revision-btn" data-id="${c.id}" data-quality="3">👍 Bom</button><button class="revision-btn" data-id="${c.id}" data-quality="4">🌟 Fácil</button></div></div>`;
+    }).join('');
+    document.querySelectorAll('.revision-btn').forEach(btn => btn.addEventListener('click', async () => {
+      const id = btn.dataset.id, quality = parseInt(btn.dataset.quality);
+      updateSpacedRepetition(id, quality);
+      renderSpacedRepetition();
+    }));
+  }
+
+  async function renderKnowledgeGraph() {
+    const cyContainer = document.getElementById('cy');
+    if (!cyContainer) return;
+    const elements = [];
+    // Adicionar nós: zettels e tags
+    zettels.forEach(z => { elements.push({ data: { id: z.id, label: z.title.substring(0,20) }, classes: 'zettel' }); });
+    const allTags = new Set();
+    zettels.forEach(z => (z.tags||[]).forEach(t=>allTags.add(t)));
+    allTags.forEach(t => elements.push({ data: { id: t, label: t }, classes: 'tag' }));
+    // Arestas: backlinks
+    for (let [target, data] of backlinksMap.entries()) {
+      data.incoming.forEach(src => elements.push({ data: { source: src, target, weight: 1 } }));
+    }
+    // Arestas de tags
+    zettels.forEach(z => (z.tags||[]).forEach(tag => elements.push({ data: { source: z.id, target: tag, weight: 0.5 } })));
+    if (window.cyInstance) window.cyInstance.destroy();
+    window.cyInstance = cytoscape({ container: cyContainer, elements, style: [{ selector: 'node', style: { 'background-color': '#00d4ff', label: 'data(label)', color: 'white' } }, { selector: '.tag', style: { 'background-color': '#7b2cbf' } }], layout: { name: 'cose', animate: true } });
+  }
+
+  async function renderExecDashboard() {
+    const totalRead = readArticles.size+readBooks.size+readResearch.size;
+    const monthly = studyLog.filter(l=>new Date(l.date)>new Date(Date.now()-30*86400000)).length;
+    const streak = (()=>{let s=0,dates=[...new Set(studyLog.map(l=>l.date))].sort().reverse(),last=new Date().toLocaleDateString('en-CA');for(let d of dates){if(d===last){s++;last=new Date(Date.parse(last)-86400000).toLocaleDateString('en-CA');}else break;}return s;})();
+    const topTags = Object.entries(tags).map(([t,ids])=>[t,ids.length]).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    document.getElementById('execDashboard').innerHTML = `
       <div class="dashboard-grid">
-        <div class="dashboard-card"><h3>📊 Resumo</h3><p>Total lidos: ${totalRead}</p><p>Leituras esta semana: ${weeklyReads}</p><p>Leituras este mês: ${monthlyReads}</p><p>Sequência atual: ${streak} dias</p><p>Maior sequência: ${maxStreak} dias</p></div>
-        <div class="dashboard-card"><h3>📈 Evolução mensal</h3><canvas id="monthlyChart" height="200"></canvas></div>
-        <div class="dashboard-card"><h3>🏷️ Tags mais usadas</h3><div>${tagCounts.map(([t,c]) => `<span class="badge">${t} (${c})</span>`).join('')}</div></div>
+        <div class="dashboard-card"><h3>📊 Resumo</h3><p>Total lidos: ${totalRead}</p><p>Leituras mês: ${monthly}</p><p>Sequência: ${streak} dias</p><p>XP: ${userProfile.xp} | Nível: ${userProfile.level}</p></div>
+        <div class="dashboard-card"><h3>🏷️ Tags frequentes</h3>${topTags.map(([t,c])=>`<span class="badge">${escapeHtml(t)} (${c})</span>`).join('')}</div>
+        <div class="dashboard-card"><h3>🧠 Zettels</h3>${zettels.length} notas atômicas</div>
+      </div>
+      <canvas id="monthlyChart" height="200"></canvas>
+    `;
+    const monthlyData = {};
+    studyLog.forEach(l=>{let m=l.date.slice(0,7);monthlyData[m]=(monthlyData[m]||0)+1;});
+    const months = Object.keys(monthlyData).sort(), counts = months.map(m=>monthlyData[m]);
+    if (window.dashChart) window.dashChart.destroy();
+    const ctx = document.getElementById('monthlyChart')?.getContext('2d');
+    if (ctx) window.dashChart = new Chart(ctx, { type: 'line', data: { labels: months, datasets: [{ label: 'Leituras', data: counts, borderColor: '#00d4ff' }] } });
+  }
+
+  async function renderRadarProfessional() {
+    const container = document.getElementById('radarPanel');
+    if (!container) return;
+    const radarHtml = `<div class="search-area"><input id="newRadarTopic" class="search-input"><button id="addRadarTopicBtn" class="search-btn">➕ Adicionar tema</button></div><div id="radarTopicsList"></div><div id="radarNews"></div>`;
+    container.innerHTML = radarHtml;
+    const listDiv = document.getElementById('radarTopicsList');
+    listDiv.innerHTML = radarTopics.map((t,i)=>`<span class="badge">${escapeHtml(t)} <button class="remove-topic" data-idx="${i}" style="background:none;border:none;color:white;">❌</button></span>`).join('');
+    document.getElementById('addRadarTopicBtn').onclick = () => {
+      const topic = document.getElementById('newRadarTopic').value.trim();
+      if (topic && !radarTopics.includes(topic)) { radarTopics.push(topic); saveToDB('radar', { topic }); renderRadarProfessional(); }
+    };
+    document.querySelectorAll('.remove-topic').forEach(btn => btn.onclick = () => { radarTopics.splice(btn.dataset.idx,1); saveToDB('radar', radarTopics); renderRadarProfessional(); });
+    if (radarTopics.length) {
+      const newsDiv = document.getElementById('radarNews');
+      newsDiv.innerHTML = '<div class="loader"><div class="spinner"></div><div>Coletando novidades...</div></div>';
+      let newsHtml = '';
+      for (let topic of radarTopics) {
+        const articles = await searchOpenAlex(topic, 'article');
+        newsHtml += `<div class="dashboard-card"><h3>🔍 ${escapeHtml(topic)}</h3><ul>${articles.slice(0,3).map(a=>`<li><a href="${sanitizeUrl(a.url)}" target="_blank">${escapeHtml(a.title)}</a> (${a.publication_date?.slice(0,4)||'s.d.'})</li>`).join('')}</ul></div>`;
+      }
+      newsDiv.innerHTML = newsHtml;
+    }
+  }
+
+  async function renderComparePanel() {
+    if (!articlesData.length) { document.getElementById('comparePanel').innerHTML = '<div class="no-results">Realize uma busca em Artigos primeiro.</div>'; return; }
+    const html = `<div id="compareSelect" class="results-grid">${articlesData.slice(0,10).map(a=>`<div class="result-card"><label><input type="checkbox" class="compare-chk" data-title="${escapeHtml(a.title)}" data-authors="${escapeHtml(a.authors.join(', '))}" data-citations="${a.citations}" data-year="${a.publication_date?.slice(0,4)}"> ${escapeHtml(a.title)}</label></div>`).join('')}</div><button id="doCompare" class="search-btn">Comparar</button><div id="compareResult"></div>`;
+    document.getElementById('comparePanel').innerHTML = html;
+    document.getElementById('doCompare').onclick = () => {
+      const selected = Array.from(document.querySelectorAll('.compare-chk:checked')).map(cb => ({
+        title: cb.dataset.title, authors: cb.dataset.authors, citations: cb.dataset.citations, year: cb.dataset.year
+      }));
+      if (selected.length < 2) { alert('Selecione pelo menos 2'); return; }
+      let table = '<table class="comparison-table"><tr><th>Atributo</th>'+selected.map(s=>`<th>${escapeHtml(s.title.substring(0,30))}</th>`).join('')+'</tr>';
+      table += '<tr><td>Autores</td>'+selected.map(s=>`<td>${escapeHtml(s.authors)}</td>`).join('')+'</tr>';
+      table += '<tr><td>Ano</td>'+selected.map(s=>`<td>${escapeHtml(s.year)}</td>`).join('')+'</tr>';
+      table += '<tr><td>Citações</td>'+selected.map(s=>`<td>${escapeHtml(s.citations)}</td>`).join('')+'</tr></table>';
+      document.getElementById('compareResult').innerHTML = table;
+    };
+  }
+
+  async function renderExportPanel() {
+    const exportData = { articlesData, booksData, researchData, readArticles: [...readArticles], favorites, notes, collections, tags, zettels, backlinks: [...backlinksMap.entries()], repetitionData: [...repetitionData.entries()], userProfile, goals, studyLog, radarTopics };
+    const obsidianMd = zettels.map(z => `---\ntitle: ${z.title}\ntags: ${(z.tags||[]).join(',')}\n---\n\n${z.content}\n\n${(z.links||[]).map(l=>`[[${l}]]`).join('\n')}`).join('\n\n');
+    const panel = document.getElementById('exportPanel');
+    panel.innerHTML = `
+      <div class="dashboard-grid">
+        <button id="exportJSON" class="search-btn">📄 Exportar JSON</button>
+        <button id="exportCSV" class="search-btn">📊 Exportar CSV</button>
+        <button id="exportObsidian" class="search-btn">📘 Exportar Obsidian</button>
+        <button id="backupAll" class="search-btn">💾 Backup completo</button>
       </div>
     `;
-    setTimeout(() => {
-      const ctx = document.getElementById('monthlyChart')?.getContext('2d');
-      if (ctx) new Chart(ctx, { type: 'line', data: { labels: months, datasets: [{ label: 'Leituras', data: counts, borderColor: '#00d4ff' }] } });
-    }, 100);
+    document.getElementById('exportJSON').onclick = () => { const blob = new Blob([JSON.stringify(exportData)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'readplus_backup.json'; a.click(); };
+    document.getElementById('exportCSV').onclick = () => { let csv = "type,id,title\n"; articlesData.forEach(a=>csv+=`article,${a.id},"${a.title}"\n`); const blob = new Blob([csv],{type:'text/csv'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'readplus_articles.csv'; a.click(); };
+    document.getElementById('exportObsidian').onclick = () => { const blob = new Blob([obsidianMd], {type:'text/markdown'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'readplus_obsidian.md'; a.click(); };
+    document.getElementById('backupAll').onclick = () => { const blob = new Blob([JSON.stringify(exportData)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `readplus_backup_${new Date().toISOString().slice(0,19)}.json`; a.click(); };
   }
-  function calculateStreak() {
-    let streak = 0;
-    let dates = [...new Set(studyLog.map(l => l.date))].sort().reverse();
-    let lastDate = new Date().toISOString().slice(0,10);
-    for (let d of dates) { if (d === lastDate) { streak++; lastDate = new Date(Date.parse(lastDate)-86400000).toISOString().slice(0,10); } else break; }
-    return streak;
+
+  // ========== 6. ROTEAMENTO PRINCIPAL E INICIALIZAÇÃO ==========
+  async function switchMainTab(tab) {
+    currentMainTab = tab;
+    if (tab === 'articles') await renderArticlesTab();
+    else if (tab === 'books') await renderBooksTab();
+    else if (tab === 'research') await renderResearchTab();
+    else if (tab === 'brain') await renderBrainTab();
   }
-  function calculateMaxStreak() {
-    let dates = [...new Set(studyLog.map(l => l.date))].sort();
-    let maxStreak = 0, current = 0, prev = null;
-    for (let d of dates) { if (prev && new Date(d)-new Date(prev) === 86400000) current++; else current = 1; maxStreak = Math.max(maxStreak, current); prev = d; }
-    return maxStreak;
+
+  async function init() {
+    await initDB();
+    await loadAllData();
+    document.querySelectorAll('.main-tab').forEach(btn => btn.addEventListener('click', () => {
+      document.querySelectorAll('.main-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      switchMainTab(btn.dataset.main);
+    }));
+    await switchMainTab('articles');
   }
-  function renderKnowledgeBase() {
-    let items = [];
-    [...readArticles].forEach(id => { const art = articlesData.find(a=>a.id===id) || { title: 'Artigo', id }; items.push({ id, title: art.title, type: 'article', data: art }); });
-    [...readBooks].forEach(id => { const b = booksData.find(b=>b.id===id) || { title: 'Livro', id }; items.push({ id, title: b.title, type: 'book', data: b }); });
-    [...readResearch].forEach(id => { const r = researchData.find(r=>r.id===id) || { title: 'Pesquisa', id }; items.push({ id, title: r.title, type: 'research', data: r }); });
-    document.getElementById('knowledgeContent').innerHTML = items.map(item => `
-      <div class="result-card"><div class="card-content"><div class="card-title">${escapeHtml(item.title)}</div><textarea id="note-${item.id}" class="inline-edit" placeholder="Notas...">${notes[item.id]?.comment || ''}</textarea><button class="action-btn save-note" data-id="${item.id}">Salvar nota</button></div></div>
-    `).join('');
-    document.querySelectorAll('.save-note').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.dataset.id;
-        const comment = document.getElementById(`note-${id}`).value;
-        if (!notes[id]) notes[id] = {};
-        notes[id].comment = comment;
-        saveAllData(); showToast('Nota salva! +5 XP'); addXP(5);
-      });
-    });
-  }
-  function renderGoals() {
-    let goalsHtml = goals.map((g,idx) => `<div class="result-card"><div>🎯 ${g.title} (${g.type}): ${g.current}/${g.target}</div><progress value="${g.current}" max="${g.target}"></progress><button class="action-btn remove-goal" data-idx="${idx}">🗑️</button></div>`).join('');
-    document.getElementById('goalsContent').innerHTML = `
-      <div class="search-area"><input id="goalTitle" placeholder="Título da meta" class="search-input"><input id="goalType" placeholder="article/book/research" class="search-input"><input id="goalTarget" placeholder="Quantidade" type="number" class="search-input"><button id="addGoalBtn" class="search-btn">Adicionar Meta</button></div>
-      <div id="goalsList">${goalsHtml || '<div>Nenhuma meta definida</div>'}</div>
-    `;
-    document.getElementById('addGoalBtn')?.addEventListener('click', () => {
-      const title = document.getElementById('goalTitle').value;
-      const type = document.getElementById('goalType').value;
-      const target = parseInt(document.getElementById('goalTarget').value);
-      if (title && type && target) { goals.push({ id: Date.now(), title, type, target, current: 0 }); saveAllData(); renderGoals(); }
-    });
-    document.querySelectorAll('.remove-goal').forEach(btn => {
-      btn.addEventListener('click', () => { goals.splice(btn.dataset.idx,1); saveAllData(); renderGoals(); });
-    });
-  }
-  function renderGamification() {
-    const levelNames = ['Explorador','Pesquisador','Analista','Especialista','Mestre do Conhecimento'];
-    const nextXP = (userProfile.level+1)*100 - userProfile.xp;
-    document.getElementById('gamificationContent').innerHTML = `
-      <div class="dashboard-card"><h3>🏅 ${levelNames[userProfile.level]}</h3><p>XP: ${userProfile.xp} / ${(userProfile.level+1)*100}</p><progress value="${userProfile.xp}" max="${(userProfile.level+1)*100}"></progress><p>Próximo nível em ${nextXP} XP</p></div>
-      <div class="dashboard-card"><h3>🎖️ Badges</h3><div>${userProfile.badges.map(b => `<span class="badge">${b}</span>`).join('') || 'Nenhum ainda'}</div></div>
-    `;
-  }
-  function renderKnowledgeGraph() {
-    document.getElementById('graphContent').innerHTML = '<div id="cy" class="cy-container"></div>';
-    const nodes = [{ data: { id: 'Read+' } }]; const edges = [];
-    const tagNodes = Object.keys(tags).slice(0,10);
-    tagNodes.forEach(tag => { nodes.push({ data: { id: tag } }); edges.push({ data: { source: 'Read+', target: tag } }); });
-    setTimeout(() => {
-      const cy = cytoscape({ container: document.getElementById('cy'), elements: [...nodes, ...edges], style: [{ selector: 'node', style: { 'background-color': '#00d4ff', label: 'data(id)', color: 'white' } }], layout: { name: 'circle' } });
-    }, 50);
-  }
-  async function renderRadar() {
-    document.getElementById('radarContent').innerHTML = `<div class="search-area"><input id="radarTopic" class="search-input"><button id="radarSearch" class="search-btn">Buscar Novidades</button></div><div id="radarResults"></div>`;
-    document.getElementById('radarSearch').addEventListener('click', async () => {
-      const topic = document.getElementById('radarTopic').value;
-      if (!topic) return;
-      const resDiv = document.getElementById('radarResults');
-      resDiv.innerHTML = '<div class="loader"><div class="spinner"></div></div>';
-      const arts = await searchArticles(topic);
-      resDiv.innerHTML = arts.map(a => `<div class="result-card"><div class="card-content"><a href="${a.url}" target="_blank" class="card-title">${a.title}</a><div class="card-meta">${a.authors.join(', ')}</div><div class="card-abstract">${a.abstract.substring(0,200)}</div></div></div>`).join('');
-    });
-  }
-  function renderCompare() {
-    document.getElementById('compareContent').innerHTML = `<div id="compareSelect" class="results-grid"></div><button id="doCompare" class="search-btn">Comparar Selecionados</button><div id="compareResult"></div>`;
-    const recent = articlesData.slice(0,10);
-    document.getElementById('compareSelect').innerHTML = recent.map(a => `<div class="result-card"><label><input type="checkbox" class="compare-chk" data-id="${a.id}" data-title="${a.title}" data-authors="${a.authors.join(', ')}" data-citations="${a.citations}" data-year="${a.publication_date?.slice(0,4)}"> ${a.title}</label></div>`).join('');
-    document.getElementById('doCompare').addEventListener('click', () => {
-      const selected = Array.from(document.querySelectorAll('.compare-chk:checked')).map(cb => ({ title: cb.dataset.title, authors: cb.dataset.authors, citations: cb.dataset.citations, year: cb.dataset.year }));
-      if (selected.length < 2) { alert('Selecione pelo menos 2 artigos'); return; }
-      let html = '<table class="comparison-table"><tr><th>Atributo</th>' + selected.map(s => `<th>${s.title.substring(0,30)}</th>`).join('') + '</tr>';
-      html += '<tr><td>Autores</td>' + selected.map(s => `<td>${s.authors}</td>`).join('') + '</tr>';
-      html += '<tr><td>Ano</td>' + selected.map(s => `<td>${s.year}</td>`).join('') + '</tr>';
-      html += '<tr><td>Citações</td>' + selected.map(s => `<td>${s.citations}</td>`).join('') + '</tr>';
-      html += '</table>';
-      document.getElementById('compareResult').innerHTML = html;
-    });
-  }
-  function renderFavorites() {
-    const allFavs = [...favorites.articles, ...favorites.books, ...favorites.research];
-    document.getElementById('favoritesContent').innerHTML = allFavs.map(f => `<div class="result-card"><div class="card-content"><a href="${f.url}" target="_blank" class="card-title">${f.title}</a><div class="card-meta">${f.type} · ${new Date(f.date).toLocaleDateString()}</div><button class="action-btn unfav" data-id="${f.id}" data-type="${f.type}">Remover</button></div></div>`).join('');
-    document.querySelectorAll('.unfav').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.dataset.id;
-        const type = btn.dataset.type;
-        favorites[type] = favorites[type].filter(i => i.id !== id);
-        saveAllData(); renderFavorites();
-      });
-    });
-  }
-  function renderCollections() {
-    document.getElementById('collectionsContent').innerHTML = `<div><input id="newColName" class="search-input"><button id="createCol" class="search-btn">Criar Coleção</button></div>${collections.map(col => `<div class="result-card"><strong>${col.name}</strong><ul>${col.items.map(i => `<li>${i.title} <button class="action-btn remove-col-item" data-col="${col.id}" data-id="${i.id}">🗑️</button></li>`).join('')}</ul><button class="action-btn delete-col" data-id="${col.id}">Excluir Coleção</button></div>`).join('')}`;
-    document.getElementById('createCol')?.addEventListener('click', () => { const name = document.getElementById('newColName').value; if (name) createCollection(name); });
-    document.querySelectorAll('.delete-col').forEach(btn => {
-      btn.addEventListener('click', () => { collections = collections.filter(c => c.id != btn.dataset.id); saveAllData(); renderCollections(); });
-    });
-  }
-  function renderTags() {
-    const tagList = Object.entries(tags).map(([t,ids]) => `<div class="result-card"><span class="badge" data-tag="${t}">${t} (${ids.length})</span><button class="action-btn filter-tag" data-tag="${t}">Filtrar</button></div>`).join('');
-    document.getElementById('tagsContent').innerHTML = tagList;
-    document.querySelectorAll('.filter-tag').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const tag = btn.dataset.tag;
-        const ids = tags[tag];
-        const related = articlesData.filter(a => ids.includes(a.id)).concat(booksData.filter(b=>ids.includes(b.id)), researchData.filter(r=>ids.includes(r.id)));
-        alert(`Conteúdos com a tag "${tag}": ${related.length} itens`);
-      });
-    });
-  }
-  function renderCalendar() {
-    const last30 = Array(30).fill().map((_,i) => new Date(Date.now()-i*86400000).toISOString().slice(0,10)).reverse();
-    let html = '<div style="display:grid; grid-template-columns:repeat(7,1fr); gap:8px;">';
-    for (let d of last30) {
-      const studied = studyLog.some(l => l.date === d);
-      html += `<div style="background:${studied?'#00d4ff':'#333'}; border-radius:12px; padding:8px; text-align:center;">${d.slice(5)}</div>`;
-    }
-    html += '</div>';
-    document.getElementById('calendarContent').innerHTML = html;
-  }
-  function renderProfile() {
-    document.getElementById('profileContent').innerHTML = `<div class="dashboard-card"><h3>👤 Perfil</h3><input id="profileName" value="${userProfile.name}" class="search-input"><button id="saveProfile" class="search-btn">Salvar</button><p>XP: ${userProfile.xp} | Nível: ${userProfile.level}</p></div>`;
-    document.getElementById('saveProfile')?.addEventListener('click', () => { userProfile.name = document.getElementById('profileName').value; saveAllData(); showToast('Perfil atualizado'); });
-  }
-  function renderExport() {
-    document.getElementById('exportContent').innerHTML = `<div class="dashboard-grid"><button id="exportJSON" class="search-btn">Exportar JSON</button><button id="exportCSV" class="search-btn">Exportar CSV</button></div>`;
-    document.getElementById('exportJSON')?.addEventListener('click', () => {
-      const data = { readArticles: [...readArticles], readBooks: [...readBooks], readResearch: [...readResearch], favorites, notes, collections, tags, userProfile, goals, studyLog };
-      const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
-      const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'readplus_data.json'; a.click();
-    });
-    document.getElementById('exportCSV')?.addEventListener('click', () => {
-      let csv = "type,id,title\n";
-      [...readArticles].forEach(id => { const a = articlesData.find(a=>a.id===id); csv += `article,${id},"${a?.title || ''}"\n`; });
-      [...readBooks].forEach(id => { const b = booksData.find(b=>b.id===id); csv += `book,${id},"${b?.title || ''}"\n`; });
-      [...readResearch].forEach(id => { const r = researchData.find(r=>r.id===id); csv += `research,${id},"${r?.title || ''}"\n`; });
-      const blob = new Blob([csv], {type:'text/csv'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'readplus_reads.csv'; a.click();
-    });
-  }
-  function escapeHtml(str) { return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m])); }
-  function switchMainTab(tab) { currentMainTab = tab; if (tab === 'articles') renderArticlesTab(); else if (tab === 'books') renderBooksTab(); else if (tab === 'research') renderResearchTab(); else renderStudioTab(); }
-  function initMainTabs() { document.querySelectorAll('.main-tab').forEach(btn => { btn.addEventListener('click', () => { document.querySelectorAll('.main-tab').forEach(b => b.classList.remove('active')); btn.classList.add('active'); switchMainTab(btn.dataset.main); }); }); switchMainTab('articles'); }
-  initMainTabs();
+  init();
 </script>
 </body>
 </html>
