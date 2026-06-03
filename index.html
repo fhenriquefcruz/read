@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
   <meta name="theme-color" content="#05070f">
-  <title>Read+ · Hub do Conhecimento</title>
+  <title>Read+ · Segundo Cérebro</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -41,74 +41,66 @@
       z-index: 0;
     }
     .container { max-width: 1400px; margin: 0 auto; position: relative; z-index: 2; }
-
-    /* NOVO HEADER MODERNO E ASSIMÉTRICO */
-    .header {
-      text-align: center;
-      margin-bottom: 40px;
+    
+    /* Logo assimétrica moderna */
+    .header { text-align: center; margin-bottom: 40px; }
+    .logo-wrapper {
+      display: inline-block;
       position: relative;
     }
     .logo {
-      font-size: 4.5rem;
+      font-size: 4.2rem;
       font-weight: 800;
       letter-spacing: -3px;
-      background: linear-gradient(135deg, #fff, var(--glow-primary), var(--glow-secondary));
+      background: linear-gradient(135deg, #fff 0%, var(--glow-primary) 40%, var(--glow-secondary) 80%);
       background-clip: text;
       color: transparent;
-      text-shadow: 0 0 20px rgba(0,212,255,0.3);
+      text-shadow: 0 0 30px rgba(0,212,255,0.3);
       display: inline-block;
-      transform: skew(-5deg) rotate(-1deg);
-      margin-bottom: 8px;
-      position: relative;
-      transition: transform 0.2s;
+      clip-path: polygon(0% 0%, 95% 0%, 100% 50%, 95% 100%, 0% 100%);
+      padding-right: 15px;
+      animation: float 4s ease-in-out infinite;
     }
-    .logo span {
-      display: inline-block;
-      transform: skew(5deg) rotate(1deg);
-      background: none;
-      background-clip: unset;
-      color: var(--glow-primary);
-      font-size: 1.1rem;
-      vertical-align: super;
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-5px); }
+    }
+    .logo span { 
+      font-size: 1.2rem; 
+      vertical-align: super; 
+      background: linear-gradient(135deg, var(--glow-primary), var(--glow-secondary));
+      background-clip: text;
+      color: transparent;
+      font-weight: 700;
       margin-left: 4px;
     }
-    .logo:hover {
-      transform: skew(-3deg) rotate(-0.5deg);
-      text-shadow: 0 0 30px rgba(0,212,255,0.6);
-    }
     .tagline {
-      font-size: 1rem;
-      letter-spacing: 2px;
-      font-weight: 300;
-      background: linear-gradient(120deg, var(--text-secondary), var(--text-primary));
+      font-size: 0.9rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      background: linear-gradient(90deg, var(--text-secondary), var(--glow-primary), var(--text-secondary));
       background-clip: text;
       color: transparent;
-      text-transform: uppercase;
-      margin-bottom: 16px;
+      margin-top: 12px;
+      font-weight: 400;
     }
     .description {
       max-width: 700px;
-      margin: 0 auto;
+      margin: 20px auto 0;
       font-size: 0.9rem;
-      line-height: 1.5;
+      line-height: 1.6;
       color: var(--text-secondary);
       background: rgba(0,0,0,0.3);
       backdrop-filter: blur(8px);
-      padding: 12px 24px;
       border-radius: 60px;
-      border-left: 3px solid var(--glow-primary);
-      text-align: left;
-      font-style: italic;
+      padding: 12px 24px;
+      border: 1px solid var(--border-light);
     }
     .description strong {
       color: var(--glow-primary);
-      font-style: normal;
+      font-weight: 600;
     }
-    @media (max-width: 700px) {
-      .logo { font-size: 3rem; }
-      .description { font-size: 0.8rem; padding: 10px 16px; }
-    }
-
+    
     .main-tabs {
       display: flex; justify-content: center; gap: 20px; margin-bottom: 28px;
       border-bottom: 1px solid var(--border-light); padding-bottom: 8px; flex-wrap: wrap;
@@ -122,7 +114,6 @@
       background: linear-gradient(135deg, rgba(0,212,255,0.2), rgba(123,44,191,0.2));
       color: var(--glow-primary); box-shadow: var(--shadow-neon); border: 1px solid var(--glow-primary);
     }
-    .main-tab:hover:not(.active) { color: white; background: rgba(0,212,255,0.1); }
     .glass-card {
       background: var(--bg-card); backdrop-filter: blur(16px); border-radius: 2rem;
       border: 1px solid var(--border-light); padding: 28px 32px; transition: all 0.3s;
@@ -137,75 +128,97 @@
     .sub-content { display: none; animation: fadeIn 0.25s ease; }
     .sub-content.active { display: block; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    
+    /* Loading sofisticado */
+    .loading-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(8px);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 20px;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+    .loading-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    .loading-spinner {
+      width: 60px;
+      height: 60px;
+      border: 3px solid rgba(0,212,255,0.2);
+      border-top-color: var(--glow-primary);
+      border-right-color: var(--glow-secondary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    .loading-text {
+      font-size: 1rem;
+      letter-spacing: 2px;
+      background: linear-gradient(90deg, var(--glow-primary), var(--glow-secondary));
+      background-clip: text;
+      color: transparent;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    
     .search-area { display: flex; gap: 12px; margin-bottom: 28px; flex-wrap: wrap; }
     .search-input {
       flex: 1; padding: 14px 22px; border-radius: 60px; border: 1px solid var(--border-light);
-      background: rgba(0,0,0,0.4); color: white; font-size: 1rem; font-family: 'Inter', sans-serif;
+      background: rgba(0,0,0,0.4); color: white; font-size: 1rem;
     }
     .search-input:focus { outline: none; border-color: var(--glow-primary); box-shadow: 0 0 0 3px rgba(0,212,255,0.3); }
     .search-btn {
       background: linear-gradient(135deg, var(--glow-primary), var(--glow-secondary));
       border: none; padding: 12px 32px; border-radius: 60px; font-weight: 700; color: white; cursor: pointer;
-      transition: transform 0.2s, filter 0.2s;
-      position: relative;
-      overflow: hidden;
+      transition: transform 0.2s;
     }
-    .search-btn .loader-icon {
-      display: inline-block;
-      width: 18px;
-      height: 18px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-top-color: white;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin-right: 8px;
-      vertical-align: middle;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .search-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+    .search-btn:hover { transform: scale(1.02); }
     .results-grid { display: flex; flex-direction: column; gap: 16px; max-height: 550px; overflow-y: auto; padding-right: 6px; }
     .result-card {
       background: rgba(0,0,0,0.35); backdrop-filter: blur(8px); border-radius: 24px; padding: 18px;
       transition: all 0.2s; border: 1px solid rgba(0,212,255,0.2); display: flex; gap: 16px; align-items: flex-start;
-      margin-bottom: 12px;
     }
-    .result-card:hover { transform: translateX(6px); border-color: var(--glow-primary); box-shadow: 0 0 15px rgba(0,212,255,0.2); }
+    .result-card:hover { transform: translateX(6px); border-color: var(--glow-primary); }
     .checkbox {
       width: 24px; height: 24px; background: rgba(255,255,255,0.1); border: 2px solid var(--glow-primary);
-      border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s;
+      border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer;
     }
     .checkbox.checked { background: var(--glow-primary); color: black; }
-    .status-select {
-      background: rgba(0,0,0,0.6); border: 1px solid var(--glow-primary); border-radius: 20px;
-      padding: 4px 8px; font-size: 0.7rem; color: white; cursor: pointer;
-    }
     .card-content { flex: 1; }
-    .card-title { font-size: 1.05rem; font-weight: 700; color: var(--glow-primary); text-decoration: none; display: inline-block; margin-bottom: 6px; }
-    .card-meta { font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 6px; }
+    .card-title { font-size: 1.05rem; font-weight: 700; color: var(--glow-primary); text-decoration: none; display: inline-block; }
+    .card-meta { font-size: 0.75rem; color: var(--text-secondary); margin: 6px 0; }
     .card-abstract { font-size: 0.85rem; margin: 8px 0; opacity: 0.9; line-height: 1.4; }
     .action-btn {
       display: inline-flex; align-items: center; gap: 6px; background: rgba(0,212,255,0.2);
-      padding: 5px 12px; border-radius: 40px; text-decoration: none; font-size: 0.7rem; font-weight: 500;
-      color: white; transition: 0.2s; border: none; cursor: pointer;
+      padding: 5px 12px; border-radius: 40px; border: none; color: white; cursor: pointer;
+      font-size: 0.7rem; margin-right: 6px;
     }
     .action-btn:hover { background: var(--glow-primary); color: #02040c; }
-    .loader-container { text-align: center; padding: 40px; }
-    .spinner { width: 50px; height: 50px; border: 3px solid rgba(0,212,255,0.3); border-top-color: var(--glow-primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+    .badge { background: linear-gradient(135deg, #00d4ff, #7b2cbf); border-radius: 40px; padding: 4px 12px; font-size: 0.7rem; display: inline-block; margin: 4px; }
     .no-results { text-align: center; padding: 40px; color: var(--text-secondary); }
     .footer { text-align: center; margin-top: 32px; font-size: 0.7rem; color: var(--text-secondary); }
+    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0; }
+    .dashboard-card { background: rgba(0,0,0,0.3); backdrop-filter: blur(8px); border-radius: 28px; padding: 20px; }
+    .cy-container { height: 500px; background: rgba(0,0,0,0.3); border-radius: 24px; margin: 20px 0; }
     @media (max-width: 700px) { .glass-card { padding: 18px; } .main-tab { padding: 8px 16px; font-size: 1rem; } .result-card { flex-direction: column; } .search-area { flex-direction: column; } }
   </style>
 </head>
 <body>
 <div class="container">
   <div class="header">
-    <div class="logo">Read <span>+</span></div>
-    <div class="tagline">conhecimento líquido · evolução perene · arquitetura da mente</div>
+    <div class="logo-wrapper">
+      <div class="logo">Read<span>+</span></div>
+    </div>
+    <div class="tagline">entre o caos e a clareza · o conhecimento se constrói</div>
     <div class="description">
-      <strong>Read+</strong> não é apenas um agregador de artigos ou um repositório de notas.<br>
-      É um <strong>segundo cérebro</strong> que organiza suas leituras, conecta ideias e transforma informação em sabedoria prática.<br>
-      Aqui, cada artigo, livro, pesquisa ou nota atômica se torna um tijolo na construção da sua <strong>evolução intelectual</strong>.<br>
-      Revisões espaçadas, mapas de conhecimento e backlinks bidirecionais – tudo para que o conhecimento não seja apenas acumulado, mas verdadeiramente <strong>vivido e integrado</strong>.
+      <strong>Read+</strong> não é apenas um organizador de artigos. É um <strong>segundo cérebro</strong> que captura pensamentos, conecta ideias e transforma o estudo em uma jornada viva. Aqui, cada nota é um elo, cada leitura um diálogo. Para quem pesquisa, escreve ou simplesmente quer lembrar do que aprendeu: este é o seu espaço de <strong>evolução intelectual</strong>.
     </div>
   </div>
 
@@ -220,207 +233,385 @@
   <div class="footer">🔎 Fontes: OpenAlex · Google Books · IndexedDB · Backlinks · Revisão espaçada</div>
 </div>
 
+<!-- Loading overlay global -->
+<div id="loadingOverlay" class="loading-overlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">conectando conhecimento...</div>
+</div>
+
 <script>
-  // ========== SIMPLIFICAÇÃO: DADOS EM MEMÓRIA + LOCALSTORAGE (para não quebrar) ==========
+  // ========== CONFIGURAÇÃO GLOBAL ==========
+  let db = null;
+  let currentMainTab = 'articles';
+  
+  // Dados principais
   let articlesData = [], booksData = [], researchData = [];
   let readArticles = new Set(), readBooks = new Set(), readResearch = new Set();
-  let readingStatus = { articles: {}, books: {}, research: {} };
   let favorites = { articles: [], books: [], research: [] };
   let notes = {}, collections = [], tags = {}, userProfile = { name: "Pesquisador", xp: 0, level: 0, badges: [] };
-  let studyLog = [], radarTopics = [];
-
-  // Helper functions
+  let zettels = [], backlinksMap = new Map();
+  let loadingTimeout = null;
+  
+  // Auxiliares
   function escapeHtml(str) { return str == null ? '' : String(str).replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[m])); }
   function sanitizeUrl(url) { return (!url || !url.startsWith('http')) ? '#' : url; }
   function stableHash(str) { let h = 0; for (let i=0;i<str.length;i++) h = ((h<<5)-h)+str.charCodeAt(i)|0; return Math.abs(h).toString(36); }
-  function showToast(msg) { const t=document.createElement('div'); t.innerText=msg; t.style.cssText='position:fixed;bottom:20px;right:20px;background:var(--glow-primary);color:#02040c;padding:12px 24px;border-radius:40px;z-index:9999'; document.body.appendChild(t); setTimeout(()=>t.remove(),3000); }
-
-  // APIs com loading e cache
-  async function searchOpenAlex(query, type='article', filters={}) {
-    const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=open_access.is_oa:true&sort=relevance_score:desc&per-page=20`;
-    const res = await fetch(url);
-    if (!res.ok) return [];
-    const data = await res.json();
-    return data.results.map(w => ({
-      id: stableHash(w.id || w.title),
-      title: w.title || 'Sem título',
-      authors: w.authorships?.map(a=>a.author.display_name)||[],
-      abstract: w.abstract || (w.abstract_inverted_index ? Object.entries(w.abstract_inverted_index).sort((a,b)=>a[1][0]-b[1][0]).map(([w])=>w).join(' ') : 'Resumo não disponível.'),
-      url: w.open_access?.oa_url || w.best_oa_location?.pdf_url || w.id,
-      source: 'OpenAlex',
-      citations: w.cited_by_count,
-      publication_date: w.publication_date,
-      type: type==='article'?'article':'research'
-    }));
+  function showToast(msg) { const t=document.createElement('div'); t.innerText=msg; t.style.cssText='position:fixed;bottom:20px;right:20px;background:var(--glow-primary);color:#02040c;padding:12px 24px;border-radius:40px;z-index:10000'; document.body.appendChild(t); setTimeout(()=>t.remove(),3000); }
+  
+  // Loading control
+  function showLoading() {
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.classList.add('active');
+    if (loadingTimeout) clearTimeout(loadingTimeout);
+    loadingTimeout = setTimeout(() => {
+      if (overlay.classList.contains('active')) {
+        overlay.classList.remove('active');
+        showToast('A busca está demorando mais que o esperado. Tente novamente.');
+      }
+    }, 15000);
+  }
+  function hideLoading() {
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.classList.remove('active');
+    if (loadingTimeout) clearTimeout(loadingTimeout);
   }
 
+  // ========== INDEXEDDB ==========
+  async function initDB() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open('ReadPlusDB', 5);
+      request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        const stores = ['articles', 'books', 'research', 'notes', 'collections', 'tags', 'favorites', 'reading_log', 'study_log', 'radar', 'settings', 'zettels', 'backlinks', 'spaced_repetition'];
+        for (let store of stores) {
+          if (!db.objectStoreNames.contains(store)) {
+            if (store === 'settings') db.createObjectStore(store, { keyPath: 'key' });
+            else db.createObjectStore(store, { keyPath: 'id' });
+          }
+        }
+      };
+      request.onsuccess = (event) => {
+        db = event.target.result;
+        loadAllData().then(resolve).catch(resolve);
+      };
+      request.onerror = (event) => reject(event.target.error);
+    });
+  }
+  
+  async function loadAllData() {
+    const stores = ['articles', 'books', 'research', 'notes', 'collections', 'tags', 'favorites', 'reading_log', 'study_log', 'radar', 'settings', 'zettels', 'backlinks'];
+    for (let store of stores) {
+      const tx = db.transaction([store], 'readonly');
+      const data = await new Promise(resolve => { tx.objectStore(store).getAll().onsuccess = e => resolve(e.target.result); });
+      if (store === 'articles') articlesData = data;
+      else if (store === 'books') booksData = data;
+      else if (store === 'research') researchData = data;
+      else if (store === 'notes') notes = data.reduce((acc,n)=>{acc[n.id]=n; return acc;},{});
+      else if (store === 'collections') collections = data;
+      else if (store === 'tags') data.forEach(t=>tags[t.id]=t.items);
+      else if (store === 'favorites') {
+        favorites = { articles: data.filter(f=>f.type==='article'), books: data.filter(f=>f.type==='book'), research: data.filter(f=>f.type==='research') };
+      }
+      else if (store === 'reading_log') {
+        data.forEach(log => {
+          if (log.type === 'article') readArticles.add(log.id);
+          else if (log.type === 'book') readBooks.add(log.id);
+          else if (log.type === 'research') readResearch.add(log.id);
+        });
+      }
+      else if (store === 'study_log') studyLog = data;
+      else if (store === 'radar') radarTopics = data.map(r=>r.topic);
+      else if (store === 'settings') {
+        let prof = data.find(s=>s.key==='profile');
+        if (prof) userProfile = prof.value;
+      }
+      else if (store === 'zettels') zettels = data;
+      else if (store === 'backlinks') data.forEach(b=>backlinksMap.set(b.id, b));
+    }
+  }
+  
+  async function saveReadLog(id, type) {
+    const tx = db.transaction(['reading_log'], 'readwrite');
+    const store = tx.objectStore('reading_log');
+    store.put({ id, type, date: new Date().toISOString() });
+  }
+  async function removeReadLog(id, type) {
+    const tx = db.transaction(['reading_log'], 'readwrite');
+    const store = tx.objectStore('reading_log');
+    store.delete(id);
+  }
+  
+  // ========== APIS DE BUSCA (COM CORS E FALLBACK) ==========
+  async function searchOpenAlex(query, type='article', filters={}) {
+    let filterParts = ['open_access.is_oa:true'];
+    if (filters.year) filterParts.push(`publication_year:${filters.year}`);
+    if (filters.minCited) filterParts.push(`cited_by_count:>${filters.minCited}`);
+    if (type==='research') filterParts.push('type:article,type:report');
+    const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=${filterParts.join(',')}&sort=relevance_score:desc&per-page=20`;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      return data.results.map(w => ({
+        id: stableHash(w.id || w.title),
+        title: w.title || 'Sem título',
+        authors: w.authorships?.map(a=>a.author.display_name)||[],
+        abstract: w.abstract || (w.abstract_inverted_index ? Object.entries(w.abstract_inverted_index).sort((a,b)=>a[1][0]-b[1][0]).map(([w])=>w).join(' ') : 'Resumo não disponível.'),
+        url: w.open_access?.oa_url || w.best_oa_location?.pdf_url || w.id,
+        source: 'OpenAlex',
+        citations: w.cited_by_count,
+        publication_date: w.publication_date
+      }));
+    } catch (err) {
+      console.error('OpenAlex error:', err);
+      return [];
+    }
+  }
+  
   async function searchBooks(query) {
     const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20`;
-    const res = await fetch(url);
-    if (!res.ok) return [];
-    const data = await res.json();
-    if (!data.items) return [];
-    return data.items.map(item => ({
-      id: item.id,
-      title: item.volumeInfo.title||'Sem título',
-      authors: item.volumeInfo.authors||['Autor não informado'],
-      abstract: item.volumeInfo.description||'Sinopse não disponível.',
-      url: item.volumeInfo.previewLink||item.volumeInfo.infoLink,
-      source: 'Google Books',
-      publishedDate: item.volumeInfo.publishedDate,
-      type: 'book'
-    }));
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (!data.items) return [];
+      return data.items.map(item => ({
+        id: item.id,
+        title: item.volumeInfo.title || 'Sem título',
+        authors: item.volumeInfo.authors || ['Autor não informado'],
+        abstract: item.volumeInfo.description || 'Sinopse não disponível.',
+        url: item.volumeInfo.previewLink || item.volumeInfo.infoLink,
+        source: 'Google Books',
+        publishedDate: item.volumeInfo.publishedDate
+      }));
+    } catch (err) {
+      console.error('Google Books error:', err);
+      return [];
+    }
   }
-
-  // Renderização de resultados (com checkboxes, favoritos, etc.)
-  function renderSearchResults(containerId, items, type, readSet) {
+  
+  // ========== RENDERIZAÇÃO DE RESULTADOS COM CHECKBOX E STATUS ==========
+  function renderResults(containerId, items, type, readSet) {
     const container = document.getElementById(containerId);
-    if (!items.length) { container.innerHTML = '<div class="no-results">Nenhum resultado encontrado</div>'; return; }
-    container.innerHTML = items.map(item => {
-      const isRead = readSet.has(item.id);
-      return `
-        <div class="result-card">
-          <div class="checkbox ${isRead ? 'checked' : ''}" data-id="${item.id}" data-type="${type}">${isRead ? '✓' : ''}</div>
-          <div class="card-content">
-            <a href="${sanitizeUrl(item.url)}" target="_blank" class="card-title">📄 ${escapeHtml(item.title)}</a>
-            <div class="card-meta">${escapeHtml(item.authors.slice(0,3).join(', '))} · ${item.source}</div>
-            <div class="card-abstract">${escapeHtml(item.abstract?.substring(0,280)||'')}…</div>
-            <div>
-              <button class="action-btn fav-btn" data-id="${item.id}" data-type="${type}" data-title="${escapeHtml(item.title)}" data-url="${sanitizeUrl(item.url)}">${favorites[type]?.some(f=>f.id===item.id)?'❤️ Favoritado':'🤍 Favoritar'}</button>
-              <button class="action-btn note-btn" data-id="${item.id}">📝 Nota</button>
-            </div>
+    if (!items.length) { container.innerHTML = '<div class="no-results">🔍 Nenhum resultado encontrado. Tente outro termo.</div>'; return; }
+    container.innerHTML = items.map(item => `
+      <div class="result-card">
+        <div class="checkbox ${readSet.has(item.id) ? 'checked' : ''}" data-id="${item.id}" data-type="${type}">${readSet.has(item.id) ? '✓' : ''}</div>
+        <div class="card-content">
+          <a href="${sanitizeUrl(item.url)}" target="_blank" class="card-title">📄 ${escapeHtml(item.title)}</a>
+          <div class="card-meta">${escapeHtml(item.authors.slice(0,3).join(', '))} · ${item.source}</div>
+          <div class="card-abstract">${escapeHtml(item.abstract?.substring(0,280)||'')}…</div>
+          <div>
+            <button class="action-btn fav-btn" data-id="${item.id}" data-type="${type}" data-title="${escapeHtml(item.title)}" data-url="${sanitizeUrl(item.url)}">${favorites[type]?.some(f=>f.id===item.id)?'❤️ Favoritado':'🤍 Favoritar'}</button>
+            <button class="action-btn note-btn" data-id="${item.id}">📝 Nota</button>
           </div>
         </div>
-      `;
-    }).join('');
-    // Event listeners (simplificados para não quebrar)
-    container.querySelectorAll('.checkbox').forEach(cb => cb.addEventListener('click', () => {
-      const id = cb.dataset.id, t = cb.dataset.type;
-      if (t === 'article') readArticles.has(id) ? readArticles.delete(id) : readArticles.add(id);
-      else if (t === 'book') readBooks.has(id) ? readBooks.delete(id) : readBooks.add(id);
-      else readResearch.has(id) ? readResearch.delete(id) : readResearch.add(id);
-      localStorage.setItem(`read_${t}s`, JSON.stringify([...(t==='article'?readArticles: t==='book'?readBooks: readResearch)]));
-      renderSearchResults(containerId, items, type, readSet);
-    }));
-    container.querySelectorAll('.fav-btn').forEach(btn => btn.addEventListener('click', () => {
-      const id = btn.dataset.id, t = btn.dataset.type, item = items.find(i=>i.id===id);
-      if (item) {
-        const idx = favorites[t].findIndex(f=>f.id===id);
-        idx === -1 ? favorites[t].push({ id, title: item.title, type: t, url: item.url }) : favorites[t].splice(idx,1);
-        localStorage.setItem('favorites', JSON.stringify(favorites));
-        renderSearchResults(containerId, items, type, readSet);
-      }
-    }));
-    container.querySelectorAll('.note-btn').forEach(btn => btn.addEventListener('click', () => {
-      const id = btn.dataset.id, txt = prompt('Nota:');
-      if (txt) { notes[id] = txt; localStorage.setItem('notes', JSON.stringify(notes)); showToast('Nota salva!'); }
-    }));
+      </div>
+    `).join('');
+    
+    // Eventos com delegação (usando listeners nos botões diretamente)
+    container.querySelectorAll('.checkbox').forEach(cb => {
+      cb.onclick = async (e) => {
+        e.stopPropagation();
+        const id = cb.dataset.id, t = cb.dataset.type;
+        if (t === 'article') {
+          if (readArticles.has(id)) { readArticles.delete(id); await removeReadLog(id, t); }
+          else { readArticles.add(id); await saveReadLog(id, t); }
+        } else if (t === 'book') {
+          if (readBooks.has(id)) { readBooks.delete(id); await removeReadLog(id, t); }
+          else { readBooks.add(id); await saveReadLog(id, t); }
+        } else {
+          if (readResearch.has(id)) { readResearch.delete(id); await removeReadLog(id, t); }
+          else { readResearch.add(id); await saveReadLog(id, t); }
+        }
+        renderResults(containerId, items, type, readSet);
+        // Atualizar aba "Meus lidos" se estiver visível
+        if (type === 'article') updateReadArticlesList();
+      };
+    });
+    container.querySelectorAll('.fav-btn').forEach(btn => {
+      btn.onclick = async () => {
+        const id = btn.dataset.id, t = btn.dataset.type, item = items.find(i=>i.id===id);
+        if (item) {
+          const idx = favorites[t].findIndex(f=>f.id===id);
+          if (idx === -1) favorites[t].push({ id, title: item.title, type: t, url: item.url, date: new Date().toISOString() });
+          else favorites[t].splice(idx,1);
+          const tx = db.transaction(['favorites'], 'readwrite');
+          tx.objectStore('favorites').put(favorites[t]);
+          renderResults(containerId, items, type, readSet);
+        }
+      };
+    });
+    container.querySelectorAll('.note-btn').forEach(btn => {
+      btn.onclick = async () => {
+        const id = btn.dataset.id, txt = prompt('Adicione uma nota pessoal:');
+        if (txt) {
+          notes[id] = { ...notes[id], comment: txt };
+          const tx = db.transaction(['notes'], 'readwrite');
+          tx.objectStore('notes').put({ id, comment: txt });
+          showToast('Nota salva!');
+        }
+      };
+    });
   }
-
-  async function performSearch(containerId, query, type, searchFn) {
-    const resDiv = document.getElementById(containerId);
-    if (!resDiv) return;
-    // Botão de busca pode estar em lugar diferente; vamos apenas mostrar loading
-    resDiv.innerHTML = '<div class="loader-container"><div class="spinner"></div><div>Buscando conteúdo...</div></div>';
-    const results = await searchFn(query);
-    if (type === 'article') articlesData = results;
-    else if (type === 'book') booksData = results;
-    else if (type === 'research') researchData = results;
-    const readSet = type === 'article' ? readArticles : (type === 'book' ? readBooks : readResearch);
-    renderSearchResults(containerId, results, type, readSet);
-  }
-
-  // Aba Artigos
+  
+  // ========== ABAS PRINCIPAIS ==========
   async function renderArticlesTab() {
     const html = `
       <div class="sub-tabs"><button class="sub-tab active" data-sub="search">🔍 Buscar artigos</button><button class="sub-tab" data-sub="read">✅ Meus lidos</button></div>
       <div id="articlesSearchSub" class="sub-content active">
-        <div class="search-area"><input id="articlesQuery" class="search-input" placeholder="Ex: machine learning"><button id="articlesSearchBtn" class="search-btn">Pesquisar</button></div>
+        <div class="search-area"><input id="articlesQuery" class="search-input" placeholder="Ex: machine learning, climate change..."><button id="articlesSearchBtn" class="search-btn">Pesquisar</button></div>
         <div id="articlesResults"></div>
       </div>
       <div id="articlesReadSub" class="sub-content"><div id="readArticlesList"></div></div>
     `;
     document.getElementById('mainContent').innerHTML = html;
-    // Sub abas
-    document.querySelectorAll('.sub-tab').forEach(btn => btn.addEventListener('click', () => {
-      const target = btn.dataset.sub;
-      document.querySelectorAll('.sub-tab').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      document.querySelectorAll('.sub-content').forEach(c=>c.classList.remove('active'));
-      document.getElementById(`articles${target.charAt(0).toUpperCase()+target.slice(1)}Sub`).classList.add('active');
-      if (target === 'read') {
-        const lidos = articlesData.filter(a=>readArticles.has(a.id));
-        document.getElementById('readArticlesList').innerHTML = lidos.length ? lidos.map(a=>`<div class="result-card"><div class="card-content"><a href="${sanitizeUrl(a.url)}" class="card-title">${escapeHtml(a.title)}</a><div class="card-meta">${escapeHtml(a.authors.join(', '))}</div></div></div>`).join('') : '<div class="no-results">Nenhum artigo lido</div>';
-      }
-    }));
-    document.getElementById('articlesSearchBtn').addEventListener('click', async () => {
+    
+    // Inicializa "Meus lidos" com os artigos já lidos (carregados do banco)
+    updateReadArticlesList();
+    
+    document.getElementById('articlesSearchBtn').onclick = async () => {
       const q = document.getElementById('articlesQuery').value.trim();
       if (!q) return;
-      await performSearch('articlesResults', q, 'article', (query) => searchOpenAlex(query, 'article'));
+      showLoading();
+      const results = await searchOpenAlex(q, 'article');
+      articlesData = results;
+      renderResults('articlesResults', results, 'article', readArticles);
+      hideLoading();
+    };
+    // Abas internas
+    document.querySelectorAll('.sub-tab').forEach(btn => {
+      btn.onclick = () => {
+        const target = btn.dataset.sub;
+        document.querySelectorAll('.sub-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.sub-content').forEach(c => c.classList.remove('active'));
+        document.getElementById(`articles${target === 'search' ? 'SearchSub' : 'ReadSub'}`).classList.add('active');
+        if (target === 'read') updateReadArticlesList();
+      };
     });
-    // Carregar lidos iniciais
-    const lidos = articlesData.filter(a=>readArticles.has(a.id));
-    document.getElementById('readArticlesList').innerHTML = lidos.length ? lidos.map(a=>`<div class="result-card"><div class="card-content"><a href="${sanitizeUrl(a.url)}" class="card-title">${escapeHtml(a.title)}</a><div class="card-meta">${escapeHtml(a.authors.join(', '))}</div></div></div>`).join('') : '<div class="no-results">Nenhum artigo lido</div>';
   }
-
-  // Aba Livros
+  
+  async function updateReadArticlesList() {
+    const container = document.getElementById('readArticlesList');
+    if (!container) return;
+    const readItems = articlesData.filter(a => readArticles.has(a.id));
+    if (!readItems.length) {
+      container.innerHTML = '<div class="no-results">Nenhum artigo lido ainda. Marque os checkboxes nos resultados.</div>';
+      return;
+    }
+    container.innerHTML = readItems.map(a => `
+      <div class="result-card">
+        <div class="card-content">
+          <a href="${sanitizeUrl(a.url)}" target="_blank" class="card-title">📄 ${escapeHtml(a.title)}</a>
+          <div class="card-meta">${escapeHtml(a.authors.join(', '))}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+  
   async function renderBooksTab() {
-    const html = `<div class="search-area"><input id="booksQuery" class="search-input" placeholder="Ex: ficção científica"><button id="booksSearchBtn" class="search-btn">Pesquisar</button></div><div id="booksResults"></div>`;
+    const html = `<div class="search-area"><input id="booksQuery" class="search-input" placeholder="Ex: ficção científica, biografia..."><button id="booksSearchBtn" class="search-btn">Pesquisar livros</button></div><div id="booksResults"></div>`;
     document.getElementById('mainContent').innerHTML = html;
-    document.getElementById('booksSearchBtn').addEventListener('click', async () => {
+    document.getElementById('booksSearchBtn').onclick = async () => {
       const q = document.getElementById('booksQuery').value.trim();
       if (!q) return;
-      await performSearch('booksResults', q, 'book', (query) => searchBooks(query));
-    });
+      showLoading();
+      const results = await searchBooks(q);
+      booksData = results;
+      renderResults('booksResults', results, 'book', readBooks);
+      hideLoading();
+    };
   }
-
-  // Aba Pesquisas
+  
   async function renderResearchTab() {
-    const html = `<div class="search-area"><input id="researchQuery" class="search-input" placeholder="Ex: mudanças climáticas"><button id="researchSearchBtn" class="search-btn">Pesquisar</button></div><div id="researchResults"></div>`;
+    const html = `<div class="search-area"><input id="researchQuery" class="search-input" placeholder="Ex: mudanças climáticas, IA..."><button id="researchSearchBtn" class="search-btn">Pesquisar pesquisas</button></div><div id="researchResults"></div>`;
     document.getElementById('mainContent').innerHTML = html;
-    document.getElementById('researchSearchBtn').addEventListener('click', async () => {
+    document.getElementById('researchSearchBtn').onclick = async () => {
       const q = document.getElementById('researchQuery').value.trim();
       if (!q) return;
-      await performSearch('researchResults', q, 'research', (query) => searchOpenAlex(query, 'research'));
-    });
+      showLoading();
+      const results = await searchOpenAlex(q, 'research');
+      researchData = results;
+      renderResults('researchResults', results, 'research', readResearch);
+      hideLoading();
+    };
   }
-
-  // Aba Segundo Cérebro (simplificada, preservando funcionalidades)
+  
+  // Aba Segundo Cérebro (simplificada mas funcional)
   async function renderBrainTab() {
     const html = `
       <div class="sub-tabs">
-        <button class="sub-tab active" data-sub="dashboard">📊 Dashboard</button>
-        <button class="sub-tab" data-sub="radar">📡 Radar</button>
+        <button class="sub-tab active" data-sub="zettel">📔 Zettelkasten</button>
+        <button class="sub-tab" data-sub="dashboard">📊 Dashboard</button>
       </div>
-      <div id="brainDashboard" class="sub-content active"><div id="execDashboard"></div></div>
-      <div id="brainRadar" class="sub-content"><div id="radarPanel"></div></div>
+      <div id="brainZettel" class="sub-content active"><div id="zettelList"></div><button id="newZettelBtn" class="search-btn" style="margin-top:20px;">➕ Nova Nota Atômica</button></div>
+      <div id="brainDashboard" class="sub-content"><div id="execDashboard"></div></div>
     `;
     document.getElementById('mainContent').innerHTML = html;
-    // Dashboard
-    const totalRead = readArticles.size + readBooks.size + readResearch.size;
-    document.getElementById('execDashboard').innerHTML = `<div class="dashboard-card"><h3>📊 Resumo</h3><p>Total lidos: ${totalRead}</p><p>Artigos: ${readArticles.size}</p><p>Livros: ${readBooks.size}</p><p>Pesquisas: ${readResearch.size}</p></div><div class="dashboard-card"><p>🔮 Em breve: gráficos evolutivos e revisão espaçada</p></div>`;
-    // Radar
-    document.getElementById('radarPanel').innerHTML = `<div class="search-area"><input id="radarTopic" class="search-input"><button id="radarSearchBtn" class="search-btn">Monitorar tema</button></div><div id="radarResults"></div>`;
-    document.getElementById('radarSearchBtn')?.addEventListener('click', async () => {
-      const topic = document.getElementById('radarTopic').value.trim();
-      if (!topic) return;
-      const resDiv = document.getElementById('radarResults');
-      resDiv.innerHTML = '<div class="loader-container"><div class="spinner"></div><div>Coletando novidades...</div></div>';
-      const articles = await searchOpenAlex(topic, 'article');
-      resDiv.innerHTML = `<div class="dashboard-card"><h3>🔍 ${escapeHtml(topic)}</h3>${articles.slice(0,5).map(a=>`<p><a href="${sanitizeUrl(a.url)}" target="_blank">${escapeHtml(a.title)}</a> (${a.publication_date?.slice(0,4)||'s.d.'})</p>`).join('')}</div>`;
+    renderZettelList();
+    renderDashboard();
+    document.getElementById('newZettelBtn').onclick = () => {
+      const title = prompt('Título da nota:');
+      if (title) {
+        const newZ = { id: stableHash(title+Date.now()), title, content: '', type: 'fleeting', created: Date.now(), updated: Date.now(), tags: [], links: [] };
+        zettels.push(newZ);
+        const tx = db.transaction(['zettels'], 'readwrite');
+        tx.objectStore('zettels').put(newZ);
+        renderZettelList();
+      }
+    };
+    document.querySelectorAll('.sub-tab').forEach(btn => {
+      btn.onclick = () => {
+        const target = btn.dataset.sub;
+        document.querySelectorAll('.sub-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.sub-content').forEach(c => c.classList.remove('active'));
+        document.getElementById(`brain${target === 'zettel' ? 'Zettel' : 'Dashboard'}`).classList.add('active');
+        if (target === 'dashboard') renderDashboard();
+      };
     });
-    // Sub abas
-    document.querySelectorAll('.sub-tab').forEach(btn => btn.addEventListener('click', () => {
-      const target = btn.dataset.sub;
-      document.querySelectorAll('.sub-tab').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      document.querySelectorAll('.sub-content').forEach(c=>c.classList.remove('active'));
-      document.getElementById(`brain${target.charAt(0).toUpperCase()+target.slice(1)}`).classList.add('active');
-    }));
   }
-
-  // Roteamento
-  let currentMainTab = 'articles';
+  
+  async function renderZettelList() {
+    const container = document.getElementById('zettelList');
+    if (!container) return;
+    if (!zettels.length) { container.innerHTML = '<div class="no-results">Nenhuma nota criada. Crie sua primeira nota atômica.</div>'; return; }
+    container.innerHTML = zettels.map(z => `
+      <div class="result-card">
+        <div class="card-content">
+          <div class="card-title">📄 ${escapeHtml(z.title)}</div>
+          <textarea id="zettel-${z.id}" class="inline-edit" style="width:100%; background:rgba(0,0,0,0.5); border-radius:12px; padding:12px; color:white; margin:8px 0;" rows="3">${escapeHtml(z.content)}</textarea>
+          <button class="action-btn save-zettel" data-id="${z.id}">💾 Salvar</button>
+        </div>
+      </div>
+    `).join('');
+    document.querySelectorAll('.save-zettel').forEach(btn => {
+      btn.onclick = async () => {
+        const id = btn.dataset.id;
+        const z = zettels.find(z=>z.id===id);
+        if (z) {
+          z.content = document.getElementById(`zettel-${id}`).value;
+          z.updated = Date.now();
+          const tx = db.transaction(['zettels'], 'readwrite');
+          tx.objectStore('zettels').put(z);
+          showToast('Zettel salvo!');
+        }
+      };
+    });
+  }
+  
+  async function renderDashboard() {
+    const totalRead = readArticles.size + readBooks.size + readResearch.size;
+    document.getElementById('execDashboard').innerHTML = `
+      <div class="dashboard-grid">
+        <div class="dashboard-card"><h3>📊 Leitura</h3><p>Total lidos: ${totalRead}</p><p>Artigos: ${readArticles.size}</p><p>Livros: ${readBooks.size}</p></div>
+        <div class="dashboard-card"><h3>🧠 Conhecimento</h3><p>Zettels: ${zettels.length}</p><p>Tags: ${Object.keys(tags).length}</p></div>
+      </div>
+    `;
+  }
+  
+  // ========== ROTEAMENTO ==========
   async function switchMainTab(tab) {
     currentMainTab = tab;
     if (tab === 'articles') await renderArticlesTab();
@@ -428,22 +619,17 @@
     else if (tab === 'research') await renderResearchTab();
     else if (tab === 'brain') await renderBrainTab();
   }
-
-  function init() {
-    // Carregar dados do localStorage
-    try {
-      const storedReadA = localStorage.getItem('read_articles'); if (storedReadA) readArticles = new Set(JSON.parse(storedReadA));
-      const storedReadB = localStorage.getItem('read_books'); if (storedReadB) readBooks = new Set(JSON.parse(storedReadB));
-      const storedReadR = localStorage.getItem('read_research'); if (storedReadR) readResearch = new Set(JSON.parse(storedReadR));
-      const storedFav = localStorage.getItem('favorites'); if (storedFav) favorites = JSON.parse(storedFav);
-      const storedNotes = localStorage.getItem('notes'); if (storedNotes) notes = JSON.parse(storedNotes);
-    } catch(e) {}
-    document.querySelectorAll('.main-tab').forEach(btn => btn.addEventListener('click', () => {
-      document.querySelectorAll('.main-tab').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      switchMainTab(btn.dataset.main);
-    }));
-    switchMainTab('articles');
+  
+  async function init() {
+    await initDB();
+    document.querySelectorAll('.main-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.main-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        switchMainTab(btn.dataset.main);
+      });
+    });
+    await switchMainTab('articles');
   }
   init();
 </script>
