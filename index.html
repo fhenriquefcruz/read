@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
-  <meta name="theme-color" content="#14191c">
-  <title>Read + · Buscador de Artigos</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
+  <meta name="theme-color" content="#0a0f1c">
+  <title>Read+ · Hub do Conhecimento</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     * {
       margin: 0;
@@ -14,217 +14,225 @@
     }
 
     :root {
-      --accent: #2D7A6E;
-      --accent-light: #3f9c8d;
-      --accent-glow: rgba(45, 122, 110, 0.25);
-      --card-bg: rgba(20, 25, 28, 0.7);
-      --border-light: rgba(255,255,255,0.1);
-      --text-primary: #FCF7F0;
-      --text-secondary: #CBD5E1;
-      --overlay: rgba(0,0,0,0.55);
-      --input-bg: rgba(255,255,255,0.08);
-      --checkbox-bg: rgba(255,255,255,0.1);
-      --tab-active: var(--accent);
-      --tab-inactive: rgba(255,255,255,0.2);
-    }
-
-    body.light {
-      --card-bg: rgba(245, 248, 250, 0.85);
-      --border-light: rgba(0, 0, 0, 0.08);
-      --text-primary: #1e2a2e;
-      --text-secondary: #2c3e3e;
-      --overlay: rgba(255,255,255,0.4);
-      --input-bg: rgba(0,0,0,0.04);
-      --checkbox-bg: rgba(0,0,0,0.05);
-      --tab-inactive: rgba(0,0,0,0.1);
+      --bg-dark: #05070f;
+      --bg-card: rgba(12, 18, 28, 0.65);
+      --glow-primary: #00d4ff;
+      --glow-secondary: #7b2cbf;
+      --accent: #00d4ff;
+      --text-primary: #f0f3fa;
+      --text-secondary: #9aa4bf;
+      --border-light: rgba(0, 212, 255, 0.2);
+      --shadow-neon: 0 0 12px rgba(0, 212, 255, 0.3);
     }
 
     body {
-      min-height: 100vh;
       font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-      transition: background 0.3s, color 0.2s;
-      padding: 20px 16px;
-    }
-    body.light {
-      background: linear-gradient(135deg, #e2e8f0 0%, #f1f5f9 100%);
+      background: radial-gradient(circle at 10% 20%, #0a0f1c, #02040c);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 20px;
+      position: relative;
     }
 
-    .overlay-bg {
+    /* overlay de fundo com grid futurista */
+    body::before {
+      content: "";
       position: fixed;
       top: 0; left: 0;
       width: 100%; height: 100%;
-      background: var(--overlay);
-      z-index: -1;
+      background-image: 
+        linear-gradient(var(--border-light) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border-light) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      opacity: 0.2;
+      z-index: 0;
     }
 
     .container {
-      max-width: 1100px;
+      max-width: 1300px;
       margin: 0 auto;
+      position: relative;
+      z-index: 2;
     }
 
-    /* cabeçalho */
+    /* cabeçalho com logo neon */
     .header {
       text-align: center;
-      margin-bottom: 32px;
+      margin-bottom: 40px;
       position: relative;
     }
-    .header h1 {
-      font-family: 'Playfair Display', serif;
-      font-size: 2.7rem;
-      background: linear-gradient(135deg, #F5E7D3 0%, var(--accent) 100%);
+    .logo {
+      font-size: 3.8rem;
+      font-weight: 800;
+      letter-spacing: -2px;
+      background: linear-gradient(135deg, #fff, var(--glow-primary), var(--glow-secondary));
       background-clip: text;
       color: transparent;
-      letter-spacing: -0.5px;
+      text-shadow: 0 0 20px rgba(0,212,255,0.4);
+      display: inline-block;
+      animation: flicker 3s infinite;
     }
-    .header p {
+    @keyframes flicker {
+      0%, 100% { opacity: 1; text-shadow: 0 0 20px rgba(0,212,255,0.4);}
+      50% { opacity: 0.95; text-shadow: 0 0 30px rgba(0,212,255,0.8);}
+    }
+    .logo span {
+      font-size: 1rem;
+      vertical-align: super;
+      background: none;
+      background-clip: unset;
+      color: var(--glow-primary);
+      font-weight: 500;
+    }
+    .tagline {
       color: var(--text-secondary);
       margin-top: 8px;
+      font-weight: 400;
+      letter-spacing: 1px;
     }
 
-    /* botão tema */
-    .theme-toggle {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background: var(--card-bg);
-      backdrop-filter: blur(8px);
-      border: 1px solid var(--border-light);
-      border-radius: 60px;
-      padding: 8px 16px;
+    /* abas principais */
+    .main-tabs {
       display: flex;
-      gap: 8px;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 28px;
+      border-bottom: 1px solid var(--border-light);
+      padding-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .main-tab {
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      font-weight: 600;
+      padding: 12px 28px;
+      border-radius: 60px;
       cursor: pointer;
-      z-index: 100;
-      font-size: 1rem;
+      color: var(--text-secondary);
+      transition: all 0.3s;
+      backdrop-filter: blur(4px);
+      letter-spacing: 0.5px;
+    }
+    .main-tab.active {
+      background: linear-gradient(135deg, rgba(0,212,255,0.2), rgba(123,44,191,0.2));
+      color: var(--glow-primary);
+      box-shadow: var(--shadow-neon);
+      border: 1px solid var(--glow-primary);
+    }
+    .main-tab:hover:not(.active) {
+      color: white;
+      background: rgba(0,212,255,0.1);
     }
 
-    /* card principal */
-    .search-card {
-      background: var(--card-bg);
+    /* card principal glass */
+    .glass-card {
+      background: var(--bg-card);
       backdrop-filter: blur(16px);
-      border-radius: 32px;
+      border-radius: 2rem;
       border: 1px solid var(--border-light);
       padding: 28px 32px;
       transition: all 0.3s;
+      box-shadow: 0 20px 35px -10px rgba(0,0,0,0.5);
     }
 
-    /* pesquisa */
-    .input-group {
+    /* sub abas (dentro de Artigos) */
+    .sub-tabs {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding-bottom: 8px;
+    }
+    .sub-tab {
+      background: none;
+      border: none;
+      padding: 6px 18px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 40px;
+      color: var(--text-secondary);
+      transition: 0.2s;
+    }
+    .sub-tab.active {
+      background: var(--glow-primary);
+      color: #02040c;
+      box-shadow: 0 0 10px var(--glow-primary);
+    }
+    .sub-content {
+      display: none;
+      animation: fadeIn 0.25s ease;
+    }
+    .sub-content.active {
+      display: block;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px);}
+      to { opacity: 1; transform: translateY(0);}
+    }
+
+    /* campo de busca */
+    .search-area {
       display: flex;
       gap: 12px;
       margin-bottom: 28px;
       flex-wrap: wrap;
     }
-    #queryInput {
+    .search-input {
       flex: 1;
-      padding: 16px 22px;
+      padding: 14px 22px;
       border-radius: 60px;
       border: 1px solid var(--border-light);
-      background: var(--input-bg);
-      color: var(--text-primary);
+      background: rgba(0,0,0,0.4);
+      color: white;
       font-size: 1rem;
       font-family: 'Inter', sans-serif;
       transition: all 0.2s;
     }
-    #queryInput:focus {
+    .search-input:focus {
       outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-glow);
+      border-color: var(--glow-primary);
+      box-shadow: 0 0 0 3px rgba(0,212,255,0.3);
     }
-    #searchBtn {
-      background: var(--accent);
+    .search-btn {
+      background: linear-gradient(135deg, var(--glow-primary), var(--glow-secondary));
       border: none;
       padding: 12px 32px;
       border-radius: 60px;
-      font-weight: 600;
+      font-weight: 700;
       color: white;
       cursor: pointer;
-      transition: transform 0.2s, background 0.2s;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
+      transition: transform 0.2s, filter 0.2s;
     }
-    #searchBtn:hover {
-      background: var(--accent-light);
+    .search-btn:hover {
       transform: scale(1.02);
+      filter: brightness(1.05);
     }
 
-    /* abas */
-    .tabs {
-      display: flex;
-      gap: 12px;
-      border-bottom: 1px solid var(--border-light);
-      margin-bottom: 24px;
-      padding-bottom: 8px;
-    }
-    .tab-btn {
-      background: none;
-      border: none;
-      padding: 8px 20px;
-      font-size: 1rem;
-      font-weight: 500;
-      cursor: pointer;
-      color: var(--text-secondary);
-      border-radius: 40px;
-      transition: all 0.2s;
-    }
-    .tab-btn.active {
-      background: var(--tab-active);
-      color: white;
-    }
-    .tab-btn:not(.active):hover {
-      background: var(--tab-inactive);
-      color: var(--text-primary);
-    }
-    .tab-content {
-      display: none;
-      animation: fadeIn 0.2s ease;
-    }
-    .tab-content.active {
-      display: block;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px);}
-      to { opacity: 1; transform: translateY(0);}
-    }
-
-    /* estatísticas */
-    .stats-bar {
+    /* resultados */
+    .results-stats {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-bottom: 20px;
       flex-wrap: wrap;
       gap: 12px;
-      background: rgba(0,0,0,0.2);
-      border-radius: 48px;
-      padding: 8px 16px;
-    }
-    .counter-circle {
-      display: flex;
-      align-items: center;
-      gap: 12px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 60px;
+      padding: 6px 20px;
     }
     .progress-ring {
-      width: 44px;
-      height: 44px;
+      width: 44px; height: 44px;
     }
     .progress-ring-circle {
       transition: stroke-dashoffset 0.35s;
       transform: rotate(-90deg);
       transform-origin: 50% 50%;
-      stroke: var(--accent);
+      stroke: var(--glow-primary);
       fill: none;
-      stroke-width: 4;
-    }
-    .counter-text {
-      font-size: 0.9rem;
-      font-weight: 500;
-    }
-    .action-buttons {
-      display: flex;
-      gap: 12px;
+      stroke-width: 3;
     }
     .action-btn {
       background: rgba(255,255,255,0.1);
@@ -233,15 +241,14 @@
       border-radius: 40px;
       font-size: 0.75rem;
       cursor: pointer;
-      transition: background 0.2s;
-    }
-    .action-btn:hover {
-      background: var(--accent);
+      transition: 0.2s;
       color: white;
     }
-
-    /* lista de artigos */
-    .article-list {
+    .action-btn:hover {
+      background: var(--glow-primary);
+      color: #02040c;
+    }
+    .results-grid {
       display: flex;
       flex-direction: column;
       gap: 16px;
@@ -249,86 +256,92 @@
       overflow-y: auto;
       padding-right: 6px;
     }
-    .article-card {
-      background: rgba(0,0,0,0.25);
-      backdrop-filter: blur(4px);
+    .result-card {
+      background: rgba(0,0,0,0.35);
+      backdrop-filter: blur(8px);
       border-radius: 24px;
       padding: 18px;
       transition: all 0.2s;
-      border: 1px solid rgba(255,255,255,0.05);
+      border: 1px solid rgba(0,212,255,0.2);
       display: flex;
       gap: 16px;
       align-items: flex-start;
     }
-    .article-card:hover {
-      background: rgba(0,0,0,0.4);
-      transform: translateX(4px);
+    .result-card:hover {
+      transform: translateX(6px);
+      border-color: var(--glow-primary);
+      box-shadow: 0 0 15px rgba(0,212,255,0.2);
     }
-    .checkbox-wrapper {
-      flex-shrink: 0;
-      margin-top: 4px;
-    }
-    .custom-checkbox {
-      width: 26px;
-      height: 26px;
-      background: var(--checkbox-bg);
-      border: 2px solid var(--accent);
+    .checkbox {
+      width: 24px;
+      height: 24px;
+      background: rgba(255,255,255,0.1);
+      border: 2px solid var(--glow-primary);
       border-radius: 8px;
-      display: inline-flex;
+      display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: all 0.2s;
-      font-size: 16px;
-      font-weight: bold;
-      color: white;
+      transition: 0.2s;
     }
-    .custom-checkbox.checked {
-      background: var(--accent);
+    .checkbox.checked {
+      background: var(--glow-primary);
+      color: black;
     }
-    .article-content {
+    .card-content {
       flex: 1;
     }
-    .article-title {
-      font-weight: 700;
+    .card-title {
       font-size: 1.05rem;
-      color: var(--accent);
+      font-weight: 700;
+      color: var(--glow-primary);
       text-decoration: none;
       display: inline-block;
       margin-bottom: 6px;
     }
-    .article-title:hover {
-      text-decoration: underline;
-    }
-    .article-authors {
+    .card-meta {
       font-size: 0.75rem;
       color: var(--text-secondary);
       margin-bottom: 6px;
     }
-    .article-abstract {
+    .card-abstract {
       font-size: 0.85rem;
-      color: var(--text-primary);
       margin: 8px 0;
       opacity: 0.9;
       line-height: 1.4;
     }
-    .btn-pdf {
+    .btn-link {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: rgba(45,122,110,0.85);
+      background: rgba(0,212,255,0.2);
       padding: 5px 12px;
       border-radius: 40px;
       text-decoration: none;
       font-size: 0.7rem;
       font-weight: 500;
       color: white;
-      transition: background 0.2s;
+      transition: 0.2s;
     }
-    .btn-pdf:hover {
-      background: var(--accent);
+    .btn-link:hover {
+      background: var(--glow-primary);
+      color: #02040c;
     }
-    .no-results, .loading {
+    .loader {
+      text-align: center;
+      padding: 40px;
+    }
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 3px solid rgba(0,212,255,0.3);
+      border-top-color: var(--glow-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .no-results {
       text-align: center;
       padding: 40px;
       color: var(--text-secondary);
@@ -339,92 +352,42 @@
       font-size: 0.7rem;
       color: var(--text-secondary);
     }
-
-    /* scroll */
-    .article-list::-webkit-scrollbar { width: 6px; }
-    .article-list::-webkit-scrollbar-track { background: rgba(255,255,255,0.1); border-radius: 10px; }
-    .article-list::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
-
-    @media (max-width: 640px) {
-      .search-card { padding: 18px; }
-      .input-group { flex-direction: column; }
-      #searchBtn { width: 100%; justify-content: center; }
-      .article-card { flex-direction: column; }
-      .stats-bar { flex-direction: column; align-items: stretch; }
-      .tabs { justify-content: center; }
+    @media (max-width: 700px) {
+      .glass-card { padding: 18px; }
+      .main-tab { padding: 8px 16px; font-size: 1rem; }
+      .result-card { flex-direction: column; }
+      .search-area { flex-direction: column; }
     }
   </style>
 </head>
 <body>
-<div class="overlay-bg"></div>
-<div class="theme-toggle" id="themeToggle">
-  <span>🌙</span> <span>☀️</span>
-</div>
 <div class="container">
   <div class="header">
-    <h1>📚 Read +</h1>
-    <p>Descubra artigos acadêmicos gratuitos · salve seus lidos</p>
+    <div class="logo">Read <span>+</span></div>
+    <div class="tagline">hub de conhecimento | artigos | livros | pesquisas</div>
   </div>
-  <div class="search-card">
-    <div class="input-group">
-      <input type="text" id="queryInput" placeholder="Ex: machine learning in healthcare, climate change, theology..." autocomplete="off">
-      <button id="searchBtn">🔍 Pesquisar</button>
-    </div>
 
-    <!-- Abas -->
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="search">📄 Artigos encontrados</button>
-      <button class="tab-btn" data-tab="read">✅ Meus lidos</button>
-    </div>
+  <!-- abas principais -->
+  <div class="main-tabs">
+    <button class="main-tab active" data-main="articles">📄 Artigos</button>
+    <button class="main-tab" data-main="books">📚 Livros</button>
+    <button class="main-tab" data-main="research">🔬 Pesquisas</button>
+  </div>
 
-    <!-- Conteúdo da aba de busca -->
-    <div id="searchTab" class="tab-content active">
-      <div id="resultsArea" style="display: none;">
-        <div class="stats-bar">
-          <div class="counter-circle">
-            <svg class="progress-ring" width="44" height="44">
-              <circle class="progress-ring-circle" cx="22" cy="22" r="18" stroke-width="3" fill="none" stroke="currentColor" stroke-dasharray="113.1" stroke-dashoffset="0"></circle>
-            </svg>
-            <span id="counterText" class="counter-text">0 / 0 lidos</span>
-          </div>
-          <div class="action-buttons">
-            <button id="markAllBtn" class="action-btn">✅ Marcar todos</button>
-            <button id="clearAllBtn" class="action-btn">🗑️ Limpar leituras</button>
-          </div>
-        </div>
-        <div id="articleList" class="article-list"></div>
-      </div>
-      <div id="noResultsMsg" style="display: none;" class="no-results">🔎 Nenhum artigo encontrado. Tente outro termo.</div>
-    </div>
-
-    <!-- Conteúdo da aba de lidos -->
-    <div id="readTab" class="tab-content">
-      <div id="readList" class="article-list">
-        <div class="no-results">Nenhum artigo lido ainda. Marque ✓ nos artigos da aba "Artigos encontrados".</div>
-      </div>
-    </div>
+  <div class="glass-card">
+    <!-- conteúdo dinâmico via JS -->
+    <div id="mainContent"></div>
   </div>
   <div class="footer">
-    <span>🔎 Fontes: OpenAlex (aberto) + arXiv · Leituras salvas no navegador</span>
+    <span>🔎 Fontes: OpenAlex (artigos/pesquisas) · Google Books (livros) · dados abertos</span>
   </div>
 </div>
 
 <script>
-  // ====================== BUSCA COM OPENALEX + ARXIV ======================
-  const queryInput = document.getElementById('queryInput');
-  const searchBtn = document.getElementById('searchBtn');
-  const resultsArea = document.getElementById('resultsArea');
-  const articleListDiv = document.getElementById('articleList');
-  const noResultsMsg = document.getElementById('noResultsMsg');
-  const readListDiv = document.getElementById('readList');
-  const counterTextSpan = document.getElementById('counterText');
-  const progressCircle = document.querySelector('.progress-ring-circle');
-  const markAllBtn = document.getElementById('markAllBtn');
-  const clearAllBtn = document.getElementById('clearAllBtn');
-
-  // Armazenamento dos artigos lidos (persistente)
-  let readArticles = new Set();      // armazena ids dos artigos
-  let currentArticles = [];         // artigos da última busca (cada um com id único)
+  // ---------- ESTADO GLOBAL ----------
+  let currentMainTab = 'articles';
+  let articlesData = [];      // lista de artigos (para checkbox e "meus lidos")
+  let readArticles = new Set();  // ids dos artigos lidos
 
   // Carregar salvos
   function loadReadStatus() {
@@ -435,54 +398,138 @@
     localStorage.setItem('readplus_read', JSON.stringify([...readArticles]));
   }
 
-  // Atualizar contador e anel de progresso (apenas para a aba de busca)
-  function updateCounter() {
-    const total = currentArticles.length;
-    let readCount = 0;
-    currentArticles.forEach(art => { if (readArticles.has(art.id)) readCount++; });
-    counterTextSpan.innerText = `${readCount} / ${total} lidos`;
-    const percent = total === 0 ? 0 : readCount / total;
-    const circumference = 113.1;
-    progressCircle.style.strokeDashoffset = circumference * (1 - percent);
+  // ---------- FUNÇÕES DE BUSCA ----------
+  async function searchArticles(query) {
+    const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=open_access.is_oa:true&sort=relevance_score:desc&per-page=14`;
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.results.map(work => ({
+      id: btoa(work.id).replace(/[^a-zA-Z0-9]/g, ''),
+      title: work.title || 'Sem título',
+      authors: work.authorships?.map(a => a.author.display_name) || [],
+      abstract: work.abstract || 'Resumo não disponível.',
+      url: work.open_access?.oa_url || work.best_oa_location?.pdf_url || work.id,
+      source: 'OpenAlex'
+    }));
   }
 
-  // Renderizar artigos na aba de busca
-  function renderArticles(articles) {
-    currentArticles = articles;
-    if (!articles.length) {
-      resultsArea.style.display = 'none';
-      noResultsMsg.style.display = 'block';
-      updateCounter();
-      return;
-    }
-    resultsArea.style.display = 'block';
-    noResultsMsg.style.display = 'none';
-    articleListDiv.innerHTML = articles.map(art => {
-      const checked = readArticles.has(art.id);
-      return `
-        <div class="article-card" data-id="${art.id}">
-          <div class="checkbox-wrapper">
-            <div class="custom-checkbox ${checked ? 'checked' : ''}" data-id="${art.id}">${checked ? '✓' : ''}</div>
-          </div>
-          <div class="article-content">
-            <div>
-              <a href="${art.pdfUrl || '#'}" target="_blank" class="article-title" style="${!art.pdfUrl ? 'opacity:0.6; cursor:default;' : ''}">
-                📄 ${escapeHtml(art.title)}
-              </a>
-              <div class="article-authors">${art.authors.slice(0, 3).join(', ') || 'Autor(es) não informado'} ${art.authors.length > 3 ? '…' : ''}</div>
-              <div class="article-abstract">${escapeHtml(art.abstract.substring(0, 280))}${art.abstract.length > 280 ? '…' : ''}</div>
-              <div style="margin-top: 8px;">
-                ${art.pdfUrl ? `<a href="${art.pdfUrl}" target="_blank" class="btn-pdf">📖 Ler PDF</a>` : '<span style="font-size:0.7rem;">📄 PDF não disponível</span>'}
-                <span style="font-size:0.65rem; background:rgba(0,0,0,0.3); padding:2px 8px; border-radius:20px; margin-left:8px;">${art.source}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-    }).join('');
+  async function searchBooks(query) {
+    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=14&filter=paid-ebooks?`;
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (!data.items) return [];
+    return data.items.map(item => ({
+      id: item.id,
+      title: item.volumeInfo.title,
+      authors: item.volumeInfo.authors || ['Autor não informado'],
+      abstract: item.volumeInfo.description || 'Sinopse não disponível.',
+      url: item.volumeInfo.previewLink || item.volumeInfo.infoLink,
+      source: 'Google Books'
+    }));
+  }
 
-    // adicionar eventos nos checkboxes
-    document.querySelectorAll('.custom-checkbox').forEach(cb => {
+  async function searchResearch(query) {
+    // usa openAlex com filtro de tipo de trabalho (article, report)
+    const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=type:article,type:report&sort=relevance_score:desc&per-page=12`;
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.results.map(work => ({
+      id: btoa(work.id).replace(/[^a-zA-Z0-9]/g, ''),
+      title: work.title || 'Sem título',
+      authors: work.authorships?.map(a => a.author.display_name) || [],
+      abstract: work.abstract || 'Resumo não disponível.',
+      url: work.open_access?.oa_url || work.best_oa_location?.pdf_url || work.id,
+      source: 'OpenAlex (research)'
+    }));
+  }
+
+  // ---------- RENDERIZAÇÃO DE CADA ABA PRINCIPAL ----------
+  function renderArticlesTab() {
+    const html = `
+      <div class="sub-tabs">
+        <button class="sub-tab active" data-sub="search">🔍 Buscar artigos</button>
+        <button class="sub-tab" data-sub="read">✅ Meus lidos</button>
+      </div>
+      <div id="articlesSearchSub" class="sub-content active">
+        <div class="search-area">
+          <input type="text" id="articlesQuery" class="search-input" placeholder="Ex: machine learning ethics, theology, climate adaptation...">
+          <button id="articlesSearchBtn" class="search-btn">🔍 Pesquisar</button>
+        </div>
+        <div id="articlesResults"></div>
+      </div>
+      <div id="articlesReadSub" class="sub-content">
+        <div id="readListContainer" class="results-grid"></div>
+      </div>
+    `;
+    document.getElementById('mainContent').innerHTML = html;
+
+    // eventos das sub-abas
+    document.querySelectorAll('.sub-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.getAttribute('data-sub');
+        document.querySelectorAll('.sub-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.sub-content').forEach(c => c.classList.remove('active'));
+        if (target === 'search') {
+          document.getElementById('articlesSearchSub').classList.add('active');
+        } else {
+          document.getElementById('articlesReadSub').classList.add('active');
+          renderReadArticles();
+        }
+      });
+    });
+
+    document.getElementById('articlesSearchBtn').addEventListener('click', async () => {
+      const query = document.getElementById('articlesQuery').value.trim();
+      if (!query) return;
+      const resultsDiv = document.getElementById('articlesResults');
+      resultsDiv.innerHTML = `<div class="loader"><div class="spinner"></div>🔎 Buscando artigos...</div>`;
+      const articles = await searchArticles(query);
+      articlesData = articles;
+      if (!articles.length) {
+        resultsDiv.innerHTML = `<div class="no-results">😕 Nenhum artigo encontrado.</div>`;
+        return;
+      }
+      renderArticlesList(articles);
+    });
+  }
+
+  function renderArticlesList(articles) {
+    const resultsDiv = document.getElementById('articlesResults');
+    const readCount = articles.filter(a => readArticles.has(a.id)).length;
+    resultsDiv.innerHTML = `
+      <div class="results-stats">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <svg class="progress-ring" width="44" height="44">
+            <circle class="progress-ring-circle" cx="22" cy="22" r="18" stroke-width="3" fill="none" stroke="currentColor" stroke-dasharray="113.1" stroke-dashoffset="${113.1 * (1 - (readCount / articles.length || 0))}"></circle>
+          </svg>
+          <span>${readCount} / ${articles.length} lidos</span>
+        </div>
+        <div>
+          <button id="markAllArticlesBtn" class="action-btn">✅ Marcar todos</button>
+          <button id="clearAllArticlesBtn" class="action-btn">🗑️ Limpar leituras</button>
+        </div>
+      </div>
+      <div id="articlesList" class="results-grid"></div>
+    `;
+    const listDiv = document.getElementById('articlesList');
+    listDiv.innerHTML = articles.map(art => `
+      <div class="result-card" data-id="${art.id}">
+        <div class="checkbox ${readArticles.has(art.id) ? 'checked' : ''}" data-id="${art.id}">${readArticles.has(art.id) ? '✓' : ''}</div>
+        <div class="card-content">
+          <a href="${art.url}" target="_blank" class="card-title">📄 ${escapeHtml(art.title)}</a>
+          <div class="card-meta">${art.authors.slice(0,3).join(', ') || 'Autor(es) não informado'} · ${art.source}</div>
+          <div class="card-abstract">${escapeHtml(art.abstract.substring(0, 260))}…</div>
+          ${art.url ? `<a href="${art.url}" target="_blank" class="btn-link">📖 Acessar</a>` : ''}
+        </div>
+      </div>
+    `).join('');
+
+    // checkboxes
+    document.querySelectorAll('.checkbox').forEach(cb => {
       cb.addEventListener('click', (e) => {
         e.stopPropagation();
         const id = cb.getAttribute('data-id');
@@ -496,174 +543,152 @@
           cb.innerText = '✓';
         }
         saveReadStatus();
-        updateCounter();
-        renderReadTab();    // atualiza aba de lidos
+        renderArticlesList(articles);  // re-render para atualizar contador
+        renderReadArticles();          // atualiza aba "meus lidos"
       });
     });
-    updateCounter();
+
+    document.getElementById('markAllArticlesBtn').addEventListener('click', () => {
+      articles.forEach(a => readArticles.add(a.id));
+      saveReadStatus();
+      renderArticlesList(articles);
+      renderReadArticles();
+    });
+    document.getElementById('clearAllArticlesBtn').addEventListener('click', () => {
+      articles.forEach(a => readArticles.delete(a.id));
+      saveReadStatus();
+      renderArticlesList(articles);
+      renderReadArticles();
+    });
   }
 
-  // Renderizar aba "Meus lidos"
-  function renderReadTab() {
-    const readIds = [...readArticles];
-    const readItems = currentArticles.filter(art => readIds.includes(art.id));
+  function renderReadArticles() {
+    const container = document.getElementById('readListContainer');
+    const readItems = articlesData.filter(a => readArticles.has(a.id));
     if (!readItems.length) {
-      readListDiv.innerHTML = `<div class="no-results">📭 Nenhum artigo lido ainda. Marque ✓ nos artigos da aba "Artigos encontrados".</div>`;
+      container.innerHTML = `<div class="no-results">📭 Nenhum artigo lido ainda. Marque ✓ nos artigos da busca.</div>`;
       return;
     }
-    readListDiv.innerHTML = readItems.map(art => `
-      <div class="article-card">
-        <div class="article-content">
-          <a href="${art.pdfUrl || '#'}" target="_blank" class="article-title">📄 ${escapeHtml(art.title)}</a>
-          <div class="article-authors">${art.authors.slice(0, 3).join(', ') || 'Autor(es) não informado'}</div>
-          <div class="article-abstract">${escapeHtml(art.abstract.substring(0, 200))}…</div>
-          <div style="margin-top: 8px;">
-            ${art.pdfUrl ? `<a href="${art.pdfUrl}" target="_blank" class="btn-pdf">📖 Ler PDF</a>` : ''}
-            <button class="action-btn unread-btn" data-id="${art.id}" style="margin-left:8px;">🗑️ Remover dos lidos</button>
-          </div>
+    container.innerHTML = readItems.map(art => `
+      <div class="result-card">
+        <div class="card-content">
+          <a href="${art.url}" target="_blank" class="card-title">📄 ${escapeHtml(art.title)}</a>
+          <div class="card-meta">${art.authors.slice(0,3).join(', ')}</div>
+          <div class="card-abstract">${escapeHtml(art.abstract.substring(0, 200))}…</div>
+          <button class="action-btn unread-btn" data-id="${art.id}" style="margin-top:8px;">🗑️ Remover dos lidos</button>
         </div>
       </div>
     `).join('');
-    // eventos para remover da lista de lidos
     document.querySelectorAll('.unread-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-id');
         readArticles.delete(id);
         saveReadStatus();
-        renderReadTab();
-        // se a aba de busca estiver ativa, atualizar checkboxes
-        if (document.querySelector('.tab-btn.active').getAttribute('data-tab') === 'search') {
-          // re-renderizar a busca (mantém artigos)
-          renderArticles(currentArticles);
-        } else {
-          updateCounter();
+        renderReadArticles();
+        if (document.querySelector('.sub-tab.active')?.getAttribute('data-sub') === 'search') {
+          // re-render da busca ativa (se houver artigos exibidos)
+          const query = document.getElementById('articlesQuery')?.value;
+          if (query && articlesData.length) renderArticlesList(articlesData);
         }
       });
     });
   }
 
-  // Funções de busca
-  async function searchOpenAlex(query) {
-    const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=open_access.is_oa:true&sort=relevance_score:desc&per-page=12`;
-    try {
-      const res = await fetch(url);
-      if (!res.ok) return [];
-      const data = await res.json();
-      return data.results.map(work => ({
-        title: work.title || 'Sem título',
-        authors: work.authorships?.map(a => a.author.display_name) || [],
-        abstract: work.abstract || 'Resumo não disponível.',
-        pdfUrl: work.open_access?.oa_url || work.best_oa_location?.pdf_url || null,
-        source: 'OpenAlex'
-      }));
-    } catch (e) { console.warn(e); return []; }
-  }
-
-  async function searchArXiv(query) {
-    const url = `https://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&max_results=8`;
-    try {
-      const res = await fetch(url);
-      const text = await res.text();
-      const parser = new DOMParser();
-      const xml = parser.parseFromString(text, 'text/xml');
-      const entries = xml.querySelectorAll('entry');
-      const results = [];
-      entries.forEach(entry => {
-        let pdfUrl = '';
-        const links = entry.querySelectorAll('link');
-        links.forEach(link => {
-          if (link.getAttribute('title') === 'pdf' || link.getAttribute('type') === 'application/pdf')
-            pdfUrl = link.getAttribute('href');
-        });
-        if (!pdfUrl) {
-          const id = entry.querySelector('id')?.textContent;
-          if (id) pdfUrl = id.replace('abs', 'pdf') + '.pdf';
-        }
-        results.push({
-          title: entry.querySelector('title')?.textContent?.trim() || 'Sem título',
-          authors: Array.from(entry.querySelectorAll('author name')).map(el => el.textContent),
-          abstract: entry.querySelector('summary')?.textContent?.trim()?.substring(0, 500) || '',
-          pdfUrl,
-          source: 'arXiv'
-        });
-      });
-      return results;
-    } catch (e) { return []; }
-  }
-
-  async function performSearch() {
-    const query = queryInput.value.trim();
-    if (!query) return;
-    articleListDiv.innerHTML = `<div class="loading">🔍 Buscando em OpenAlex e arXiv... Aguarde.</div>`;
-    resultsArea.style.display = 'block';
-    noResultsMsg.style.display = 'none';
-    const [openAlex, arxiv] = await Promise.all([searchOpenAlex(query), searchArXiv(query)]);
-    let all = [...openAlex, ...arxiv];
-    // remover duplicatas (título)
-    const unique = [];
-    const titles = new Set();
-    for (const art of all) {
-      if (!titles.has(art.title.toLowerCase())) {
-        titles.add(art.title.toLowerCase());
-        unique.push(art);
+  // Livros
+  async function renderBooksTab() {
+    document.getElementById('mainContent').innerHTML = `
+      <div class="search-area">
+        <input type="text" id="booksQuery" class="search-input" placeholder="Ex: ficção científica, biografia, programação...">
+        <button id="booksSearchBtn" class="search-btn">🔍 Buscar livros</button>
+      </div>
+      <div id="booksResults"></div>
+    `;
+    document.getElementById('booksSearchBtn').addEventListener('click', async () => {
+      const query = document.getElementById('booksQuery').value.trim();
+      if (!query) return;
+      const resultsDiv = document.getElementById('booksResults');
+      resultsDiv.innerHTML = `<div class="loader"><div class="spinner"></div>📚 Buscando livros...</div>`;
+      const books = await searchBooks(query);
+      if (!books.length) {
+        resultsDiv.innerHTML = `<div class="no-results">😕 Nenhum livro encontrado.</div>`;
+        return;
       }
-    }
-    const articlesWithId = unique.slice(0, 18).map((art, idx) => ({
-      ...art,
-      id: btoa(art.title + art.source + idx).replace(/[^a-zA-Z0-9]/g, '')
-    }));
-    renderArticles(articlesWithId);
-    renderReadTab(); // atualiza a aba lidos (caso tenha algo marcado)
-  }
-
-  // Controle de abas
-  function initTabs() {
-    const tabs = document.querySelectorAll('.tab-btn');
-    tabs.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const tabId = btn.getAttribute('data-tab');
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-        if (tabId === 'search') {
-          document.getElementById('searchTab').classList.add('active');
-          if (currentArticles.length) renderArticles(currentArticles); // re-renderiza para sincronizar checkboxes
-        } else {
-          document.getElementById('readTab').classList.add('active');
-          renderReadTab();
-        }
-      });
+      resultsDiv.innerHTML = `
+        <div class="results-grid">
+          ${books.map(b => `
+            <div class="result-card">
+              <div class="card-content">
+                <a href="${b.url}" target="_blank" class="card-title">📖 ${escapeHtml(b.title)}</a>
+                <div class="card-meta">${b.authors.join(', ')} · ${b.source}</div>
+                <div class="card-abstract">${escapeHtml(b.abstract.substring(0, 200))}…</div>
+                <a href="${b.url}" target="_blank" class="btn-link">🔗 Visualizar</a>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
     });
   }
 
-  // Ações em massa
-  markAllBtn.addEventListener('click', () => {
-    currentArticles.forEach(art => readArticles.add(art.id));
-    saveReadStatus();
-    renderArticles(currentArticles);
-    renderReadTab();
-  });
-  clearAllBtn.addEventListener('click', () => {
-    currentArticles.forEach(art => readArticles.delete(art.id));
-    saveReadStatus();
-    renderArticles(currentArticles);
-    renderReadTab();
-  });
+  // Pesquisas
+  async function renderResearchTab() {
+    document.getElementById('mainContent').innerHTML = `
+      <div class="search-area">
+        <input type="text" id="researchQuery" class="search-input" placeholder="Ex: inteligência artificial, mudanças climáticas...">
+        <button id="researchSearchBtn" class="search-btn">🔍 Buscar pesquisas</button>
+      </div>
+      <div id="researchResults"></div>
+    `;
+    document.getElementById('researchSearchBtn').addEventListener('click', async () => {
+      const query = document.getElementById('researchQuery').value.trim();
+      if (!query) return;
+      const resultsDiv = document.getElementById('researchResults');
+      resultsDiv.innerHTML = `<div class="loader"><div class="spinner"></div>🔬 Buscando estudos...</div>`;
+      const research = await searchResearch(query);
+      if (!research.length) {
+        resultsDiv.innerHTML = `<div class="no-results">😕 Nenhuma pesquisa encontrada.</div>`;
+        return;
+      }
+      resultsDiv.innerHTML = `
+        <div class="results-grid">
+          ${research.map(r => `
+            <div class="result-card">
+              <div class="card-content">
+                <a href="${r.url}" target="_blank" class="card-title">📑 ${escapeHtml(r.title)}</a>
+                <div class="card-meta">${r.authors.slice(0,3).join(', ')} · ${r.source}</div>
+                <div class="card-abstract">${escapeHtml(r.abstract.substring(0, 260))}…</div>
+                <a href="${r.url}" target="_blank" class="btn-link">📖 Ler estudo</a>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    });
+  }
 
-  // Tema claro/escuro
-  const themeToggle = document.getElementById('themeToggle');
-  if (localStorage.getItem('theme') === 'light') document.body.classList.add('light');
-  themeToggle.addEventListener('click', () => {
-    document.body.classList.toggle('light');
-    localStorage.setItem('theme', document.body.classList.contains('light') ? 'light' : 'dark');
-  });
+  // Controle de abas principais
+  function switchMainTab(tab) {
+    currentMainTab = tab;
+    if (tab === 'articles') renderArticlesTab();
+    else if (tab === 'books') renderBooksTab();
+    else if (tab === 'research') renderResearchTab();
+  }
+
+  function initMainTabs() {
+    document.querySelectorAll('.main-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.main-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        switchMainTab(btn.getAttribute('data-main'));
+      });
+    });
+  }
 
   function escapeHtml(str) { return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m])); }
 
   loadReadStatus();
-  initTabs();
-  searchBtn.addEventListener('click', performSearch);
-  queryInput.addEventListener('keypress', (e) => e.key === 'Enter' && performSearch());
+  initMainTabs();
+  switchMainTab('articles'); // start
 </script>
 </body>
 </html>
