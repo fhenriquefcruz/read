@@ -394,7 +394,7 @@
       store.read[type][isRead ? 'add' : 'delete'](id);
     }
 
-    // ==================== APIS ====================
+    // ==================== APIS CORRIGIDAS ====================
     async function fetchOpenAlex(query, type = 'article', oaOnly = true) {
       let filter = oaOnly ? 'open_access.is_oa:true' : '';
       if (type === 'research') filter += (filter ? ',' : '') + 'type:article,type:report';
@@ -420,25 +420,52 @@
     }
 
     async function fetchBooks(query) {
-      const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20&printType=books`;
+      // Tentativa 1: Google Books via proxy CORS
+      const proxyUrl = 'https://corsproxy.io/?';
+      const directUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20&printType=books`;
       try {
-        const res = await fetch(url);
+        const res = await fetch(proxyUrl + encodeURIComponent(directUrl));
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        if (!data.items) return [];
-        return data.items.map(item => ({
-          id: item.id,
-          title: item.volumeInfo.title || 'Sem título',
-          authors: item.volumeInfo.authors || ['Autor não informado'],
-          abstract: item.volumeInfo.description || 'Sinopse indisponível',
-          url: item.volumeInfo.previewLink || item.volumeInfo.infoLink || '#',
-          source: 'Google Books'
-        }));
-      } catch (e) {
-        console.error(e);
-        showToast(`Erro ao buscar livros: ${e.message}`);
-        return [];
+        if (data.items && data.items.length) {
+          return data.items.map(item => ({
+            id: item.id,
+            title: item.volumeInfo.title || 'Sem título',
+            authors: item.volumeInfo.authors || ['Autor não informado'],
+            abstract: item.volumeInfo.description || 'Sinopse indisponível',
+            url: item.volumeInfo.previewLink || item.volumeInfo.infoLink || '#',
+            source: 'Google Books'
+          }));
+        }
+        throw new Error('No items');
+      } catch (err) {
+        console.warn('Google Books falhou, tentando OpenAlex como fallback...', err);
+        // Fallback: OpenAlex (tipo book)
+        const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=type:book&sort=relevance_score:desc&per-page=20`;
+        try {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          if (!data.results) return [];
+          return data.results.map(w => ({
+            id: stableHash(w.id || w.title),
+            title: w.title || 'Sem título',
+            authors: w.authorships?.map(a => a.author.display_name) || [],
+            abstract: w.abstract || (w.abstract_inverted_index ? Object.entries(w.abstract_inverted_index).sort((a,b)=>a[1][0]-b[1][0]).map(([w])=>w).join(' ') : 'Sinopse indisponível'),
+            url: w.open_access?.oa_url || w.best_oa_location?.pdf_url || w.id,
+            source: 'OpenAlex (books)'
+          }));
+        } catch (e) {
+          console.error('OpenAlex fallback falhou:', e);
+          showToast('Erro ao buscar livros. Tente novamente mais tarde.');
+          return [];
+        }
       }
+    }
+
+    // Pesquisas (usa OpenAlex com type='research')
+    async function fetchResearch(query) {
+      return fetchOpenAlex(query, 'research', true);
     }
 
     // ==================== RENDERIZAÇÃO PRINCIPAL ====================
@@ -797,7 +824,7 @@
           const q = document.getElementById('researchQuery').value.trim();
           if (!q) return;
           showLoading();
-          const results = await fetchOpenAlex(q, 'research', true);
+          const results = await fetchResearch(q);
           store.research = results;
           renderResults('researchResults', results, 'research', store.read.research);
           hideLoading();
