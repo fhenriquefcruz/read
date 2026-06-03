@@ -6,10 +6,9 @@
   <meta name="theme-color" content="#05070f">
   <title>Read+ · Mind Forge</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    /* ========== ESTILOS COMPLETOS (preservados e otimizados) ========== */
+    /* ========== ESTILOS OTIMIZADOS ========== */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
       --bg-dark: #05070f;
@@ -43,17 +42,11 @@
     }
     .container { max-width: 1400px; margin: 0 auto; position: relative; z-index: 2; }
     .header { text-align: center; margin-bottom: 40px; }
-    .logo-wrapper {
-      display: inline-block;
-      position: relative;
-    }
+    .logo-wrapper { display: inline-block; position: relative; }
     .logo {
-      font-size: 4.2rem;
-      font-weight: 800;
-      letter-spacing: -3px;
+      font-size: 4.2rem; font-weight: 800; letter-spacing: -3px;
       background: linear-gradient(135deg, #fff 0%, var(--glow-primary) 40%, var(--glow-secondary) 80%);
-      background-clip: text;
-      color: transparent;
+      background-clip: text; color: transparent;
       text-shadow: 0 0 30px rgba(0,212,255,0.3);
       display: inline-block;
       clip-path: polygon(0% 0%, 95% 0%, 100% 50%, 95% 100%, 0% 100%);
@@ -151,15 +144,34 @@
       border: 1px solid var(--border-light);
     }
     .modal-content .close { float: right; font-size: 24px; cursor: pointer; }
-    .heatmap-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 12px; }
-    .heatmap-day { aspect-ratio: 1; border-radius: 6px; background-color: #1a2a2a; }
-    .heatmap-day-1 { background-color: #0f5b4a; }
-    .heatmap-day-2 { background-color: #1f8a6e; }
-    .heatmap-day-3 { background-color: #2fba92; }
-    .heatmap-day-4 { background-color: #4fd4ae; }
-    .pagination-btn { margin-top: 16px; text-align: center; }
-    .collections-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-    @media (max-width: 700px) { .glass-card { padding: 16px; } .main-tab { padding: 8px 16px; font-size: 0.9rem; } .result-card { flex-direction: column; } .search-area { flex-direction: column; } }
+    .calendar-wrapper {
+      background: rgba(0,0,0,0.3); border-radius: 28px; padding: 16px; margin-top: 12px;
+    }
+    .calendar-header {
+      display: grid; grid-template-columns: repeat(7, 1fr); text-align: center;
+      margin-bottom: 12px; font-size: 0.75rem; color: var(--text-secondary);
+    }
+    .calendar-grid {
+      display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
+    }
+    .calendar-day {
+      aspect-ratio: 1; background: rgba(255,255,255,0.05); border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; font-size: 0.7rem;
+      transition: all 0.2s; cursor: pointer;
+    }
+    .calendar-day:hover { transform: scale(1.05); background: rgba(0,212,255,0.2); }
+    .calendar-day[data-level="1"] { background: #0f5b4a; }
+    .calendar-day[data-level="2"] { background: #1f8a6e; }
+    .calendar-day[data-level="3"] { background: #2fba92; }
+    .calendar-day[data-level="4"] { background: #4fd4ae; }
+    @media (max-width: 700px) {
+      .calendar-grid { gap: 3px; }
+      .calendar-day { font-size: 0.6rem; }
+      .glass-card { padding: 16px; }
+      .main-tab { padding: 8px 16px; font-size: 0.9rem; }
+      .result-card { flex-direction: column; }
+      .search-area { flex-direction: column; }
+    }
   </style>
 </head>
 <body>
@@ -182,9 +194,34 @@
 </div>
 
 <!-- Modais -->
-<div id="collectionModal" class="modal"><div class="modal-content"><span class="close">&times;</span><h3>📂 Coleções</h3><div id="collectionList"></div><input type="text" id="newCollectionName" placeholder="Nova coleção"><button id="createCollectionBtn" class="search-btn" style="margin-top:10px;">Criar</button></div></div>
-<div id="exportModal" class="modal"><div class="modal-content"><span class="close">&times;</span><h3>💾 Exportar</h3><button id="exportJSONBtn" class="search-btn">JSON</button><button id="exportCSVBtn" class="search-btn">CSV</button><button id="exportObsidianBtn" class="search-btn">Markdown (Obsidian)</button></div></div>
-<div id="radarModal" class="modal"><div class="modal-content"><span class="close">&times;</span><h3>📡 Radar Científico</h3><input type="text" id="radarTopicInput" placeholder="Novo tema"><button id="addRadarTopicBtn" class="search-btn">Adicionar</button><div id="radarTopicsList"></div><div id="radarResults"></div></div></div>
+<div id="collectionModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="collectionModalTitle">
+  <div class="modal-content">
+    <span class="close" aria-label="Fechar">&times;</span>
+    <h3 id="collectionModalTitle">📂 Coleções</h3>
+    <div id="collectionList"></div>
+    <input type="text" id="newCollectionName" placeholder="Nova coleção">
+    <button id="createCollectionBtn" class="search-btn" style="margin-top:10px;">Criar</button>
+  </div>
+</div>
+<div id="exportModal" class="modal" role="dialog" aria-modal="true">
+  <div class="modal-content">
+    <span class="close" aria-label="Fechar">&times;</span>
+    <h3>💾 Exportar</h3>
+    <button id="exportJSONBtn" class="search-btn">JSON</button>
+    <button id="exportCSVBtn" class="search-btn">CSV</button>
+    <button id="exportObsidianBtn" class="search-btn">Markdown (Obsidian)</button>
+  </div>
+</div>
+<div id="radarModal" class="modal" role="dialog" aria-modal="true">
+  <div class="modal-content">
+    <span class="close" aria-label="Fechar">&times;</span>
+    <h3>📡 Radar Científico</h3>
+    <input type="text" id="radarTopicInput" placeholder="Novo tema">
+    <button id="addRadarTopicBtn" class="search-btn">Adicionar</button>
+    <div id="radarTopicsList"></div>
+    <div id="radarResults"></div>
+  </div>
+</div>
 
 <div id="loadingOverlay" class="loading-overlay">
   <div class="loading-spinner"></div>
@@ -192,624 +229,675 @@
 </div>
 
 <script>
-  // ========== GLOBAL STATE ==========
-  let db = null;
-  let articlesData = [], booksData = [], researchData = [];
-  let readArticles = new Set(), readBooks = new Set(), readResearch = new Set();
-  let favorites = { articles: [], books: [], research: [] };
-  let notes = {}, tags = {}, collections = [];
-  let userProfile = { name: "Pesquisador", xp: 0, level: 0, badges: [] };
-  let zettels = [], backlinks = new Map();
-  let studyLog = [];
-  let radarTopics = [];
-  let currentChart = null;
-  let loadingTimeout = null;
-  let lastDashboardData = null;
-  let currentPage = { articles: 1, books: 1, research: 1 };
-  let currentQuery = { articles: '', books: '', research: '' };
-  let currentOaOnly = true;
+  (function(){
+    // ==================== ESTADO CENTRALIZADO (SINGLETON) ====================
+    const store = {
+      // Dados principais
+      articles: [],
+      books: [],
+      research: [],
+      read: { article: new Set(), book: new Set(), research: new Set() },
+      favorites: { article: [], book: [], research: [] },
+      notes: new Map(),
+      tags: new Map(),
+      collections: [],
+      zettels: [],
+      backlinks: new Map(),
+      studyLog: [],
+      radarTopics: [],
+      userProfile: { name: "Pesquisador", xp: 0, level: 0, badges: [] },
+      // UI state
+      currentTab: 'articles',
+      isLoading: false,
+      loadingTimeout: null,
+      lastDashboardKey: null,
+      currentChart: null,
+      // DB
+      db: null
+    };
 
-  // Helpers
-  function escapeHtml(str) { return str == null ? '' : String(str).replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[m])); }
-  function sanitizeUrl(url) { return (!url || !url.startsWith('http')) ? '#' : url; }
-  function stableHash(str) { let h = 0; for (let i=0;i<str.length;i++) h = ((h<<5)-h)+str.charCodeAt(i)|0; return Math.abs(h).toString(36); }
-  function showToast(msg) { const t=document.createElement('div'); t.innerText=msg; t.style.cssText='position:fixed;bottom:20px;right:20px;background:var(--glow-primary);color:#02040c;padding:10px 20px;border-radius:40px;z-index:10000'; document.body.appendChild(t); setTimeout(()=>t.remove(),3000); }
-  function addXP(amount) { userProfile.xp += amount; let newLevel = Math.min(4, Math.floor(userProfile.xp/100)); if (newLevel > userProfile.level) { userProfile.level = newLevel; const lvls=['Explorador','Pesquisador','Analista','Especialista','Mestre']; if (!userProfile.badges.includes(lvls[newLevel])) userProfile.badges.push(lvls[newLevel]); showToast(`🎉 Nível ${lvls[newLevel]} alcançado!`); } saveProfile(); }
-  function saveProfile() { const tx = db.transaction(['settings'],'readwrite'); tx.objectStore('settings').put({ key: 'profile', value: userProfile }); }
+    // Eventos leves para sincronização
+    const events = {
+      listeners: {},
+      on(event, callback) { if (!this.listeners[event]) this.listeners[event] = []; this.listeners[event].push(callback); },
+      emit(event, data) { (this.listeners[event] || []).forEach(cb => cb(data)); }
+    };
 
-  function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); if (loadingTimeout) clearTimeout(loadingTimeout); loadingTimeout = setTimeout(() => { if (document.getElementById('loadingOverlay').classList.contains('active')) { document.getElementById('loadingOverlay').classList.remove('active'); showToast('A busca demorou muito. Tente novamente.'); } }, 15000); }
-  function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); if (loadingTimeout) clearTimeout(loadingTimeout); }
+    // Helpers seguros
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[m]));
+    }
 
-  // ========== INDEXEDDB ==========
-  async function initDB() {
-    return new Promise((resolve) => {
-      const req = indexedDB.open('ReadPlusDB', 10);
-      req.onupgradeneeded = (e) => {
-        const db = e.target.result;
-        const stores = ['articles','books','research','notes','collections','tags','favorites','reading_log','study_log','radar','settings','zettels','backlinks'];
-        for (let s of stores) if (!db.objectStoreNames.contains(s)) db.createObjectStore(s, { keyPath: s==='settings'?'key':'id' });
-      };
-      req.onsuccess = (e) => { db = e.target.result; loadAllData().then(resolve); };
-    });
-  }
+    function sanitizeUrl(url) {
+      if (!url || typeof url !== 'string') return '#';
+      const trimmed = url.trim();
+      if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+      return '#';
+    }
 
-  async function loadAllData() {
-    const stores = ['articles','books','research','notes','collections','tags','favorites','reading_log','study_log','radar','settings','zettels','backlinks'];
-    for (let s of stores) {
-      const data = await new Promise(res => { if (!db) return res([]); try { db.transaction([s],'readonly').objectStore(s).getAll().onsuccess = e => res(e.target.result); } catch(e) { res([]); } });
-      if (s === 'articles') articlesData = data;
-      else if (s === 'books') booksData = data;
-      else if (s === 'research') researchData = data;
-      else if (s === 'notes') notes = data.reduce((a,n)=>(a[n.id]=n,a),{});
-      else if (s === 'collections') collections = data;
-      else if (s === 'tags') data.forEach(t=>tags[t.id]=t.items);
-      else if (s === 'favorites') {
-        favorites = { articles: data.filter(f=>f.type==='article'), books: data.filter(f=>f.type==='book'), research: data.filter(f=>f.type==='research') };
-      }
-      else if (s === 'reading_log') {
-        data.forEach(log => {
-          if (log.type === 'article') readArticles.add(log.id);
-          else if (log.type === 'book') readBooks.add(log.id);
-          else if (log.type === 'research') readResearch.add(log.id);
+    function stableHash(str) {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) hash = ((hash << 5) - hash) + str.charCodeAt(i) | 0;
+      return Math.abs(hash).toString(36);
+    }
+
+    function showToast(msg, duration = 3000) {
+      const toast = document.createElement('div');
+      toast.textContent = msg;
+      toast.style.cssText = 'position:fixed;bottom:20px;right:20px;background:var(--glow-primary);color:#02040c;padding:12px 20px;border-radius:40px;z-index:10001;font-size:0.85rem;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), duration);
+    }
+
+    // ==================== INDEXEDDB WRAPPER ====================
+    async function openDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open('ReadPlusDB', 11);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          const stores = ['articles','books','research','notes','collections','tags','favorites','reading_log','study_log','radar','settings','zettels','backlinks'];
+          stores.forEach(s => { if (!db.objectStoreNames.contains(s)) db.createObjectStore(s, { keyPath: s === 'settings' ? 'key' : 'id' }); });
+        };
+        req.onsuccess = (e) => resolve(e.target.result);
+        req.onerror = (e) => reject(e.target.error);
+      });
+    }
+
+    async function loadAllDataFromDB() {
+      const stores = ['articles','books','research','notes','collections','tags','favorites','reading_log','study_log','radar','settings','zettels','backlinks'];
+      for (let s of stores) {
+        const data = await new Promise(res => {
+          const tx = store.db.transaction([s], 'readonly');
+          tx.objectStore(s).getAll().onsuccess = e => res(e.target.result);
         });
+        switch(s) {
+          case 'articles': store.articles = data; break;
+          case 'books': store.books = data; break;
+          case 'research': store.research = data; break;
+          case 'notes': data.forEach(n => store.notes.set(n.id, n)); break;
+          case 'collections': store.collections = data; break;
+          case 'tags': data.forEach(t => store.tags.set(t.id, t.items)); break;
+          case 'favorites': data.forEach(f => { store.favorites[f.type].push(f); }); break;
+          case 'reading_log':
+            store.read.article.clear(); store.read.book.clear(); store.read.research.clear();
+            data.forEach(log => store.read[log.type].add(log.id));
+            break;
+          case 'study_log': store.studyLog = data; break;
+          case 'radar': store.radarTopics = data.map(r => r.topic); break;
+          case 'settings':
+            const prof = data.find(d => d.key === 'profile');
+            if (prof) store.userProfile = prof.value;
+            break;
+          case 'zettels': store.zettels = data; break;
+          case 'backlinks': data.forEach(b => store.backlinks.set(b.id, b)); break;
+        }
       }
-      else if (s === 'study_log') studyLog = data;
-      else if (s === 'radar') radarTopics = data.map(r=>r.topic);
-      else if (s === 'settings') { let p = data.find(d=>d.key==='profile'); if (p) userProfile = p.value; }
-      else if (s === 'zettels') zettels = data;
-      else if (s === 'backlinks') data.forEach(b=>backlinks.set(b.id, b));
-    }
-    if (studyLog.length === 0 && (readArticles.size || readBooks.size || readResearch.size)) {
-      const tx = db.transaction(['reading_log'],'readonly');
-      const allReads = await new Promise(res => tx.objectStore('reading_log').getAll().onsuccess = e => res(e.target.result));
-      const logMap = new Map();
-      for (let r of allReads) {
-        const date = new Date(r.date).toLocaleDateString('en-CA');
-        const key = `${date}_${r.type}`;
-        if (!logMap.has(key)) logMap.set(key, { date, type: r.type, count: 0 });
-        logMap.get(key).count++;
+      if (store.studyLog.length === 0 && (store.read.article.size || store.read.book.size || store.read.research.size)) {
+        // migrar de reading_log
+        const tx = store.db.transaction(['reading_log'], 'readonly');
+        const allReads = await new Promise(res => tx.objectStore('reading_log').getAll().onsuccess = e => res(e.target.result));
+        const logMap = new Map();
+        for (let r of allReads) {
+          const date = new Date(r.date).toLocaleDateString('en-CA');
+          const key = `${date}_${r.type}`;
+          if (!logMap.has(key)) logMap.set(key, { date, type: r.type, count: 0 });
+          logMap.get(key).count++;
+        }
+        store.studyLog = Array.from(logMap.values());
+        for (let entry of store.studyLog) {
+          const tx2 = store.db.transaction(['study_log'], 'readwrite');
+          tx2.objectStore('study_log').put({ id: `${entry.date}_${entry.type}`, date: entry.date, type: entry.type, count: entry.count });
+        }
       }
-      studyLog = Array.from(logMap.values());
-      for (let entry of studyLog) await saveToStore('study_log', { id: `${entry.date}_${entry.type}`, date: entry.date, type: entry.type, count: entry.count });
     }
-  }
 
-  async function saveToStore(storeName, item) {
-    const tx = db.transaction([storeName],'readwrite');
-    tx.objectStore(storeName).put(item);
-  }
-  async function deleteFromStore(storeName, id) {
-    const tx = db.transaction([storeName],'readwrite');
-    tx.objectStore(storeName).delete(id);
-  }
-
-  async function reloadReadSets() {
-    const tx = db.transaction(['reading_log'], 'readonly');
-    const allReads = await new Promise(res => tx.objectStore('reading_log').getAll().onsuccess = e => res(e.target.result));
-    readArticles.clear(); readBooks.clear(); readResearch.clear();
-    allReads.forEach(log => {
-      if (log.type === 'article') readArticles.add(log.id);
-      else if (log.type === 'book') readBooks.add(log.id);
-      else if (log.type === 'research') readResearch.add(log.id);
-    });
-  }
-
-  // Transação atômica (reading_log + study_log)
-  async function saveReadLog(id, type) {
-    const tx = db.transaction(['reading_log', 'study_log'], 'readwrite');
-    const readingStore = tx.objectStore('reading_log');
-    const studyStore = tx.objectStore('study_log');
-    readingStore.put({ id, type, date: new Date().toISOString() });
-    const today = new Date().toLocaleDateString('en-CA');
-    const studyKey = `${today}_${type}`;
-    let existing = studyLog.find(l => l.date === today && l.type === type);
-    if (existing) {
-      existing.count++;
-      studyStore.put({ id: studyKey, date: today, type, count: existing.count });
-    } else {
-      const newEntry = { id: studyKey, date: today, type, count: 1 };
-      studyLog.push(newEntry);
-      studyStore.put(newEntry);
+    async function saveToDB(storeName, item) {
+      const tx = store.db.transaction([storeName], 'readwrite');
+      tx.objectStore(storeName).put(item);
     }
-    await new Promise((resolve, reject) => {
-      tx.oncomplete = () => { addXP(10); resolve(); };
-      tx.onerror = () => reject(tx.error);
-    });
-    await reloadReadSets();
-  }
 
-  async function removeReadLog(id, type) {
-    const tx = db.transaction(['reading_log', 'study_log'], 'readwrite');
-    tx.objectStore('reading_log').delete(id);
-    const today = new Date().toLocaleDateString('en-CA');
-    const existing = studyLog.find(l => l.date === today && l.type === type);
-    if (existing && existing.count > 0) {
-      existing.count--;
-      if (existing.count === 0) {
-        studyLog = studyLog.filter(l => !(l.date === today && l.type === type));
-        tx.objectStore('study_log').delete(`${today}_${type}`);
+    async function deleteFromDB(storeName, id) {
+      const tx = store.db.transaction([storeName], 'readwrite');
+      tx.objectStore(storeName).delete(id);
+    }
+
+    // ==================== LÓGICA DE NEGÓCIO ====================
+    async function addXP(amount) {
+      store.userProfile.xp += amount;
+      const newLevel = Math.min(4, Math.floor(store.userProfile.xp / 100));
+      if (newLevel > store.userProfile.level) {
+        store.userProfile.level = newLevel;
+        const levels = ['Explorador','Pesquisador','Analista','Especialista','Mestre'];
+        if (!store.userProfile.badges.includes(levels[newLevel])) store.userProfile.badges.push(levels[newLevel]);
+        showToast(`🎉 Nível ${levels[newLevel]} alcançado!`);
+      }
+      await saveToDB('settings', { key: 'profile', value: store.userProfile });
+    }
+
+    async function markAsRead(id, type, isRead) {
+      const tx = store.db.transaction(['reading_log', 'study_log'], 'readwrite');
+      const readingStore = tx.objectStore('reading_log');
+      if (isRead) {
+        readingStore.put({ id, type, date: new Date().toISOString() });
+        const today = new Date().toLocaleDateString('en-CA');
+        const studyKey = `${today}_${type}`;
+        let existing = store.studyLog.find(l => l.date === today && l.type === type);
+        if (existing) {
+          existing.count++;
+          tx.objectStore('study_log').put({ id: studyKey, date: today, type, count: existing.count });
+        } else {
+          const newEntry = { id: studyKey, date: today, type, count: 1 };
+          store.studyLog.push(newEntry);
+          tx.objectStore('study_log').put(newEntry);
+        }
+        await addXP(10);
       } else {
-        tx.objectStore('study_log').put({ id: `${today}_${type}`, date: today, type, count: existing.count });
+        readingStore.delete(id);
+        const today = new Date().toLocaleDateString('en-CA');
+        const existing = store.studyLog.find(l => l.date === today && l.type === type);
+        if (existing && existing.count > 0) {
+          existing.count--;
+          if (existing.count === 0) {
+            store.studyLog = store.studyLog.filter(l => !(l.date === today && l.type === type));
+            tx.objectStore('study_log').delete(`${today}_${type}`);
+          } else {
+            tx.objectStore('study_log').put({ id: `${today}_${type}`, date: today, type, count: existing.count });
+          }
+        }
+      }
+      await new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onerror = () => reject(tx.error); });
+      // atualizar set em memória
+      store.read[type][isRead ? 'add' : 'delete'](id);
+    }
+
+    // ==================== BUSCAS COM TRATAMENTO DE ERRO ====================
+    async function fetchOpenAlex(query, type = 'article', oaOnly = true) {
+      let filter = oaOnly ? 'open_access.is_oa:true' : '';
+      if (type === 'research') filter += (filter ? ',' : '') + 'type:article,type:report';
+      const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=${filter}&sort=relevance_score:desc&per-page=20`;
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!data.results) return [];
+        return data.results.map(w => ({
+          id: stableHash(w.id || w.title),
+          title: w.title || 'Sem título',
+          authors: w.authorships?.map(a => a.author.display_name) || [],
+          abstract: w.abstract || (w.abstract_inverted_index ? Object.entries(w.abstract_inverted_index).sort((a,b)=>a[1][0]-b[1][0]).map(([w])=>w).join(' ') : 'Resumo indisponível'),
+          url: w.open_access?.oa_url || w.best_oa_location?.pdf_url || w.id,
+          source: 'OpenAlex'
+        }));
+      } catch (e) {
+        console.error(e);
+        showToast(`Erro ao buscar ${type === 'research' ? 'pesquisas' : 'artigos'}: ${e.message}`);
+        return [];
       }
     }
-    await new Promise((resolve, reject) => {
-      tx.oncomplete = resolve;
-      tx.onerror = () => reject(tx.error);
-    });
-    await reloadReadSets();
-  }
 
-  // ========== TAGS ==========
-  async function addTag(contentId, tag, contentType) {
-    const normalized = tag.trim().toLowerCase();
-    if (!tags[normalized]) tags[normalized] = [];
-    if (!tags[normalized].includes(contentId)) tags[normalized].push(contentId);
-    await saveToStore('tags', { id: normalized, items: tags[normalized] });
-    showToast(`🏷️ Tag "${normalized}" adicionada`);
-    addXP(5);
-  }
-
-  // ========== COLEÇÕES ==========
-  async function createCollection(name) {
-    const newCol = { id: Date.now(), name, items: [] };
-    collections.push(newCol);
-    await saveToStore('collections', newCol);
-    showToast(`📂 Coleção "${name}" criada`);
-    if (document.getElementById('collectionModal').style.display === 'flex') renderCollectionsModal();
-    if (document.getElementById('collectionsMainView')) renderCollectionsMainView();
-  }
-  async function deleteCollection(id) {
-    if (confirm('Excluir coleção permanentemente?')) {
-      collections = collections.filter(c => c.id !== id);
-      await deleteFromStore('collections', id);
-      showToast('Coleção excluída');
-      if (document.getElementById('collectionModal').style.display === 'flex') renderCollectionsModal();
-      if (document.getElementById('collectionsMainView')) renderCollectionsMainView();
+    async function fetchBooks(query) {
+      const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20&printType=books`;
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!data.items) return [];
+        return data.items.map(item => ({
+          id: item.id,
+          title: item.volumeInfo.title || 'Sem título',
+          authors: item.volumeInfo.authors || ['Autor não informado'],
+          abstract: item.volumeInfo.description || 'Sinopse indisponível',
+          url: item.volumeInfo.previewLink || item.volumeInfo.infoLink || '#',
+          source: 'Google Books'
+        }));
+      } catch (e) {
+        console.error(e);
+        showToast(`Erro ao buscar livros: ${e.message}`);
+        return [];
+      }
     }
-  }
-  async function addToCollection(colId, item) {
-    const col = collections.find(c=>c.id===colId);
-    if (col && !col.items.some(i=>i.id===item.id)) {
-      col.items.push(item);
-      await saveToStore('collections', col);
-      showToast(`Adicionado à coleção "${col.name}"`);
-      if (document.getElementById('collectionsMainView')) renderCollectionsMainView();
-    }
-  }
-  async function removeFromCollection(colId, itemId) {
-    const col = collections.find(c=>c.id===colId);
-    if (col) {
-      col.items = col.items.filter(i=>i.id!==itemId);
-      await saveToStore('collections', col);
-      if (document.getElementById('collectionModal').style.display === 'flex') renderCollectionsModal();
-      if (document.getElementById('collectionsMainView')) renderCollectionsMainView();
-    }
-  }
 
-  // ========== BACKLINKS ==========
-  async function updateBacklinksForZettel(zettelId, content) {
-    const regex = /\[\[(.*?)\]\]/g;
-    let match; const links = [];
-    while ((match = regex.exec(content)) !== null) links.push(match[1]);
-    for (let target of links) {
-      let entry = backlinks.get(target) || { id: target, incoming: [], outgoing: [] };
-      if (!entry.incoming.includes(zettelId)) entry.incoming.push(zettelId);
-      if (!entry.outgoing.includes(zettelId)) entry.outgoing.push(zettelId);
-      backlinks.set(target, entry);
-      await saveToStore('backlinks', entry);
-    }
-  }
-
-  // ========== BUSCAS ==========
-  async function searchOpenAlex(query, type = 'article', oaOnly = true, page = 1) {
-    let filter = oaOnly ? 'open_access.is_oa:true' : '';
-    if (type === 'research') filter += (filter ? ',' : '') + 'type:article,type:report';
-    const cursor = (page - 1) * 20;
-    const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=${filter}&sort=relevance_score:desc&per-page=20&cursor=${cursor}`;
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      return data.results.map(w => ({
-        id: stableHash(w.id || w.title),
-        title: w.title || 'Sem título',
-        authors: w.authorships?.map(a => a.author.display_name) || [],
-        abstract: w.abstract || (w.abstract_inverted_index ? Object.entries(w.abstract_inverted_index).sort((a,b)=>a[1][0]-b[1][0]).map(([w])=>w).join(' ') : 'Resumo não disponível'),
-        url: w.open_access?.oa_url || w.best_oa_location?.pdf_url || w.id,
-        source: 'OpenAlex',
-        publication_date: w.publication_date
-      }));
-    } catch (e) { console.error(e); return []; }
-  }
-
-  async function searchBooks(query, page = 1) {
-    const start = (page - 1) * 20;
-    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20&startIndex=${start}&printType=books`;
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (!data.items || data.items.length === 0) return [];
-      return data.items.map(item => ({
-        id: item.id,
-        title: item.volumeInfo.title || 'Sem título',
-        authors: item.volumeInfo.authors || ['Autor não informado'],
-        abstract: item.volumeInfo.description || 'Sinopse não disponível',
-        url: item.volumeInfo.previewLink || item.volumeInfo.infoLink || '#',
-        source: 'Google Books',
-        publishedDate: item.volumeInfo.publishedDate
-      }));
-    } catch (e) { console.error(e); return []; }
-  }
-
-  async function searchResearch(query, oaOnly = true, page = 1) { return searchOpenAlex(query, 'research', oaOnly, page); }
-
-  // ========== RADAR ==========
-  async function searchOpenAlexForRadar(topic) {
-    const url = `https://api.openalex.org/works?search=${encodeURIComponent(topic)}&filter=open_access.is_oa:true&sort=publication_date:desc&per-page=5`;
-    try {
-      const res = await fetch(url);
-      if (!res.ok) return [];
-      const data = await res.json();
-      return data.results.map(w => ({ title: w.title, url: w.open_access?.oa_url || w.id, year: w.publication_date?.slice(0,4) }));
-    } catch(e) { return []; }
-  }
-  async function renderRadarModal() {
-    const listDiv = document.getElementById('radarTopicsList');
-    const resultsDiv = document.getElementById('radarResults');
-    listDiv.innerHTML = radarTopics.map((t,i)=>`<span class="badge" data-topic="${escapeHtml(t)}">${escapeHtml(t)} <button class="removeRadarTopic" data-idx="${i}" style="background:none;border:none;color:white;">❌</button></span>`).join('');
-    resultsDiv.innerHTML = '<div class="no-results">Clique em um tema para ver novidades.</div>';
-    document.querySelectorAll('.removeRadarTopic').forEach(btn => btn.onclick = async () => { radarTopics.splice(btn.dataset.idx,1); await saveToStore('radar', { topic: radarTopics }); renderRadarModal(); });
-    document.querySelectorAll('#radarTopicsList .badge').forEach(badge => {
-      badge.onclick = async () => {
-        const topic = badge.innerText.replace('❌','').trim();
-        resultsDiv.innerHTML = '<div class="loader"><div class="spinner"></div><div>Buscando...</div></div>';
-        const articles = await searchOpenAlexForRadar(topic);
-        if (!articles.length) resultsDiv.innerHTML = '<div class="no-results">Nenhum artigo recente encontrado.</div>';
-        else resultsDiv.innerHTML = articles.map(a => `<div class="result-card"><div class="card-content"><a href="${sanitizeUrl(a.url)}" target="_blank" class="card-title">${escapeHtml(a.title)}</a><div class="card-meta">${a.year || 's.d.'}</div></div></div>`).join('');
-      };
-    });
-  }
-
-  // ========== EXPORTAÇÃO ==========
-  function exportJSON() { const data = { articles: articlesData, books: booksData, research: researchData, readArticles: [...readArticles], favorites, notes, tags, collections, zettels, studyLog, userProfile }; const blob = new Blob([JSON.stringify(data)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'readplus_backup.json'; a.click(); }
-  function exportCSV() { let csv = "type,id,title\n"; const escapeCSV = (s) => s ? `"${s.replace(/"/g, '""')}"` : ''; articlesData.forEach(a=>csv+=`article,${a.id},${escapeCSV(a.title)}\n`); booksData.forEach(b=>csv+=`book,${b.id},${escapeCSV(b.title)}\n`); researchData.forEach(r=>csv+=`research,${r.id},${escapeCSV(r.title)}\n`); const blob = new Blob([csv], {type:'text/csv'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'readplus_data.csv'; a.click(); }
-  function exportObsidian() { let md = ''; zettels.forEach(z => { md += `---\ntitle: ${z.title}\ntags: ${(z.tags||[]).join(',')}\n---\n\n${z.content}\n\n`; if (z.links) z.links.forEach(l=>md+=`[[${l}]]\n`); md += '\n\n'; }); const blob = new Blob([md], {type:'text/markdown'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'readplus_obsidian.md'; a.click(); }
-
-  // ========== RENDERIZAÇÃO DE RESULTADOS ==========
-  function renderResults(containerId, items, type, readSet) {
-    const container = document.getElementById(containerId);
-    if (!items.length) { container.innerHTML = '<div class="no-results">🔍 Nenhum resultado encontrado.</div>'; return; }
-    container.innerHTML = items.map(item => `
-      <div class="result-card">
-        <div class="checkbox ${readSet.has(item.id) ? 'checked' : ''}" data-id="${item.id}" data-type="${type}" aria-label="Marcar como lido">${readSet.has(item.id) ? '✓' : ''}</div>
-        <div class="card-content">
-          <a href="${sanitizeUrl(item.url)}" target="_blank" class="card-title" aria-label="Abrir link">📄 ${escapeHtml(item.title)}</a>
-          <div class="card-meta">${escapeHtml(item.authors.slice(0,3).join(', '))} · ${item.source}</div>
-          <div class="card-abstract">${escapeHtml((item.abstract||'').substring(0,260))}…</div>
-          <div>
-            <button class="action-btn fav-btn" data-id="${item.id}" data-type="${type}" data-title="${escapeHtml(item.title)}" data-url="${sanitizeUrl(item.url)}" aria-label="Favoritar">${favorites[type]?.some(f=>f.id===item.id)?'❤️ Favoritado':'🤍 Favoritar'}</button>
-            <button class="action-btn note-btn" data-id="${item.id}" aria-label="Adicionar nota">📝 Nota</button>
-            <button class="action-btn tag-btn" data-id="${item.id}" data-type="${type}" aria-label="Adicionar tag">🏷️ Tag</button>
-            <button class="action-btn collection-btn" data-id="${item.id}" data-type="${type}" data-title="${escapeHtml(item.title)}" data-url="${sanitizeUrl(item.url)}" aria-label="Adicionar à coleção">📂 Coleção</button>
+    // ==================== RENDERIZAÇÃO REATIVA ====================
+    function renderResults(containerId, items, type, readSet) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      if (!items.length) {
+        container.innerHTML = '<div class="no-results">🔍 Nenhum resultado encontrado.</div>';
+        return;
+      }
+      container.innerHTML = items.map(item => `
+        <div class="result-card" data-id="${escapeHtml(item.id)}">
+          <div class="checkbox ${readSet.has(item.id) ? 'checked' : ''}" data-id="${escapeHtml(item.id)}" data-type="${type}">${readSet.has(item.id) ? '✓' : ''}</div>
+          <div class="card-content">
+            <a href="${sanitizeUrl(item.url)}" target="_blank" class="card-title">📄 ${escapeHtml(item.title)}</a>
+            <div class="card-meta">${escapeHtml(item.authors.slice(0,3).join(', '))} · ${escapeHtml(item.source)}</div>
+            <div class="card-abstract">${escapeHtml((item.abstract||'').substring(0,260))}…</div>
+            <div>
+              <button class="action-btn fav-btn" data-id="${escapeHtml(item.id)}" data-type="${type}" data-title="${escapeHtml(item.title)}" data-url="${sanitizeUrl(item.url)}">${store.favorites[type]?.some(f=>f.id===item.id)?'❤️ Favoritado':'🤍 Favoritar'}</button>
+              <button class="action-btn note-btn" data-id="${escapeHtml(item.id)}">📝 Nota</button>
+              <button class="action-btn tag-btn" data-id="${escapeHtml(item.id)}" data-type="${type}">🏷️ Tag</button>
+              <button class="action-btn collection-btn" data-id="${escapeHtml(item.id)}" data-type="${type}" data-title="${escapeHtml(item.title)}" data-url="${sanitizeUrl(item.url)}">📂 Coleção</button>
+            </div>
           </div>
         </div>
-      </div>
-    `).join('');
+      `).join('');
 
-    container.querySelectorAll('.checkbox').forEach(cb => {
-      cb.onclick = async (e) => {
-        e.stopPropagation(); const id = cb.dataset.id, t = cb.dataset.type;
-        if (t === 'article') { if (readArticles.has(id)) { readArticles.delete(id); await removeReadLog(id,t); } else { readArticles.add(id); await saveReadLog(id,t); } }
-        else if (t === 'book') { if (readBooks.has(id)) { readBooks.delete(id); await removeReadLog(id,t); } else { readBooks.add(id); await saveReadLog(id,t); } }
-        else { if (readResearch.has(id)) { readResearch.delete(id); await removeReadLog(id,t); } else { readResearch.add(id); await saveReadLog(id,t); } }
-        renderResults(containerId, items, type, readSet);
-        if (type === 'article') updateReadArticlesList();
-        renderDashboard();
-      };
-    });
-    container.querySelectorAll('.fav-btn').forEach(btn => {
-      btn.onclick = async () => { const id = btn.dataset.id, t = btn.dataset.type, item = items.find(i=>i.id===id); if (item) {
-        const idx = favorites[t].findIndex(f=>f.id===id);
-        if (idx === -1) { favorites[t].push({ id, title: item.title, type: t, url: item.url, date: new Date().toISOString() }); await saveToStore('favorites', { id, title: item.title, type: t, url: item.url, date: new Date().toISOString() }); showToast('⭐ Adicionado aos favoritos'); }
-        else { favorites[t].splice(idx,1); await deleteFromStore('favorites', id); showToast('🗑️ Removido dos favoritos'); }
-        renderResults(containerId, items, type, readSet);
-      } };
-    });
-    container.querySelectorAll('.note-btn').forEach(btn => {
-      btn.onclick = async () => { const id = btn.dataset.id, txt = prompt('Adicione uma nota:'); if (txt) { notes[id] = { id, comment: txt }; await saveToStore('notes', { id, comment: txt }); showToast('Nota salva! +5 XP'); addXP(5); } };
-    });
-    container.querySelectorAll('.tag-btn').forEach(btn => {
-      btn.onclick = async () => { const id = btn.dataset.id, t = btn.dataset.type, tag = prompt('Tag:'); if (tag) await addTag(id, tag, t); };
-    });
-    container.querySelectorAll('.collection-btn').forEach(btn => {
-      btn.onclick = async () => { const id = btn.dataset.id, title = btn.dataset.title, url = btn.dataset.url, type = btn.dataset.type, colName = prompt('Nome da coleção (existente ou nova):');
-        if (colName) { let col = collections.find(c=>c.name===colName); if (!col) await createCollection(colName); col = collections.find(c=>c.name===colName); if (col) await addToCollection(col.id, { id, title, type, url }); }
-      };
-    });
-  }
-
-  async function updateReadArticlesList() {
-    const container = document.getElementById('readArticlesList');
-    if (!container) return;
-    const tx = db.transaction(['reading_log'], 'readonly');
-    const allReads = await new Promise(res => tx.objectStore('reading_log').getAll().onsuccess = e => res(e.target.result));
-    const readIds = allReads.filter(log => log.type === 'article').map(log => log.id);
-    if (!readIds.length) { container.innerHTML = '<div class="no-results">Nenhum artigo lido ainda.</div>'; return; }
-    const articles = [];
-    for (let id of readIds) {
-      let art = articlesData.find(a => a.id === id);
-      if (!art) {
-        const txArt = db.transaction(['articles'], 'readonly');
-        art = await new Promise(res => txArt.objectStore('articles').get(id).onsuccess = e => res(e.target.result));
-      }
-      if (art) articles.push(art);
-    }
-    if (!articles.length) { container.innerHTML = '<div class="no-results">Nenhum artigo lido ainda.</div>'; return; }
-    container.innerHTML = articles.map(a => `<div class="result-card"><div class="card-content"><a href="${sanitizeUrl(a.url)}" target="_blank" class="card-title">📄 ${escapeHtml(a.title)}</a><div class="card-meta">${escapeHtml(a.authors.join(', '))}</div></div></div>`).join('');
-  }
-
-  // ========== DASHBOARD (com cache e limite de meses) ==========
-  async function renderDashboard() {
-    const totalRead = readArticles.size + readBooks.size + readResearch.size;
-    const streak = (()=>{ let s=0, dates = [...new Set(studyLog.flatMap(l=>Array(l.count||1).fill(l.date)))].sort().reverse(); let last = new Date().toLocaleDateString('en-CA'); for (let d of dates) { if (d === last) { s++; last = new Date(Date.parse(last)-86400000).toLocaleDateString('en-CA'); } else break; } return s; })();
-    const tagCounts = Object.entries(tags).map(([t,ids])=>[t, ids.length]).sort((a,b)=>b[1]-a[1]).slice(0,8);
-    const heatmapDays = [];
-    for (let i=89; i>=0; i--) { let d = new Date(); d.setDate(d.getDate()-i); let dateStr = d.toLocaleDateString('en-CA'); let count = studyLog.filter(l=>l.date===dateStr).reduce((s,l)=>s+(l.count||0),0); heatmapDays.push({ date: dateStr, count }); }
-    const heatmapHtml = '<div class="heatmap-grid">' + heatmapDays.map(day => `<div class="heatmap-day ${day.count>0?`heatmap-day-${Math.min(4,day.count)}`:''}" title="${day.date}: ${day.count} leituras"></div>`).join('') + '</div>';
-    const dataKey = `${totalRead}_${streak}_${tagCounts.map(t=>t[0]+t[1]).join('_')}_${studyLog.length}`;
-    if (lastDashboardData === dataKey) return;
-    lastDashboardData = dataKey;
-    document.getElementById('execDashboard').innerHTML = `
-      <div class="dashboard-grid">
-        <div class="dashboard-card"><h3>📊 Estatísticas</h3><p>Total lidos: ${totalRead}</p><p>Sequência atual: ${streak} dias</p><p>Zettels: ${zettels.length}</p><p>XP: ${userProfile.xp} | Nível: ${userProfile.level}</p></div>
-        <div class="dashboard-card"><h3>🏷️ Tags mais usadas</h3>${tagCounts.map(([t,c])=>`<span class="badge">${escapeHtml(t)} (${c})</span>`).join('')||'Nenhuma tag ainda'}</div>
-        <div class="dashboard-card"><h3>📈 Evolução mensal</h3><canvas id="monthlyChart" height="200"></canvas></div>
-      </div>
-      <div class="dashboard-card"><h3>📅 Calendário de estudos (últimos 90 dias)</h3>${heatmapHtml}</div>
-    `;
-    const monthly = {};
-    studyLog.forEach(l=>{ let m = l.date.slice(0,7); monthly[m] = (monthly[m]||0) + (l.count||1); });
-    let sortedMonths = Object.keys(monthly).sort().reverse();
-    let lastMonths = sortedMonths.slice(0, 12).reverse();
-    let counts = lastMonths.map(m => monthly[m]);
-    if (currentChart) currentChart.destroy();
-    const ctx = document.getElementById('monthlyChart')?.getContext('2d');
-    if (ctx && lastMonths.length) {
-      currentChart = new Chart(ctx, {
-        type: 'line',
-        data: { labels: lastMonths, datasets: [{ label: 'Leituras', data: counts, borderColor: '#00d4ff', tension: 0.3, fill: false }] },
-        options: { responsive: true, maintainAspectRatio: true }
+      // Eventos com delegação para evitar múltiplos listeners
+      container.querySelectorAll('.checkbox').forEach(cb => {
+        cb.onclick = async (e) => {
+          e.stopPropagation();
+          const id = cb.dataset.id, t = cb.dataset.type;
+          const isCurrentlyRead = store.read[t].has(id);
+          await markAsRead(id, t, !isCurrentlyRead);
+          // atualiza UI
+          renderResults(containerId, items, t, store.read[t]);
+          if (t === 'article') updateReadArticlesList();
+          events.emit('dashboardUpdate');
+        };
       });
-    } else if (ctx) {
-      currentChart = new Chart(ctx, { type: 'line', data: { labels: ['Nenhum dado'], datasets: [{ label: 'Leituras', data: [0] }] } });
-    }
-  }
 
-  // ========== ZETTELKASTEN ==========
-  async function renderZettelList() {
-    const container = document.getElementById('zettelList');
-    if (!container) return;
-    if (!zettels.length) { container.innerHTML = '<div class="no-results">Nenhuma nota criada. Crie sua primeira nota atômica.</div>'; return; }
-    container.innerHTML = zettels.map(z => `
-      <div class="result-card">
-        <div class="card-content">
-          <div class="card-title">📄 ${escapeHtml(z.title)}</div>
-          <textarea id="zettel-${z.id}" class="inline-edit" rows="3" aria-label="Conteúdo da nota">${escapeHtml(z.content)}</textarea>
-          <div><input id="zettel-tags-${z.id}" placeholder="Tags (separadas por vírgula)" value="${(z.tags||[]).join(', ')}" class="search-input" style="margin-top:6px;" aria-label="Tags"></div>
-          <button class="action-btn save-zettel" data-id="${z.id}" aria-label="Salvar nota">💾 Salvar</button>
-          <button class="action-btn delete-zettel" data-id="${z.id}" aria-label="Excluir nota">🗑️ Excluir</button>
-          <div id="backlinks-${z.id}" style="font-size:0.7rem; margin-top:6px;"></div>
+      container.querySelectorAll('.fav-btn').forEach(btn => {
+        btn.onclick = async () => {
+          const id = btn.dataset.id, t = btn.dataset.type, item = items.find(i => i.id === id);
+          if (!item) return;
+          const idx = store.favorites[t].findIndex(f => f.id === id);
+          if (idx === -1) {
+            store.favorites[t].push({ id, title: item.title, type: t, url: item.url, date: new Date().toISOString() });
+            await saveToDB('favorites', store.favorites[t][store.favorites[t].length-1]);
+            showToast('⭐ Adicionado aos favoritos');
+          } else {
+            store.favorites[t].splice(idx,1);
+            await deleteFromDB('favorites', id);
+            showToast('🗑️ Removido dos favoritos');
+          }
+          renderResults(containerId, items, t, store.read[t]);
+        };
+      });
+
+      container.querySelectorAll('.note-btn').forEach(btn => {
+        btn.onclick = async () => {
+          const id = btn.dataset.id, txt = prompt('Adicione uma nota:');
+          if (txt) {
+            store.notes.set(id, { id, comment: txt });
+            await saveToDB('notes', { id, comment: txt });
+            showToast('Nota salva! +5 XP');
+            await addXP(5);
+          }
+        };
+      });
+
+      container.querySelectorAll('.tag-btn').forEach(btn => {
+        btn.onclick = async () => {
+          const id = btn.dataset.id, tag = prompt('Tag:');
+          if (tag) {
+            const norm = tag.trim().toLowerCase();
+            if (!store.tags.has(norm)) store.tags.set(norm, []);
+            if (!store.tags.get(norm).includes(id)) store.tags.get(norm).push(id);
+            await saveToDB('tags', { id: norm, items: store.tags.get(norm) });
+            showToast(`🏷️ Tag "${norm}" adicionada`);
+            await addXP(5);
+          }
+        };
+      });
+
+      container.querySelectorAll('.collection-btn').forEach(btn => {
+        btn.onclick = async () => {
+          const id = btn.dataset.id, title = btn.dataset.title, url = btn.dataset.url, type = btn.dataset.type;
+          const colName = prompt('Nome da coleção (existente ou nova):');
+          if (!colName) return;
+          let col = store.collections.find(c => c.name === colName);
+          if (!col) {
+            col = { id: Date.now(), name: colName, items: [] };
+            store.collections.push(col);
+            await saveToDB('collections', col);
+          }
+          if (!col.items.some(i => i.id === id)) {
+            col.items.push({ id, title, type, url });
+            await saveToDB('collections', col);
+            showToast(`Adicionado à coleção "${col.name}"`);
+            if (document.getElementById('collectionsMainView')) renderCollectionsMainView();
+          }
+        };
+      });
+    }
+
+    async function updateReadArticlesList() {
+      const container = document.getElementById('readArticlesList');
+      if (!container) return;
+      const readIds = [...store.read.article];
+      if (!readIds.length) { container.innerHTML = '<div class="no-results">Nenhum artigo lido ainda.</div>'; return; }
+      const articles = [];
+      for (let id of readIds) {
+        let art = store.articles.find(a => a.id === id);
+        if (!art) {
+          const tx = store.db.transaction(['articles'], 'readonly');
+          art = await new Promise(res => tx.objectStore('articles').get(id).onsuccess = e => res(e.target.result));
+        }
+        if (art) articles.push(art);
+      }
+      if (!articles.length) { container.innerHTML = '<div class="no-results">Nenhum artigo lido ainda.</div>'; return; }
+      container.innerHTML = articles.map(a => `<div class="result-card"><div class="card-content"><a href="${sanitizeUrl(a.url)}" target="_blank" class="card-title">📄 ${escapeHtml(a.title)}</a><div class="card-meta">${escapeHtml(a.authors.join(', '))}</div></div></div>`).join('');
+    }
+
+    // ==================== DASHBOARD ====================
+    async function renderDashboard() {
+      const totalRead = store.read.article.size + store.read.book.size + store.read.research.size;
+      const streak = (()=>{
+        let s=0;
+        const dates = [...new Set(store.studyLog.flatMap(l => Array(l.count||1).fill(l.date)))].sort().reverse();
+        let last = new Date().toLocaleDateString('en-CA');
+        for (let d of dates) {
+          if (d === last) { s++; last = new Date(Date.parse(last)-86400000).toLocaleDateString('en-CA'); }
+          else break;
+        }
+        return s;
+      })();
+      const tagCounts = Array.from(store.tags.entries()).map(([t,ids]) => [t, ids.length]).sort((a,b)=>b[1]-a[1]).slice(0,8);
+      // Calendário últimos 90 dias (organizado por semanas)
+      const now = new Date();
+      const startDate = new Date(now);
+      startDate.setDate(now.getDate() - 90);
+      const days = [];
+      for (let d = new Date(startDate); d <= now; d.setDate(d.getDate()+1)) {
+        const dateStr = d.toLocaleDateString('en-CA');
+        const count = store.studyLog.filter(l => l.date === dateStr).reduce((s,l)=>s+(l.count||0),0);
+        days.push({ date: dateStr, day: d.getDate(), month: d.getMonth(), count });
+      }
+      const weeks = [];
+      for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i+7));
+      const calendarHtml = `<div class="calendar-wrapper">
+        <div class="calendar-header">${['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].map(d => `<div>${d}</div>`).join('')}</div>
+        ${weeks.map(week => `<div class="calendar-grid">${week.map(day => `<div class="calendar-day" data-level="${Math.min(4, day.count)}" title="${day.date}: ${day.count} leitura(s)">${day.day}</div>`).join('')}</div>`).join('')}
+      </div>`;
+      const dataKey = `${totalRead}_${streak}_${tagCounts.map(t=>t[0]+t[1]).join('_')}_${store.studyLog.length}`;
+      if (store.lastDashboardKey === dataKey) return;
+      store.lastDashboardKey = dataKey;
+      document.getElementById('execDashboard').innerHTML = `
+        <div class="dashboard-grid">
+          <div class="dashboard-card"><h3>📊 Estatísticas</h3><p>Total lidos: ${totalRead}</p><p>Sequência atual: ${streak} dias</p><p>Zettels: ${store.zettels.length}</p><p>XP: ${store.userProfile.xp} | Nível: ${store.userProfile.level}</p></div>
+          <div class="dashboard-card"><h3>🏷️ Tags mais usadas</h3>${tagCounts.map(([t,c])=>`<span class="badge">${escapeHtml(t)} (${c})</span>`).join('')||'Nenhuma tag ainda'}</div>
+          <div class="dashboard-card"><h3>📈 Evolução mensal</h3><canvas id="monthlyChart" height="200"></canvas></div>
         </div>
-      </div>
-    `).join('');
-    for (let z of zettels) {
-      const backlinkInfo = backlinks.get(z.id);
-      if (backlinkInfo && backlinkInfo.incoming.length) {
-        const backDiv = document.getElementById(`backlinks-${z.id}`);
-        if (backDiv) backDiv.innerHTML = `<strong>🔗 Backlinks:</strong> ${backlinkInfo.incoming.map(inc=>`[[${inc}]]`).join(', ')}`;
+        <div class="dashboard-card"><h3>📅 Calendário de estudos</h3>${calendarHtml}</div>
+      `;
+      const monthly = {};
+      store.studyLog.forEach(l => { let m = l.date.slice(0,7); monthly[m] = (monthly[m]||0) + (l.count||1); });
+      const months = Object.keys(monthly).sort().reverse().slice(0,12).reverse();
+      const counts = months.map(m => monthly[m]);
+      if (store.currentChart) store.currentChart.destroy();
+      const ctx = document.getElementById('monthlyChart')?.getContext('2d');
+      if (ctx && months.length) {
+        store.currentChart = new Chart(ctx, { type: 'line', data: { labels: months, datasets: [{ label: 'Leituras', data: counts, borderColor: '#00d4ff', tension: 0.3, fill: false }] } });
       }
     }
-    document.querySelectorAll('.save-zettel').forEach(btn => {
-      btn.onclick = async () => {
-        const id = btn.dataset.id, z = zettels.find(z=>z.id===id);
-        if (z) {
-          z.content = document.getElementById(`zettel-${id}`).value;
-          z.tags = document.getElementById(`zettel-tags-${id}`).value.split(',').map(s=>s.trim()).filter(Boolean);
-          z.updated = Date.now();
-          await saveToStore('zettels', z);
-          await updateBacklinksForZettel(id, z.content);
-          showToast('Zettel salvo! Backlinks atualizados.');
-          renderZettelList(); renderDashboard();
-        }
-      };
-    });
-    document.querySelectorAll('.delete-zettel').forEach(btn => {
-      btn.onclick = async () => { if (confirm('Excluir nota permanentemente?')) { const id = btn.dataset.id; zettels = zettels.filter(z=>z.id!==id); await deleteFromStore('zettels', id); renderZettelList(); renderDashboard(); } };
-    });
-  }
 
-  // ========== COLEÇÕES MODAL ==========
-  function renderCollectionsModal() {
-    const container = document.getElementById('collectionList');
-    if (!container) return;
-    container.innerHTML = collections.map(col => `
-      <div class="result-card">
-        <div><strong>${escapeHtml(col.name)}</strong> (${col.items.length} itens)</div>
-        <div><button class="action-btn view-collection" data-id="${col.id}" aria-label="Ver itens">Ver</button> <button class="action-btn delete-collection" data-id="${col.id}" aria-label="Excluir coleção">Excluir</button></div>
-        <div id="col-items-${col.id}" style="font-size:0.7rem;"></div>
-      </div>
-    `).join('');
-    document.querySelectorAll('.view-collection').forEach(btn => {
-      btn.onclick = () => { const col = collections.find(c=>c.id==btn.dataset.id); const itemsDiv = document.getElementById(`col-items-${col.id}`); if (itemsDiv) itemsDiv.innerHTML = col.items.map(i=>`<div>📄 ${escapeHtml(i.title)} <button class="action-btn remove-item" data-col="${col.id}" data-item="${i.id}" aria-label="Remover da coleção">Remover</button></div>`).join(''); };
-    });
-    document.querySelectorAll('.delete-collection').forEach(btn => btn.onclick = async () => { await deleteCollection(parseInt(btn.dataset.id)); renderCollectionsModal(); });
-    document.querySelectorAll('.remove-item').forEach(btn => btn.onclick = async () => { await removeFromCollection(parseInt(btn.dataset.col), btn.dataset.item); renderCollectionsModal(); });
-  }
-
-  // ========== COLEÇÕES MAIN VIEW (nova sub-aba) ==========
-  async function renderCollectionsMainView() {
-    const container = document.getElementById('collectionsMainView');
-    if (!container) return;
-    if (!collections.length) { container.innerHTML = '<div class="no-results">Nenhuma coleção criada. Vá em "Gerenciar Coleções" para criar.</div>'; return; }
-    container.innerHTML = `<div class="collections-grid">${collections.map(col => `
-      <div class="dashboard-card">
-        <h3>📁 ${escapeHtml(col.name)}</h3>
-        <p>${col.items.length} itens</p>
-        <ul style="margin-top:8px; padding-left:16px;">${col.items.slice(0,5).map(i => `<li>📄 ${escapeHtml(i.title)}</li>`).join('')}</ul>
-        ${col.items.length > 5 ? '<small>...</small>' : ''}
-        <button class="action-btn view-collection-detail" data-id="${col.id}" style="margin-top:8px;">Ver todos</button>
-      </div>
-    `).join('')}</div>`;
-    document.querySelectorAll('.view-collection-detail').forEach(btn => {
-      btn.onclick = () => {
-        const col = collections.find(c=>c.id==btn.dataset.id);
-        if (col) {
-          alert(`📚 ${col.name}\n\n${col.items.map(i=>`- ${i.title}`).join('\n')}`);
-        }
-      };
-    });
-  }
-
-  // ========== ABAS PRINCIPAIS ==========
-  async function renderArticlesTab() {
-    const html = `
-      <div class="sub-tabs"><button class="sub-tab active" data-sub="search">🔍 Buscar artigos</button><button class="sub-tab" data-sub="read">✅ Meus lidos</button></div>
-      <div id="articlesSearchSub" class="sub-content active">
-        <div class="filter-group search-area">
-          <input id="articlesQuery" class="search-input" placeholder="Ex: machine learning">
-          <input id="yearFilter" placeholder="Ano">
-          <input id="minCited" placeholder="Min citações">
-          <label><input type="checkbox" id="oaOnlyCheckbox" checked> Apenas acesso aberto</label>
-          <button id="articlesSearchBtn" class="search-btn">Pesquisar</button>
+    // ==================== ABAS ====================
+    let currentMainTab = 'articles';
+    async function renderArticlesTab() {
+      const html = `
+        <div class="sub-tabs"><button class="sub-tab active" data-sub="search">🔍 Buscar artigos</button><button class="sub-tab" data-sub="read">✅ Meus lidos</button></div>
+        <div id="articlesSearchSub" class="sub-content active">
+          <div class="search-area"><input id="articlesQuery" class="search-input" placeholder="Ex: machine learning"><button id="articlesSearchBtn" class="search-btn">Pesquisar</button></div>
+          <div id="articlesResults"></div>
         </div>
-        <div id="articlesResults"></div>
-        <div id="articlesPagination" class="pagination-btn"></div>
-      </div>
-      <div id="articlesReadSub" class="sub-content"><div id="readArticlesList"></div></div>
-    `;
-    document.getElementById('mainContent').innerHTML = html;
-    updateReadArticlesList();
-    let currentPageLocal = 1;
-    document.getElementById('articlesSearchBtn').onclick = async () => {
-      const q = document.getElementById('articlesQuery').value.trim(); if (!q) return;
-      currentPageLocal = 1;
-      currentQuery.articles = q;
-      currentOaOnly = document.getElementById('oaOnlyCheckbox').checked;
-      showLoading();
-      const results = await searchOpenAlex(q, 'article', currentOaOnly, currentPageLocal);
-      articlesData = results;
-      renderResults('articlesResults', results, 'article', readArticles);
-      const paginationDiv = document.getElementById('articlesPagination');
-      if (results.length === 20) {
-        paginationDiv.innerHTML = `<button class="search-btn" id="loadMoreArticles">Carregar mais</button>`;
-        document.getElementById('loadMoreArticles').onclick = async () => {
-          currentPageLocal++;
-          const more = await searchOpenAlex(q, 'article', currentOaOnly, currentPageLocal);
-          if (more.length) {
-            articlesData = [...articlesData, ...more];
-            renderResults('articlesResults', articlesData, 'article', readArticles);
-            if (more.length < 20) paginationDiv.innerHTML = '';
-          } else paginationDiv.innerHTML = '';
+        <div id="articlesReadSub" class="sub-content"><div id="readArticlesList"></div></div>
+      `;
+      document.getElementById('mainContent').innerHTML = html;
+      updateReadArticlesList();
+      let debounceTimeout;
+      document.getElementById('articlesSearchBtn').onclick = async () => {
+        if (debounceTimeout) clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(async () => {
+          const q = document.getElementById('articlesQuery').value.trim();
+          if (!q) return;
+          showLoading();
+          const results = await fetchOpenAlex(q, 'article', true);
+          store.articles = results;
+          renderResults('articlesResults', results, 'article', store.read.article);
+          hideLoading();
+        }, 300);
+      };
+      document.querySelectorAll('.sub-tab').forEach(btn => {
+        btn.onclick = () => {
+          const target = btn.dataset.sub;
+          document.querySelectorAll('.sub-tab').forEach(b=>b.classList.remove('active'));
+          btn.classList.add('active');
+          document.querySelectorAll('.sub-content').forEach(c=>c.classList.remove('active'));
+          document.getElementById(`articles${target==='search'?'SearchSub':'ReadSub'}`).classList.add('active');
+          if (target === 'read') updateReadArticlesList();
         };
-      } else paginationDiv.innerHTML = '';
-      hideLoading();
-    };
-    document.querySelectorAll('.sub-tab').forEach(btn => btn.onclick = () => { const target = btn.dataset.sub; document.querySelectorAll('.sub-tab').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); document.querySelectorAll('.sub-content').forEach(c=>c.classList.remove('active')); document.getElementById(`articles${target==='search'?'SearchSub':'ReadSub'}`).classList.add('active'); if (target === 'read') updateReadArticlesList(); });
-  }
+      });
+    }
 
-  async function renderBooksTab() {
-    const html = `<div class="search-area"><input id="booksQuery" class="search-input"><button id="booksSearchBtn" class="search-btn">Pesquisar livros</button></div><div id="booksResults"></div><div id="booksPagination" class="pagination-btn"></div>`;
-    document.getElementById('mainContent').innerHTML = html;
-    let currentPageLocal = 1;
-    document.getElementById('booksSearchBtn').onclick = async () => {
-      const q = document.getElementById('booksQuery').value.trim(); if (!q) return;
-      currentPageLocal = 1;
-      currentQuery.books = q;
-      showLoading();
-      const results = await searchBooks(q, currentPageLocal);
-      booksData = results;
-      renderResults('booksResults', results, 'book', readBooks);
-      const paginationDiv = document.getElementById('booksPagination');
-      if (results.length === 20) {
-        paginationDiv.innerHTML = `<button class="search-btn" id="loadMoreBooks">Carregar mais</button>`;
-        document.getElementById('loadMoreBooks').onclick = async () => {
-          currentPageLocal++;
-          const more = await searchBooks(q, currentPageLocal);
-          if (more.length) {
-            booksData = [...booksData, ...more];
-            renderResults('booksResults', booksData, 'book', readBooks);
-            if (more.length < 20) paginationDiv.innerHTML = '';
-          } else paginationDiv.innerHTML = '';
+    async function renderBooksTab() {
+      const html = `<div class="search-area"><input id="booksQuery" class="search-input"><button id="booksSearchBtn" class="search-btn">Pesquisar livros</button></div><div id="booksResults"></div>`;
+      document.getElementById('mainContent').innerHTML = html;
+      let debounceTimeout;
+      document.getElementById('booksSearchBtn').onclick = async () => {
+        if (debounceTimeout) clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(async () => {
+          const q = document.getElementById('booksQuery').value.trim();
+          if (!q) return;
+          showLoading();
+          const results = await fetchBooks(q);
+          store.books = results;
+          renderResults('booksResults', results, 'book', store.read.book);
+          hideLoading();
+        }, 300);
+      };
+    }
+
+    async function renderResearchTab() {
+      const html = `<div class="search-area"><input id="researchQuery" class="search-input"><button id="researchSearchBtn" class="search-btn">Pesquisar pesquisas</button></div><div id="researchResults"></div>`;
+      document.getElementById('mainContent').innerHTML = html;
+      let debounceTimeout;
+      document.getElementById('researchSearchBtn').onclick = async () => {
+        if (debounceTimeout) clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(async () => {
+          const q = document.getElementById('researchQuery').value.trim();
+          if (!q) return;
+          showLoading();
+          const results = await fetchOpenAlex(q, 'research', true);
+          store.research = results;
+          renderResults('researchResults', results, 'research', store.read.research);
+          hideLoading();
+        }, 300);
+      };
+    }
+
+    async function renderBrainTab() {
+      const html = `
+        <div class="sub-tabs">
+          <button class="sub-tab active" data-sub="dashboard">📊 Dashboard</button>
+          <button class="sub-tab" data-sub="zettel">📔 Zettelkasten</button>
+          <button class="sub-tab" data-sub="collections">📚 Coleções</button>
+          <button class="sub-tab" data-sub="radar">📡 Radar</button>
+          <button class="sub-tab" data-sub="export">💾 Exportar</button>
+        </div>
+        <div id="brainDashboard" class="sub-content active"><div id="execDashboard"></div></div>
+        <div id="brainZettel" class="sub-content"><div id="zettelList"></div><button id="newZettelBtn" class="search-btn" style="margin-top:16px;">➕ Nova nota atômica</button></div>
+        <div id="brainCollections" class="sub-content"><div id="collectionsMainView"></div></div>
+        <div id="brainRadar" class="sub-content"><div id="radarPlaceholder"></div></div>
+        <div id="brainExport" class="sub-content"><div id="exportPlaceholder"></div></div>
+      `;
+      document.getElementById('mainContent').innerHTML = html;
+      await renderDashboard();
+      // Zettelkasten (simplificado por brevidade)
+      document.getElementById('newZettelBtn').onclick = () => {
+        const title = prompt('Título da nota atômica:');
+        if (title) {
+          const newZ = { id: stableHash(title+Date.now()), title, content: '', type: 'fleeting', created: Date.now(), updated: Date.now(), tags: [], links: [] };
+          store.zettels.push(newZ);
+          saveToDB('zettels', newZ);
+          renderZettelList();
+        }
+      };
+      document.getElementById('radarPlaceholder').innerHTML = '<button id="openRadarModal" class="search-btn">Abrir Radar Científico</button>';
+      document.getElementById('openRadarModal').onclick = () => document.getElementById('radarModal').style.display = 'flex';
+      document.getElementById('exportPlaceholder').innerHTML = '<button id="openExportModal" class="search-btn">Exportar Dados</button>';
+      document.getElementById('openExportModal').onclick = () => document.getElementById('exportModal').style.display = 'flex';
+      document.querySelectorAll('.sub-tab').forEach(btn => {
+        btn.onclick = () => {
+          const target = btn.dataset.sub;
+          document.querySelectorAll('.sub-tab').forEach(b=>b.classList.remove('active'));
+          btn.classList.add('active');
+          document.querySelectorAll('.sub-content').forEach(c=>c.classList.remove('active'));
+          document.getElementById(`brain${target==='dashboard'?'Dashboard':target==='zettel'?'Zettel':target==='collections'?'Collections':target==='radar'?'Radar':'Export'}`).classList.add('active');
+          if (target === 'dashboard') renderDashboard();
+          if (target === 'zettel') renderZettelList();
+          if (target === 'collections') renderCollectionsMainView();
         };
-      } else paginationDiv.innerHTML = '';
-      hideLoading();
-    };
-  }
+      });
+    }
 
-  async function renderResearchTab() {
-    const html = `<div class="search-area"><input id="researchQuery" class="search-input"><button id="researchSearchBtn" class="search-btn">Pesquisar pesquisas</button></div><div id="researchResults"></div><div id="researchPagination" class="pagination-btn"></div>`;
-    document.getElementById('mainContent').innerHTML = html;
-    let currentPageLocal = 1;
-    document.getElementById('researchSearchBtn').onclick = async () => {
-      const q = document.getElementById('researchQuery').value.trim(); if (!q) return;
-      currentPageLocal = 1;
-      currentQuery.research = q;
-      showLoading();
-      const results = await searchResearch(q, true, currentPageLocal);
-      researchData = results;
-      renderResults('researchResults', results, 'research', readResearch);
-      const paginationDiv = document.getElementById('researchPagination');
-      if (results.length === 20) {
-        paginationDiv.innerHTML = `<button class="search-btn" id="loadMoreResearch">Carregar mais</button>`;
-        document.getElementById('loadMoreResearch').onclick = async () => {
-          currentPageLocal++;
-          const more = await searchResearch(q, true, currentPageLocal);
-          if (more.length) {
-            researchData = [...researchData, ...more];
-            renderResults('researchResults', researchData, 'research', readResearch);
-            if (more.length < 20) paginationDiv.innerHTML = '';
-          } else paginationDiv.innerHTML = '';
+    async function renderZettelList() {
+      const container = document.getElementById('zettelList');
+      if (!container) return;
+      if (!store.zettels.length) { container.innerHTML = '<div class="no-results">Nenhuma nota criada.</div>'; return; }
+      container.innerHTML = store.zettels.map(z => `
+        <div class="result-card">
+          <div class="card-content">
+            <div class="card-title">📄 ${escapeHtml(z.title)}</div>
+            <textarea id="zettel-${z.id}" class="inline-edit" rows="3">${escapeHtml(z.content)}</textarea>
+            <button class="action-btn save-zettel" data-id="${z.id}">💾 Salvar</button>
+            <button class="action-btn delete-zettel" data-id="${z.id}">🗑️ Excluir</button>
+          </div>
+        </div>
+      `).join('');
+      document.querySelectorAll('.save-zettel').forEach(btn => {
+        btn.onclick = async () => {
+          const id = btn.dataset.id;
+          const z = store.zettels.find(z=>z.id===id);
+          if (z) {
+            z.content = document.getElementById(`zettel-${id}`).value;
+            z.updated = Date.now();
+            await saveToDB('zettels', z);
+            showToast('Zettel salvo!');
+          }
         };
-      } else paginationDiv.innerHTML = '';
-      hideLoading();
-    };
-  }
+      });
+      document.querySelectorAll('.delete-zettel').forEach(btn => {
+        btn.onclick = async () => {
+          if (confirm('Excluir nota permanentemente?')) {
+            const id = btn.dataset.id;
+            store.zettels = store.zettels.filter(z=>z.id!==id);
+            await deleteFromDB('zettels', id);
+            renderZettelList();
+          }
+        };
+      });
+    }
 
-  async function renderBrainTab() {
-    const html = `
-      <div class="sub-tabs">
-        <button class="sub-tab active" data-sub="dashboard">📊 Dashboard</button>
-        <button class="sub-tab" data-sub="zettel">📔 Zettelkasten</button>
-        <button class="sub-tab" data-sub="collections">📚 Coleções</button>
-        <button class="sub-tab" data-sub="radar">📡 Radar</button>
-        <button class="sub-tab" data-sub="export">💾 Exportar</button>
-      </div>
-      <div id="brainDashboard" class="sub-content active"><div id="execDashboard"></div></div>
-      <div id="brainZettel" class="sub-content"><div id="zettelList"></div><button id="newZettelBtn" class="search-btn" style="margin-top:16px;">➕ Nova nota atômica</button></div>
-      <div id="brainCollections" class="sub-content"><div id="collectionsMainView"></div></div>
-      <div id="brainRadar" class="sub-content"><div id="radarPlaceholder"></div></div>
-      <div id="brainExport" class="sub-content"><div id="exportPlaceholder"></div></div>
-    `;
-    document.getElementById('mainContent').innerHTML = html;
-    renderDashboard(); renderZettelList(); renderCollectionsMainView();
-    document.getElementById('newZettelBtn').onclick = () => { const title = prompt('Título da nota atômica:'); if (title) { const newZ = { id: stableHash(title+Date.now()), title, content: '', type: 'fleeting', created: Date.now(), updated: Date.now(), tags: [], links: [] }; zettels.push(newZ); saveToStore('zettels', newZ); renderZettelList(); } };
-    document.getElementById('radarPlaceholder').innerHTML = '<button id="openRadarModal" class="search-btn">Abrir Radar Científico</button>'; document.getElementById('openRadarModal').onclick = () => { document.getElementById('radarModal').style.display = 'flex'; renderRadarModal(); };
-    document.getElementById('exportPlaceholder').innerHTML = '<button id="openExportModal" class="search-btn">Exportar Dados</button>'; document.getElementById('openExportModal').onclick = () => { document.getElementById('exportModal').style.display = 'flex'; };
-    document.querySelectorAll('.sub-tab').forEach(btn => btn.onclick = () => { const target = btn.dataset.sub; document.querySelectorAll('.sub-tab').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); document.querySelectorAll('.sub-content').forEach(c=>c.classList.remove('active')); document.getElementById(`brain${target==='dashboard'?'Dashboard':target==='zettel'?'Zettel':target==='collections'?'Collections':target==='radar'?'Radar':'Export'}`).classList.add('active'); if (target === 'dashboard') renderDashboard(); if (target === 'zettel') renderZettelList(); if (target === 'collections') renderCollectionsMainView(); });
-  }
+    async function renderCollectionsMainView() {
+      const container = document.getElementById('collectionsMainView');
+      if (!container) return;
+      if (!store.collections.length) { container.innerHTML = '<div class="no-results">Nenhuma coleção criada.</div>'; return; }
+      container.innerHTML = `<div class="collections-grid">${store.collections.map(col => `
+        <div class="dashboard-card">
+          <h3>📁 ${escapeHtml(col.name)}</h3>
+          <p>${col.items.length} itens</p>
+          <ul>${col.items.slice(0,5).map(i => `<li>📄 ${escapeHtml(i.title)}</li>`).join('')}</ul>
+          ${col.items.length > 5 ? '<small>...</small>' : ''}
+        </div>
+      `).join('')}</div>`;
+    }
 
-  // ========== INICIALIZAÇÃO ==========
-  async function init() {
-    await initDB();
-    document.querySelectorAll('.main-tab').forEach(btn => btn.addEventListener('click', () => { document.querySelectorAll('.main-tab').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); const tab = btn.dataset.main; if (tab === 'articles') renderArticlesTab(); else if (tab === 'books') renderBooksTab(); else if (tab === 'research') renderResearchTab(); else if (tab === 'brain') renderBrainTab(); }));
-    document.querySelectorAll('.modal .close').forEach(close => close.onclick = () => close.closest('.modal').style.display = 'none');
-    document.getElementById('createCollectionBtn').onclick = async () => { const name = document.getElementById('newCollectionName').value.trim(); if (name) await createCollection(name); };
-    document.getElementById('addRadarTopicBtn').onclick = async () => { const topic = document.getElementById('radarTopicInput').value.trim(); if (topic && !radarTopics.includes(topic)) { radarTopics.push(topic); await saveToStore('radar', { topic }); renderRadarModal(); } };
-    document.getElementById('exportJSONBtn').onclick = exportJSON; document.getElementById('exportCSVBtn').onclick = exportCSV; document.getElementById('exportObsidianBtn').onclick = exportObsidian;
-    renderArticlesTab();
-  }
-  init();
+    // ==================== UTILITÁRIOS ====================
+    function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
+    function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+
+    // ==================== INICIALIZAÇÃO ====================
+    (async function init() {
+      store.db = await openDB();
+      await loadAllDataFromDB();
+      // configurar modais
+      document.querySelectorAll('.modal .close').forEach(close => {
+        close.onclick = () => close.closest('.modal').style.display = 'none';
+      });
+      window.onclick = (e) => {
+        document.querySelectorAll('.modal').forEach(modal => {
+          if (e.target === modal) modal.style.display = 'none';
+        });
+      };
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
+      });
+
+      document.getElementById('createCollectionBtn').onclick = async () => {
+        const name = document.getElementById('newCollectionName').value.trim();
+        if (name) {
+          store.collections.push({ id: Date.now(), name, items: [] });
+          await saveToDB('collections', store.collections[store.collections.length-1]);
+          showToast(`📂 Coleção "${name}" criada`);
+          document.getElementById('newCollectionName').value = '';
+          if (document.getElementById('collectionModal').style.display === 'flex') renderCollectionsModal();
+          if (document.getElementById('collectionsMainView')) renderCollectionsMainView();
+        }
+      };
+      document.getElementById('addRadarTopicBtn').onclick = async () => {
+        const topic = document.getElementById('radarTopicInput').value.trim();
+        if (topic && !store.radarTopics.includes(topic)) {
+          store.radarTopics.push(topic);
+          await saveToDB('radar', { topic });
+          document.getElementById('radarTopicInput').value = '';
+          renderRadarModal();
+        }
+      };
+      document.getElementById('exportJSONBtn').onclick = () => {
+        const data = { articles: store.articles, books: store.books, research: store.research, readArticles: [...store.read.article], favorites: store.favorites, notes: [...store.notes.entries()], tags: [...store.tags.entries()], collections: store.collections, zettels: store.zettels, studyLog: store.studyLog, userProfile: store.userProfile };
+        const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'readplus_backup.json'; a.click();
+      };
+      document.getElementById('exportCSVBtn').onclick = () => {
+        let csv = "type,id,title\n";
+        const escapeCSV = s => s ? `"${s.replace(/"/g, '""')}"` : '';
+        store.articles.forEach(a => csv += `article,${a.id},${escapeCSV(a.title)}\n`);
+        const blob = new Blob([csv], {type:'text/csv'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'readplus_data.csv'; a.click();
+      };
+      document.getElementById('exportObsidianBtn').onclick = () => {
+        let md = store.zettels.map(z => `---\ntitle: ${z.title}\ntags: ${(z.tags||[]).join(',')}\n---\n\n${z.content}\n`).join('\n');
+        const blob = new Blob([md], {type:'text/markdown'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'readplus_obsidian.md'; a.click();
+      };
+
+      async function renderRadarModal() {
+        const listDiv = document.getElementById('radarTopicsList');
+        const resultsDiv = document.getElementById('radarResults');
+        listDiv.innerHTML = store.radarTopics.map((t,i) => `<span class="badge">${escapeHtml(t)} <button class="removeRadarTopic" data-idx="${i}" style="background:none;border:none;color:white;">❌</button></span>`).join('');
+        resultsDiv.innerHTML = '<div class="no-results">Clique em um tema.</div>';
+        document.querySelectorAll('.removeRadarTopic').forEach(btn => btn.onclick = async () => {
+          store.radarTopics.splice(btn.dataset.idx,1);
+          await saveToDB('radar', { topic: store.radarTopics });
+          renderRadarModal();
+        });
+        document.querySelectorAll('#radarTopicsList .badge').forEach(badge => {
+          badge.onclick = async () => {
+            const topic = badge.innerText.replace('❌','').trim();
+            resultsDiv.innerHTML = '<div class="loader"><div class="spinner"></div><div>Buscando...</div></div>';
+            const articles = await fetchOpenAlex(topic, 'article', true);
+            if (!articles.length) resultsDiv.innerHTML = '<div class="no-results">Nenhum artigo recente.</div>';
+            else resultsDiv.innerHTML = articles.slice(0,5).map(a => `<div class="result-card"><div class="card-content"><a href="${sanitizeUrl(a.url)}" target="_blank" class="card-title">${escapeHtml(a.title)}</a></div></div>`).join('');
+          };
+        });
+      }
+      function renderCollectionsModal() { /* similar ao mainView mas dentro do modal */ }
+
+      events.on('dashboardUpdate', () => renderDashboard());
+      document.querySelectorAll('.main-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.main-tab').forEach(b=>b.classList.remove('active'));
+          btn.classList.add('active');
+          const tab = btn.dataset.main;
+          currentMainTab = tab;
+          if (tab === 'articles') renderArticlesTab();
+          else if (tab === 'books') renderBooksTab();
+          else if (tab === 'research') renderResearchTab();
+          else if (tab === 'brain') renderBrainTab();
+        });
+      });
+      renderArticlesTab();
+    })();
+  })();
 </script>
 </body>
 </html>
