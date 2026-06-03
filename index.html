@@ -3,524 +3,713 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#05070f">
   <title>Read+ · Mind Forge</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/zustand@4.4.7/index.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/zod@3.22.4/index.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
+    /* ESTILOS GLOBAIS (garantia de que a página não fique em branco) */
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Inter', sans-serif; background: radial-gradient(circle at 10% 20%, #0a0f1c, #02040c); color: #f0f3fa; transition: background 0.2s, color 0.2s; }
-    body.light { background: radial-gradient(circle at 10% 20%, #e2e8f0, #f1f5f9); color: #1e2a2e; }
-    .app { max-width: 1400px; margin: 0 auto; padding: 20px; }
-    .logo { font-size: 3.5rem; font-weight: 800; background: linear-gradient(135deg, #fff, #00d4ff, #7b2cbf); background-clip: text; color: transparent; display: inline-block; clip-path: polygon(0% 0%, 95% 0%, 100% 50%, 95% 100%, 0% 100%); padding-right: 15px; animation: float 4s infinite; }
-    @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
-    .tagline { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; background: linear-gradient(90deg, #9aa4bf, #00d4ff, #9aa4bf); background-clip: text; color: transparent; margin-top: 8px; }
-    .description { background: rgba(0,0,0,0.3); backdrop-filter: blur(8px); border-radius: 60px; padding: 10px 24px; font-size: 0.85rem; text-align: center; margin-top: 16px; display: inline-block; width: auto; max-width: 650px; margin-left: auto; margin-right: auto; }
-    .tabs { display: flex; justify-content: center; gap: 20px; margin: 30px 0; border-bottom: 1px solid rgba(0,212,255,0.2); padding-bottom: 8px; flex-wrap: wrap; }
-    .tab { background: none; border: none; font-size: 1.1rem; font-weight: 600; padding: 8px 24px; border-radius: 60px; cursor: pointer; color: #9aa4bf; transition: all 0.2s; }
-    .tab.active { background: linear-gradient(135deg, rgba(0,212,255,0.2), rgba(123,44,191,0.2)); color: #00d4ff; box-shadow: 0 0 12px rgba(0,212,255,0.3); border: 1px solid rgba(0,212,255,0.2); }
-    .card { background: rgba(12,18,28,0.65); backdrop-filter: blur(16px); border-radius: 2rem; border: 1px solid rgba(0,212,255,0.1); padding: 24px; }
-    .sub-tabs { display: flex; gap: 12px; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; flex-wrap: wrap; }
-    .sub-tab { background: none; border: none; padding: 6px 16px; border-radius: 40px; cursor: pointer; color: #9aa4bf; font-size: 0.85rem; }
-    .sub-tab.active { background: #00d4ff; color: #02040c; }
-    .search-area { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
-    input, button, .action-btn { border-radius: 60px; border: none; padding: 10px 20px; font-family: inherit; }
-    input { background: rgba(0,0,0,0.4); border: 1px solid rgba(0,212,255,0.2); color: white; flex: 1; }
-    button { background: linear-gradient(135deg, #00d4ff, #7b2cbf); color: white; font-weight: 600; cursor: pointer; transition: transform 0.2s; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: radial-gradient(circle at 10% 20%, #0a0f1c, #02040c);
+      color: #f0f3fa;
+      transition: background 0.2s, color 0.2s;
+    }
+    body.light {
+      background: radial-gradient(circle at 10% 20%, #e2e8f0, #f1f5f9);
+      color: #1e2a2e;
+    }
+    .app {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .logo {
+      font-size: 3.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #fff, #00d4ff, #7b2cbf);
+      background-clip: text;
+      color: transparent;
+      display: inline-block;
+      clip-path: polygon(0% 0%, 95% 0%, 100% 50%, 95% 100%, 0% 100%);
+      padding-right: 15px;
+      animation: float 4s infinite;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+    }
+    .tagline {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      background: linear-gradient(90deg, #9aa4bf, #00d4ff, #9aa4bf);
+      background-clip: text;
+      color: transparent;
+      margin-top: 8px;
+    }
+    .description {
+      background: rgba(0,0,0,0.3);
+      backdrop-filter: blur(8px);
+      border-radius: 60px;
+      padding: 10px 24px;
+      font-size: 0.85rem;
+      text-align: center;
+      margin-top: 16px;
+      display: inline-block;
+      max-width: 650px;
+    }
+    .tabs {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin: 30px 0;
+      border-bottom: 1px solid rgba(0,212,255,0.2);
+      padding-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .tab {
+      background: none;
+      border: none;
+      font-size: 1.1rem;
+      font-weight: 600;
+      padding: 8px 24px;
+      border-radius: 60px;
+      cursor: pointer;
+      color: #9aa4bf;
+      transition: all 0.2s;
+    }
+    .tab.active {
+      background: linear-gradient(135deg, rgba(0,212,255,0.2), rgba(123,44,191,0.2));
+      color: #00d4ff;
+      box-shadow: 0 0 12px rgba(0,212,255,0.3);
+      border: 1px solid rgba(0,212,255,0.2);
+    }
+    .card {
+      background: rgba(12,18,28,0.65);
+      backdrop-filter: blur(16px);
+      border-radius: 2rem;
+      border: 1px solid rgba(0,212,255,0.1);
+      padding: 24px;
+    }
+    .sub-tabs {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .sub-tab {
+      background: none;
+      border: none;
+      padding: 6px 16px;
+      border-radius: 40px;
+      cursor: pointer;
+      color: #9aa4bf;
+      font-size: 0.85rem;
+    }
+    .sub-tab.active {
+      background: #00d4ff;
+      color: #02040c;
+    }
+    .search-area {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    input, button, .action-btn {
+      border-radius: 60px;
+      border: none;
+      padding: 10px 20px;
+      font-family: inherit;
+    }
+    input {
+      background: rgba(0,0,0,0.4);
+      border: 1px solid rgba(0,212,255,0.2);
+      color: white;
+      flex: 1;
+    }
+    button {
+      background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
     button:hover { transform: scale(1.02); }
-    .results-grid { display: flex; flex-direction: column; gap: 12px; max-height: 500px; overflow-y: auto; padding-right: 6px; }
-    .result-card { background: rgba(0,0,0,0.35); backdrop-filter: blur(8px); border-radius: 24px; padding: 16px; border: 1px solid rgba(0,212,255,0.2); display: flex; gap: 12px; }
-    .checkbox { width: 22px; height: 22px; border: 2px solid #00d4ff; border-radius: 8px; background: rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; }
-    .checkbox.checked { background: #00d4ff; color: black; }
-    .action-btn { background: rgba(0,212,255,0.2); color: white; font-size: 0.7rem; padding: 4px 10px; margin-right: 6px; display: inline-flex; align-items: center; gap: 4px; }
-    .badge { background: linear-gradient(135deg, #00d4ff, #7b2cbf); border-radius: 30px; padding: 3px 10px; font-size: 0.65rem; display: inline-block; margin: 2px; }
-    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px; }
-    .dashboard-card { background: rgba(0,0,0,0.3); border-radius: 24px; padding: 20px; }
-    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 12px; }
-    .calendar-day { aspect-ratio: 1; background: rgba(255,255,255,0.05); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; }
-    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(12px); align-items: center; justify-content: center; z-index: 1000; }
-    .modal-content { background: var(--bg-card); border-radius: 32px; padding: 24px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; }
-    .theme-toggle { position: fixed; top: 20px; right: 20px; background: rgba(0,0,0,0.5); border-radius: 60px; padding: 8px 12px; cursor: pointer; z-index: 100; }
-    @media (max-width: 700px) { .result-card { flex-direction: column; } .search-area { flex-direction: column; } .tabs { gap: 12px; } .tab { font-size: 0.9rem; padding: 6px 16px; } }
+    .results-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 500px;
+      overflow-y: auto;
+      padding-right: 6px;
+    }
+    .result-card {
+      background: rgba(0,0,0,0.35);
+      backdrop-filter: blur(8px);
+      border-radius: 24px;
+      padding: 16px;
+      border: 1px solid rgba(0,212,255,0.2);
+      display: flex;
+      gap: 12px;
+    }
+    .checkbox {
+      width: 22px;
+      height: 22px;
+      border: 2px solid #00d4ff;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.1);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .checkbox.checked {
+      background: #00d4ff;
+      color: black;
+    }
+    .action-btn {
+      background: rgba(0,212,255,0.2);
+      color: white;
+      font-size: 0.7rem;
+      padding: 4px 10px;
+      margin-right: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .badge {
+      background: linear-gradient(135deg, #00d4ff, #7b2cbf);
+      border-radius: 30px;
+      padding: 3px 10px;
+      font-size: 0.65rem;
+      display: inline-block;
+      margin: 2px;
+    }
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .dashboard-card {
+      background: rgba(0,0,0,0.3);
+      border-radius: 24px;
+      padding: 20px;
+    }
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(0,0,0,0.5);
+      border-radius: 60px;
+      padding: 8px 12px;
+      cursor: pointer;
+      z-index: 100;
+    }
+    @media (max-width: 700px) {
+      .result-card { flex-direction: column; }
+      .search-area { flex-direction: column; }
+      .tabs { gap: 12px; }
+      .tab { font-size: 0.9rem; padding: 6px 16px; }
+    }
+    .error-boundary {
+      background: rgba(255,0,0,0.2);
+      border: 1px solid red;
+      border-radius: 16px;
+      padding: 20px;
+      margin: 20px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
 <div id="root"></div>
+<script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/zustand@4.4.7/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/zod@3.22.4/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-  // Polyfill para React global
-  const { useState, useEffect, useCallback, useRef } = React;
-  const { create } = window.zustand;
-  const { z } = window.zod;
-
-  // ========== ZOD SCHEMAS ==========
-  const ArticleSchema = z.object({
-    id: z.string(),
-    title: z.string(),
-    authors: z.array(z.string()),
-    abstract: z.string(),
-    url: z.string().url(),
-    source: z.string(),
-  });
-  const ZettelSchema = z.object({
-    id: z.string(),
-    title: z.string(),
-    content: z.string(),
-    tags: z.array(z.string()),
-    created: z.number(),
-    updated: z.number(),
+  // Verificação de carregamento das bibliotecas
+  if (typeof React === 'undefined') console.error('React não carregou');
+  if (typeof ReactDOM === 'undefined') console.error('ReactDOM não carregou');
+  if (typeof window.zustand === 'undefined') console.error('Zustand não carregou');
+  
+  // Captura de erros globais
+  window.addEventListener('error', (event) => {
+    console.error('Erro global capturado:', event.error);
+    const root = document.getElementById('root');
+    if (root && !root.innerHTML.trim()) {
+      root.innerHTML = '<div class="error-boundary">❌ Erro ao carregar a aplicação. Verifique o console.</div>';
+    }
   });
 
-  // ========== ZUSTAND STORE ==========
-  const useStore = create((set, get) => ({
-    // Dados
-    articles: [],
-    books: [],
-    research: [],
-    read: { article: new Set(), book: new Set(), research: new Set() },
-    favorites: { article: [], book: [], research: [] },
-    notes: new Map(),
-    tags: new Map(),
-    collections: [],
-    zettels: [],
-    backlinks: new Map(),
-    studyLog: [],
-    radarTopics: [],
-    userProfile: { name: "Pesquisador", xp: 0, level: 0, badges: [] },
-    searchHistory: [],
-    theme: 'dark',
-    activeTab: 'articles',
-    activeSubTab: 'dashboard',
-    isLoading: false,
-    // Ações
-    setTheme: (theme) => set({ theme }),
-    setActiveTab: (tab) => set({ activeTab: tab }),
-    setActiveSubTab: (sub) => set({ activeSubTab: sub }),
-    setLoading: (loading) => set({ isLoading: loading }),
-    addToSearchHistory: (query) => set((state) => ({
-      searchHistory: [query, ...state.searchHistory.filter(h => h !== query)].slice(0, 20)
-    })),
-    updateArticles: (arts) => set({ articles: arts }),
-    updateBooks: (books) => set({ books }),
-    updateResearch: (res) => set({ research: res }),
-    markRead: (id, type, isRead) => {
-      const readSet = get().read[type];
-      if (isRead) readSet.add(id);
-      else readSet.delete(id);
-      set({ read: { ...get().read, [type]: readSet } });
-    },
-    addFavorite: (item, type) => {
-      const favs = [...get().favorites[type]];
-      if (!favs.some(f => f.id === item.id)) favs.push(item);
-      set({ favorites: { ...get().favorites, [type]: favs } });
-    },
-    removeFavorite: (id, type) => {
-      const favs = get().favorites[type].filter(f => f.id !== id);
-      set({ favorites: { ...get().favorites, [type]: favs } });
-    },
-    addNote: (id, comment) => {
-      const newNotes = new Map(get().notes);
-      newNotes.set(id, { id, comment });
-      set({ notes: newNotes });
-    },
-    addTag: (contentId, tag) => {
-      const norm = tag.trim().toLowerCase();
-      const newTags = new Map(get().tags);
-      if (!newTags.has(norm)) newTags.set(norm, []);
-      if (!newTags.get(norm).includes(contentId)) newTags.get(norm).push(contentId);
-      set({ tags: newTags });
-    },
-    createCollection: (name) => {
-      const newCol = { id: Date.now(), name, items: [] };
-      set({ collections: [...get().collections, newCol] });
-      return newCol;
-    },
-    addToCollection: (colId, item) => {
-      const collections = get().collections.map(col => {
-        if (col.id === colId && !col.items.some(i => i.id === item.id)) {
-          return { ...col, items: [...col.items, item] };
+  (function() {
+    try {
+      const { useState, useEffect, useCallback, useRef } = React;
+      const { create } = window.zustand;
+      const { z } = window.zod;
+
+      // ========== ZOD SCHEMAS ==========
+      const ArticleSchema = z.object({
+        id: z.string(),
+        title: z.string(),
+        authors: z.array(z.string()),
+        abstract: z.string(),
+        url: z.string().url(),
+        source: z.string(),
+      });
+
+      // ========== ZUSTAND STORE ==========
+      const useStore = create((set, get) => ({
+        articles: [],
+        books: [],
+        research: [],
+        read: { article: new Set(), book: new Set(), research: new Set() },
+        favorites: { article: [], book: [], research: [] },
+        notes: new Map(),
+        tags: new Map(),
+        collections: [],
+        zettels: [],
+        backlinks: new Map(),
+        studyLog: [],
+        radarTopics: [],
+        userProfile: { name: "Pesquisador", xp: 0, level: 0, badges: [] },
+        searchHistory: [],
+        theme: 'dark',
+        activeTab: 'articles',
+        activeSubTab: 'dashboard',
+        isLoading: false,
+        setTheme: (theme) => set({ theme }),
+        setActiveTab: (tab) => set({ activeTab: tab }),
+        setActiveSubTab: (sub) => set({ activeSubTab: sub }),
+        setLoading: (loading) => set({ isLoading: loading }),
+        addToSearchHistory: (query) => set((state) => ({
+          searchHistory: [query, ...state.searchHistory.filter(h => h !== query)].slice(0, 20)
+        })),
+        updateArticles: (arts) => set({ articles: arts }),
+        updateBooks: (books) => set({ books }),
+        updateResearch: (res) => set({ research: res }),
+        markRead: (id, type, isRead) => {
+          const readSet = get().read[type];
+          if (isRead) readSet.add(id);
+          else readSet.delete(id);
+          set({ read: { ...get().read, [type]: readSet } });
+        },
+        addFavorite: (item, type) => {
+          const favs = [...get().favorites[type]];
+          if (!favs.some(f => f.id === item.id)) favs.push(item);
+          set({ favorites: { ...get().favorites, [type]: favs } });
+        },
+        removeFavorite: (id, type) => {
+          const favs = get().favorites[type].filter(f => f.id !== id);
+          set({ favorites: { ...get().favorites, [type]: favs } });
+        },
+        addNote: (id, comment) => {
+          const newNotes = new Map(get().notes);
+          newNotes.set(id, { id, comment });
+          set({ notes: newNotes });
+        },
+        addTag: (contentId, tag) => {
+          const norm = tag.trim().toLowerCase();
+          const newTags = new Map(get().tags);
+          if (!newTags.has(norm)) newTags.set(norm, []);
+          if (!newTags.get(norm).includes(contentId)) newTags.get(norm).push(contentId);
+          set({ tags: newTags });
+        },
+        createCollection: (name) => {
+          const newCol = { id: Date.now(), name, items: [] };
+          set({ collections: [...get().collections, newCol] });
+          return newCol;
+        },
+        addToCollection: (colId, item) => {
+          const collections = get().collections.map(col => {
+            if (col.id === colId && !col.items.some(i => i.id === item.id)) {
+              return { ...col, items: [...col.items, item] };
+            }
+            return col;
+          });
+          set({ collections });
+        },
+        addZettel: (zettel) => set({ zettels: [...get().zettels, zettel] }),
+        updateZettel: (id, content) => set((state) => ({
+          zettels: state.zettels.map(z => z.id === id ? { ...z, content, updated: Date.now() } : z)
+        })),
+        deleteZettel: (id) => set((state) => ({ zettels: state.zettels.filter(z => z.id !== id) })),
+        addRadarTopic: (topic) => set((state) => ({ radarTopics: [...state.radarTopics, topic] })),
+        removeRadarTopic: (idx) => set((state) => ({ radarTopics: state.radarTopics.filter((_, i) => i !== idx) })),
+        addStudyLog: (date, type) => {
+          const log = [...get().studyLog];
+          const existing = log.find(l => l.date === date && l.type === type);
+          if (existing) existing.count++;
+          else log.push({ date, type, count: 1 });
+          set({ studyLog: log });
+        },
+        addXP: (amount) => {
+          const profile = { ...get().userProfile, xp: get().userProfile.xp + amount };
+          const newLevel = Math.min(4, Math.floor(profile.xp / 100));
+          if (newLevel > profile.level) {
+            profile.level = newLevel;
+            const levels = ['Explorador','Pesquisador','Analista','Especialista','Mestre'];
+            if (!profile.badges.includes(levels[newLevel])) profile.badges.push(levels[newLevel]);
+          }
+          set({ userProfile: profile });
         }
-        return col;
-      });
-      set({ collections });
-    },
-    addZettel: (zettel) => set({ zettels: [...get().zettels, zettel] }),
-    updateZettel: (id, content) => set((state) => ({
-      zettels: state.zettels.map(z => z.id === id ? { ...z, content, updated: Date.now() } : z)
-    })),
-    deleteZettel: (id) => set((state) => ({ zettels: state.zettels.filter(z => z.id !== id) })),
-    addRadarTopic: (topic) => set((state) => ({ radarTopics: [...state.radarTopics, topic] })),
-    removeRadarTopic: (idx) => set((state) => ({ radarTopics: state.radarTopics.filter((_, i) => i !== idx) })),
-    addStudyLog: (date, type) => {
-      const log = [...get().studyLog];
-      const existing = log.find(l => l.date === date && l.type === type);
-      if (existing) existing.count++;
-      else log.push({ date, type, count: 1 });
-      set({ studyLog: log });
-    },
-    addXP: (amount) => {
-      const profile = { ...get().userProfile, xp: get().userProfile.xp + amount };
-      const newLevel = Math.min(4, Math.floor(profile.xp / 100));
-      if (newLevel > profile.level) {
-        profile.level = newLevel;
-        const levels = ['Explorador','Pesquisador','Analista','Especialista','Mestre'];
-        if (!profile.badges.includes(levels[newLevel])) profile.badges.push(levels[newLevel]);
-      }
-      set({ userProfile: profile });
-    }
-  }));
-
-  // ========== INDEXEDDB SERVICE ==========
-  const dbPromise = (() => {
-    return new Promise((resolve, reject) => {
-      const req = indexedDB.open('ReadPlusDB', 13);
-      req.onupgradeneeded = (e) => {
-        const db = e.target.result;
-        ['articles','books','research','notes','collections','tags','favorites','reading_log','study_log','radar','settings','zettels','backlinks'].forEach(s => {
-          if (!db.objectStoreNames.contains(s)) db.createObjectStore(s, { keyPath: s === 'settings' ? 'key' : 'id' });
-        });
-      };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
-  })();
-
-  async function saveToDB(store, data) {
-    const db = await dbPromise;
-    const tx = db.transaction(store, 'readwrite');
-    tx.objectStore(store).put(data);
-  }
-
-  // Carregar dados iniciais
-  (async () => {
-    const db = await dbPromise;
-    const tx = db.transaction(['articles','books','research','notes','collections','tags','favorites','reading_log','study_log','radar','settings','zettels','backlinks'], 'readonly');
-    const getStoreData = (store) => new Promise(res => tx.objectStore(store).getAll().onsuccess = e => res(e.target.result));
-    const articles = await getStoreData('articles');
-    const books = await getStoreData('books');
-    const research = await getStoreData('research');
-    const notesArr = await getStoreData('notes');
-    const collections = await getStoreData('collections');
-    const tagsArr = await getStoreData('tags');
-    const favoritesArr = await getStoreData('favorites');
-    const readingLog = await getStoreData('reading_log');
-    const studyLog = await getStoreData('study_log');
-    const radar = await getStoreData('radar');
-    const settings = await getStoreData('settings');
-    const zettels = await getStoreData('zettels');
-    const backlinks = await getStoreData('backlinks');
-
-    const read = { article: new Set(), book: new Set(), research: new Set() };
-    readingLog.forEach(log => read[log.type].add(log.id));
-    const favorites = { article: [], book: [], research: [] };
-    favoritesArr.forEach(f => favorites[f.type].push(f));
-    const notes = new Map(notesArr.map(n => [n.id, n]));
-    const tags = new Map(tagsArr.map(t => [t.id, t.items]));
-    const radarTopics = radar.map(r => r.topic);
-    const profile = settings.find(s => s.key === 'profile')?.value || { name: "Pesquisador", xp: 0, level: 0, badges: [] };
-    useStore.setState({
-      articles, books, research, read, favorites, notes, tags, collections, zettels, backlinks: new Map(backlinks.map(b => [b.id, b])),
-      studyLog, radarTopics, userProfile: profile
-    });
-  })();
-
-  // ========== API SERVICES (CORRIGIDOS) ==========
-  async function fetchOpenAlex(query, type = 'article', oaOnly = true) {
-    let filter = oaOnly ? 'open_access.is_oa:true' : '';
-    if (type === 'research') filter += (filter ? ',' : '') + 'type:article,type:report';
-    const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=${filter}&sort=relevance_score:desc&per-page=20`;
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      return data.results.map(w => ({
-        id: `oa_${(w.id || w.title).replace(/[^a-zA-Z0-9]/g, '')}`,
-        title: w.title || 'Sem título',
-        authors: w.authorships?.map(a => a.author.display_name) || [],
-        abstract: w.abstract || (w.abstract_inverted_index ? Object.entries(w.abstract_inverted_index).sort((a,b)=>a[1][0]-b[1][0]).map(([w])=>w).join(' ') : ''),
-        url: w.open_access?.oa_url || w.best_oa_location?.pdf_url || w.id,
-        source: 'OpenAlex'
       }));
-    } catch (e) {
-      console.error(e);
-      return [];
-    }
-  }
 
-  // Busca de livros com fallback e proxy para evitar 429
-  async function fetchBooks(query) {
-    // Primeira tentativa: Google Books via proxy CORS
-    const proxyUrl = 'https://corsproxy.io/?';
-    const directUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20&printType=books`;
-    try {
-      const res = await fetch(proxyUrl + encodeURIComponent(directUrl));
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (data.items && data.items.length) {
-        return data.items.map(item => ({
-          id: item.id,
-          title: item.volumeInfo.title || 'Sem título',
-          authors: item.volumeInfo.authors || ['Autor não informado'],
-          abstract: item.volumeInfo.description || '',
-          url: item.volumeInfo.previewLink || '#',
-          source: 'Google Books'
-        }));
-      }
-      throw new Error('No items');
-    } catch (err) {
-      console.warn('Google Books falhou, tentando OpenAlex como fallback...', err);
-      // Fallback: busca livros via OpenAlex (trabalhos do tipo book)
-      const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=type:book&sort=relevance_score:desc&per-page=20`;
-      try {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        return data.results.map(w => ({
-          id: `book_${(w.id || w.title).replace(/[^a-zA-Z0-9]/g, '')}`,
-          title: w.title || 'Sem título',
-          authors: w.authorships?.map(a => a.author.display_name) || [],
-          abstract: w.abstract || '',
-          url: w.open_access?.oa_url || w.best_oa_location?.pdf_url || w.id,
-          source: 'OpenAlex (books)'
-        }));
-      } catch (e) {
-        console.error('OpenAlex fallback também falhou:', e);
-        return [];
-      }
-    }
-  }
-
-  // Busca de pesquisas (já corrigida via fetchOpenAlex com type='research')
-  async function fetchResearch(query) {
-    return fetchOpenAlex(query, 'research', true);
-  }
-
-  // ========== REACT COMPONENTS ==========
-  const ThemeToggle = () => {
-    const { theme, setTheme } = useStore();
-    useEffect(() => {
-      document.body.classList.toggle('light', theme === 'light');
-    }, [theme]);
-    return React.createElement('div', { className: 'theme-toggle', onClick: () => setTheme(theme === 'dark' ? 'light' : 'dark') },
-      theme === 'dark' ? '☀️' : '🌙'
-    );
-  };
-
-  const ResultCard = ({ item, type }) => {
-    const { read, favorites, markRead, addFavorite, removeFavorite, addNote, addTag, addToCollection, collections, addXP } = useStore();
-    const isRead = read[type].has(item.id);
-    const isFav = favorites[type].some(f => f.id === item.id);
-    const handleMarkRead = () => {
-      markRead(item.id, type, !isRead);
-      addXP(5);
-      const today = new Date().toLocaleDateString('en-CA');
-      useStore.getState().addStudyLog(today, type);
-    };
-    const handleFav = () => {
-      if (isFav) removeFavorite(item.id, type);
-      else addFavorite(item, type);
-      addXP(3);
-    };
-    const handleNote = () => {
-      const txt = prompt('Nota:');
-      if (txt) { addNote(item.id, txt); addXP(5); }
-    };
-    const handleTag = () => {
-      const tag = prompt('Tag:');
-      if (tag) { addTag(item.id, tag); addXP(2); }
-    };
-    const handleCollection = () => {
-      const colName = prompt('Nome da coleção (nova ou existente):');
-      if (!colName) return;
-      let col = useStore.getState().collections.find(c => c.name === colName);
-      if (!col) col = useStore.getState().createCollection(colName);
-      useStore.getState().addToCollection(col.id, { id: item.id, title: item.title, type, url: item.url });
-    };
-    return React.createElement('div', { className: 'result-card' },
-      React.createElement('div', { className: `checkbox ${isRead ? 'checked' : ''}`, onClick: handleMarkRead }, isRead ? '✓' : ''),
-      React.createElement('div', { className: 'card-content' },
-        React.createElement('a', { href: item.url, target: '_blank', className: 'card-title' }, `📄 ${item.title}`),
-        React.createElement('div', { className: 'card-meta' }, item.authors.slice(0,3).join(', ') + ' · ' + item.source),
-        React.createElement('div', { className: 'card-abstract' }, (item.abstract || '').substring(0, 200)),
-        React.createElement('div', null,
-          React.createElement('button', { className: 'action-btn', onClick: handleFav }, isFav ? '❤️ Favoritado' : '🤍 Favoritar'),
-          React.createElement('button', { className: 'action-btn', onClick: handleNote }, '📝 Nota'),
-          React.createElement('button', { className: 'action-btn', onClick: handleTag }, '🏷️ Tag'),
-          React.createElement('button', { className: 'action-btn', onClick: handleCollection }, '📂 Coleção')
-        )
-      )
-    );
-  };
-
-  const SearchPanel = ({ type }) => {
-    const [query, setQuery] = useState('');
-    const [results, setResults] = useState([]);
-    const { addToSearchHistory, setLoading, isLoading, updateArticles, updateBooks, updateResearch } = useStore();
-    let fetchFn;
-    let updateFn;
-    let resultType;
-    if (type === 'articles') {
-      fetchFn = fetchOpenAlex;
-      updateFn = updateArticles;
-      resultType = 'article';
-    } else if (type === 'books') {
-      fetchFn = fetchBooks;
-      updateFn = updateBooks;
-      resultType = 'book';
-    } else {
-      fetchFn = fetchResearch;
-      updateFn = updateResearch;
-      resultType = 'research';
-    }
-    const handleSearch = async () => {
-      if (!query.trim()) return;
-      setLoading(true);
-      addToSearchHistory(query);
-      const res = await fetchFn(query);
-      updateFn(res);
-      setResults(res);
-      setLoading(false);
-    };
-    return React.createElement('div', null,
-      React.createElement('div', { className: 'search-area' },
-        React.createElement('input', { value: query, onChange: e => setQuery(e.target.value), placeholder: type === 'articles' ? 'Ex: machine learning' : type === 'books' ? 'Ex: inteligência artificial' : 'Ex: climate change', onKeyPress: e => e.key === 'Enter' && handleSearch() }),
-        React.createElement('button', { onClick: handleSearch }, '🔍 Pesquisar')
-      ),
-      isLoading && React.createElement('div', { className: 'loader' }, 'Buscando...'),
-      React.createElement('div', { className: 'results-grid' }, results.map(item => React.createElement(ResultCard, { key: item.id, item, type: resultType })))
-    );
-  };
-
-  const Dashboard = () => {
-    const { studyLog, tags, read, zettels, userProfile } = useStore();
-    const totalRead = read.article.size + read.book.size + read.research.size;
-    const chartRef = useRef(null);
-    useEffect(() => {
-      if (chartRef.current) {
-        const monthly = {};
-        studyLog.forEach(l => { const m = l.date.slice(0,7); monthly[m] = (monthly[m]||0) + l.count; });
-        const months = Object.keys(monthly).sort().slice(-12);
-        const counts = months.map(m => monthly[m]);
-        new Chart(chartRef.current, { type: 'line', data: { labels: months, datasets: [{ label: 'Leituras', data: counts, borderColor: '#00d4ff' }] } });
-      }
-    }, [studyLog]);
-    const tagEntries = Array.from(tags.entries()).map(([t,ids]) => [t, ids.length]).sort((a,b)=>b[1]-a[1]).slice(0,6);
-    return React.createElement('div', null,
-      React.createElement('div', { className: 'dashboard-grid' },
-        React.createElement('div', { className: 'dashboard-card' }, React.createElement('h3', null, '📊 Estatísticas'), React.createElement('p', null, `Total lidos: ${totalRead}`), React.createElement('p', null, `XP: ${userProfile.xp} | Nível: ${userProfile.level}`), React.createElement('p', null, `Zettels: ${zettels.length}`)),
-        React.createElement('div', { className: 'dashboard-card' }, React.createElement('h3', null, '🏷️ Tags'), tagEntries.map(([t,c]) => React.createElement('span', { key: t, className: 'badge' }, `${t} (${c})`))),
-        React.createElement('div', { className: 'dashboard-card' }, React.createElement('h3', null, '📈 Evolução'), React.createElement('canvas', { ref: chartRef, height: '150' }))
-      )
-    );
-  };
-
-  const Zettelkasten = () => {
-    const { zettels, addZettel, updateZettel, deleteZettel, addXP } = useStore();
-    const [newTitle, setNewTitle] = useState('');
-    const handleCreate = () => {
-      if (!newTitle.trim()) return;
-      const id = `z_${Date.now()}_${Math.random().toString(36)}`;
-      addZettel({ id, title: newTitle, content: '', tags: [], created: Date.now(), updated: Date.now() });
-      setNewTitle('');
-      addXP(5);
-    };
-    return React.createElement('div', null,
-      React.createElement('div', { className: 'search-area' },
-        React.createElement('input', { value: newTitle, onChange: e => setNewTitle(e.target.value), placeholder: 'Título da nota atômica' }),
-        React.createElement('button', { onClick: handleCreate }, '➕ Nova nota')
-      ),
-      React.createElement('div', { className: 'results-grid' }, zettels.map(z =>
-        React.createElement('div', { key: z.id, className: 'result-card' },
-          React.createElement('div', { className: 'card-content' },
-            React.createElement('div', { className: 'card-title' }, `📄 ${z.title}`),
-            React.createElement('textarea', { className: 'inline-edit', rows: '3', defaultValue: z.content, onBlur: (e) => { updateZettel(z.id, e.target.value); addXP(2); } }),
-            React.createElement('button', { className: 'action-btn', onClick: () => { if (confirm('Excluir?')) deleteZettel(z.id); } }, '🗑️ Excluir')
-          )
-        )
-      ))
-    );
-  };
-
-  const Radar = () => {
-    const { radarTopics, addRadarTopic, removeRadarTopic } = useStore();
-    const [topic, setTopic] = useState('');
-    const [articles, setArticles] = useState({});
-    useEffect(() => {
-      radarTopics.forEach(async t => {
-        const res = await fetchOpenAlex(t, 'article', true);
-        setArticles(prev => ({ ...prev, [t]: res.slice(0,3) }));
+      // ========== INDEXEDDB SERVICE ==========
+      const dbPromise = new Promise((resolve, reject) => {
+        const req = indexedDB.open('ReadPlusDB', 14);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          ['articles','books','research','notes','collections','tags','favorites','reading_log','study_log','radar','settings','zettels','backlinks'].forEach(s => {
+            if (!db.objectStoreNames.contains(s)) db.createObjectStore(s, { keyPath: s === 'settings' ? 'key' : 'id' });
+          });
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
       });
-    }, [radarTopics]);
-    const handleAdd = () => { if (topic.trim() && !radarTopics.includes(topic)) addRadarTopic(topic); setTopic(''); };
-    return React.createElement('div', null,
-      React.createElement('div', { className: 'search-area' },
-        React.createElement('input', { value: topic, onChange: e => setTopic(e.target.value), placeholder: 'Novo tema' }),
-        React.createElement('button', { onClick: handleAdd }, 'Adicionar')
-      ),
-      React.createElement('div', null, radarTopics.map((t,i) => React.createElement('span', { key: i, className: 'badge' }, t, React.createElement('button', { onClick: () => removeRadarTopic(i), style: { background: 'none', border: 'none', color: 'white', marginLeft: '6px' } }, '❌')))),
-      radarTopics.map(t => React.createElement('div', { key: t, className: 'dashboard-card' },
-        React.createElement('h3', null, `📡 ${t}`),
-        (articles[t] || []).map(a => React.createElement('div', { key: a.id }, React.createElement('a', { href: a.url, target: '_blank' }, a.title)))
-      ))
-    );
-  };
 
-  const Export = () => {
-    const store = useStore.getState();
-    const exportJSON = () => {
-      const data = { articles: store.articles, books: store.books, research: store.research, favorites: store.favorites, notes: Array.from(store.notes.entries()), tags: Array.from(store.tags.entries()), collections: store.collections, zettels: store.zettels, studyLog: store.studyLog, userProfile: store.userProfile };
-      const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'readplus_backup.json'; a.click();
-    };
-    return React.createElement('div', null, React.createElement('button', { onClick: exportJSON, className: 'search-btn' }, 'Exportar JSON'));
-  };
+      async function saveToDB(store, data) {
+        const db = await dbPromise;
+        const tx = db.transaction(store, 'readwrite');
+        tx.objectStore(store).put(data);
+      }
 
-  const App = () => {
-    const { activeTab, setActiveTab, activeSubTab, setActiveSubTab, searchHistory } = useStore();
-    const renderContent = () => {
-      if (activeTab === 'articles') return React.createElement(SearchPanel, { type: 'articles' });
-      if (activeTab === 'books') return React.createElement(SearchPanel, { type: 'books' });
-      if (activeTab === 'research') return React.createElement(SearchPanel, { type: 'research' });
-      if (activeTab === 'brain') {
+      // Carregar dados iniciais
+      (async () => {
+        try {
+          const db = await dbPromise;
+          const tx = db.transaction(['articles','books','research','notes','collections','tags','favorites','reading_log','study_log','radar','settings','zettels','backlinks'], 'readonly');
+          const getStoreData = (store) => new Promise(res => tx.objectStore(store).getAll().onsuccess = e => res(e.target.result));
+          const articles = await getStoreData('articles');
+          const books = await getStoreData('books');
+          const research = await getStoreData('research');
+          const notesArr = await getStoreData('notes');
+          const collections = await getStoreData('collections');
+          const tagsArr = await getStoreData('tags');
+          const favoritesArr = await getStoreData('favorites');
+          const readingLog = await getStoreData('reading_log');
+          const studyLog = await getStoreData('study_log');
+          const radar = await getStoreData('radar');
+          const settings = await getStoreData('settings');
+          const zettels = await getStoreData('zettels');
+          const backlinks = await getStoreData('backlinks');
+
+          const read = { article: new Set(), book: new Set(), research: new Set() };
+          readingLog.forEach(log => read[log.type].add(log.id));
+          const favorites = { article: [], book: [], research: [] };
+          favoritesArr.forEach(f => favorites[f.type].push(f));
+          const notes = new Map(notesArr.map(n => [n.id, n]));
+          const tags = new Map(tagsArr.map(t => [t.id, t.items]));
+          const radarTopics = radar.map(r => r.topic);
+          const profile = settings.find(s => s.key === 'profile')?.value || { name: "Pesquisador", xp: 0, level: 0, badges: [] };
+          useStore.setState({
+            articles, books, research, read, favorites, notes, tags, collections, zettels, backlinks: new Map(backlinks.map(b => [b.id, b])),
+            studyLog, radarTopics, userProfile: profile
+          });
+        } catch (err) {
+          console.error('Erro ao carregar dados do IndexedDB', err);
+        }
+      })();
+
+      // ========== API SERVICES ==========
+      async function fetchOpenAlex(query, type = 'article', oaOnly = true) {
+        let filter = oaOnly ? 'open_access.is_oa:true' : '';
+        if (type === 'research') filter += (filter ? ',' : '') + 'type:article,type:report';
+        const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=${filter}&sort=relevance_score:desc&per-page=20`;
+        try {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          return data.results.map(w => ({
+            id: `oa_${(w.id || w.title).replace(/[^a-zA-Z0-9]/g, '')}`,
+            title: w.title || 'Sem título',
+            authors: w.authorships?.map(a => a.author.display_name) || [],
+            abstract: w.abstract || (w.abstract_inverted_index ? Object.entries(w.abstract_inverted_index).sort((a,b)=>a[1][0]-b[1][0]).map(([w])=>w).join(' ') : ''),
+            url: w.open_access?.oa_url || w.best_oa_location?.pdf_url || w.id,
+            source: 'OpenAlex'
+          }));
+        } catch (e) {
+          console.error(e);
+          return [];
+        }
+      }
+
+      async function fetchBooks(query) {
+        const proxyUrl = 'https://corsproxy.io/?';
+        const directUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20&printType=books`;
+        try {
+          const res = await fetch(proxyUrl + encodeURIComponent(directUrl));
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          if (data.items && data.items.length) {
+            return data.items.map(item => ({
+              id: item.id,
+              title: item.volumeInfo.title || 'Sem título',
+              authors: item.volumeInfo.authors || ['Autor não informado'],
+              abstract: item.volumeInfo.description || '',
+              url: item.volumeInfo.previewLink || '#',
+              source: 'Google Books'
+            }));
+          }
+          throw new Error('No items');
+        } catch (err) {
+          console.warn('Google Books falhou, tentando OpenAlex como fallback...', err);
+          const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=type:book&sort=relevance_score:desc&per-page=20`;
+          try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            return data.results.map(w => ({
+              id: `book_${(w.id || w.title).replace(/[^a-zA-Z0-9]/g, '')}`,
+              title: w.title || 'Sem título',
+              authors: w.authorships?.map(a => a.author.display_name) || [],
+              abstract: w.abstract || '',
+              url: w.open_access?.oa_url || w.best_oa_location?.pdf_url || w.id,
+              source: 'OpenAlex (books)'
+            }));
+          } catch (e) {
+            console.error('OpenAlex fallback falhou:', e);
+            return [];
+          }
+        }
+      }
+
+      async function fetchResearch(query) {
+        return fetchOpenAlex(query, 'research', true);
+      }
+
+      // ========== REACT COMPONENTS ==========
+      const ThemeToggle = () => {
+        const { theme, setTheme } = useStore();
+        useEffect(() => {
+          document.body.classList.toggle('light', theme === 'light');
+        }, [theme]);
+        return React.createElement('div', { className: 'theme-toggle', onClick: () => setTheme(theme === 'dark' ? 'light' : 'dark') },
+          theme === 'dark' ? '☀️' : '🌙'
+        );
+      };
+
+      const ResultCard = ({ item, type }) => {
+        const { read, favorites, markRead, addFavorite, removeFavorite, addNote, addTag, addToCollection, collections, addXP } = useStore();
+        const isRead = read[type].has(item.id);
+        const isFav = favorites[type].some(f => f.id === item.id);
+        const handleMarkRead = () => {
+          markRead(item.id, type, !isRead);
+          addXP(5);
+          const today = new Date().toLocaleDateString('en-CA');
+          useStore.getState().addStudyLog(today, type);
+        };
+        const handleFav = () => {
+          if (isFav) removeFavorite(item.id, type);
+          else addFavorite(item, type);
+          addXP(3);
+        };
+        const handleNote = () => {
+          const txt = prompt('Nota:');
+          if (txt) { addNote(item.id, txt); addXP(5); }
+        };
+        const handleTag = () => {
+          const tag = prompt('Tag:');
+          if (tag) { addTag(item.id, tag); addXP(2); }
+        };
+        const handleCollection = () => {
+          const colName = prompt('Nome da coleção (nova ou existente):');
+          if (!colName) return;
+          let col = useStore.getState().collections.find(c => c.name === colName);
+          if (!col) col = useStore.getState().createCollection(colName);
+          useStore.getState().addToCollection(col.id, { id: item.id, title: item.title, type, url: item.url });
+        };
+        return React.createElement('div', { className: 'result-card' },
+          React.createElement('div', { className: `checkbox ${isRead ? 'checked' : ''}`, onClick: handleMarkRead }, isRead ? '✓' : ''),
+          React.createElement('div', { className: 'card-content' },
+            React.createElement('a', { href: item.url, target: '_blank', className: 'card-title' }, `📄 ${item.title}`),
+            React.createElement('div', { className: 'card-meta' }, item.authors.slice(0,3).join(', ') + ' · ' + item.source),
+            React.createElement('div', { className: 'card-abstract' }, (item.abstract || '').substring(0, 200)),
+            React.createElement('div', null,
+              React.createElement('button', { className: 'action-btn', onClick: handleFav }, isFav ? '❤️ Favoritado' : '🤍 Favoritar'),
+              React.createElement('button', { className: 'action-btn', onClick: handleNote }, '📝 Nota'),
+              React.createElement('button', { className: 'action-btn', onClick: handleTag }, '🏷️ Tag'),
+              React.createElement('button', { className: 'action-btn', onClick: handleCollection }, '📂 Coleção')
+            )
+          )
+        );
+      };
+
+      const SearchPanel = ({ type }) => {
+        const [query, setQuery] = useState('');
+        const [results, setResults] = useState([]);
+        const { addToSearchHistory, setLoading, isLoading, updateArticles, updateBooks, updateResearch } = useStore();
+        let fetchFn, updateFn, resultType;
+        if (type === 'articles') {
+          fetchFn = fetchOpenAlex;
+          updateFn = updateArticles;
+          resultType = 'article';
+        } else if (type === 'books') {
+          fetchFn = fetchBooks;
+          updateFn = updateBooks;
+          resultType = 'book';
+        } else {
+          fetchFn = fetchResearch;
+          updateFn = updateResearch;
+          resultType = 'research';
+        }
+        const handleSearch = async () => {
+          if (!query.trim()) return;
+          setLoading(true);
+          addToSearchHistory(query);
+          const res = await fetchFn(query);
+          updateFn(res);
+          setResults(res);
+          setLoading(false);
+        };
         return React.createElement('div', null,
-          React.createElement('div', { className: 'sub-tabs' },
-            ['dashboard','zettel','radar','export'].map(sub =>
-              React.createElement('button', { key: sub, className: `sub-tab ${activeSubTab === sub ? 'active' : ''}`, onClick: () => setActiveSubTab(sub) },
-                sub === 'dashboard' ? '📊 Dashboard' : sub === 'zettel' ? '📔 Zettelkasten' : sub === 'radar' ? '📡 Radar' : '💾 Exportar'
+          React.createElement('div', { className: 'search-area' },
+            React.createElement('input', { value: query, onChange: e => setQuery(e.target.value), placeholder: type === 'articles' ? 'Ex: machine learning' : type === 'books' ? 'Ex: inteligência artificial' : 'Ex: climate change', onKeyPress: e => e.key === 'Enter' && handleSearch() }),
+            React.createElement('button', { onClick: handleSearch }, '🔍 Pesquisar')
+          ),
+          isLoading && React.createElement('div', { className: 'loader' }, 'Buscando...'),
+          React.createElement('div', { className: 'results-grid' }, results.map(item => React.createElement(ResultCard, { key: item.id, item, type: resultType })))
+        );
+      };
+
+      const Dashboard = () => {
+        const { studyLog, tags, read, zettels, userProfile } = useStore();
+        const totalRead = read.article.size + read.book.size + read.research.size;
+        const chartRef = useRef(null);
+        useEffect(() => {
+          if (chartRef.current) {
+            const monthly = {};
+            studyLog.forEach(l => { const m = l.date.slice(0,7); monthly[m] = (monthly[m]||0) + l.count; });
+            const months = Object.keys(monthly).sort().slice(-12);
+            const counts = months.map(m => monthly[m]);
+            new Chart(chartRef.current, { type: 'line', data: { labels: months, datasets: [{ label: 'Leituras', data: counts, borderColor: '#00d4ff' }] } });
+          }
+        }, [studyLog]);
+        const tagEntries = Array.from(tags.entries()).map(([t,ids]) => [t, ids.length]).sort((a,b)=>b[1]-a[1]).slice(0,6);
+        return React.createElement('div', null,
+          React.createElement('div', { className: 'dashboard-grid' },
+            React.createElement('div', { className: 'dashboard-card' }, React.createElement('h3', null, '📊 Estatísticas'), React.createElement('p', null, `Total lidos: ${totalRead}`), React.createElement('p', null, `XP: ${userProfile.xp} | Nível: ${userProfile.level}`), React.createElement('p', null, `Zettels: ${zettels.length}`)),
+            React.createElement('div', { className: 'dashboard-card' }, React.createElement('h3', null, '🏷️ Tags'), tagEntries.map(([t,c]) => React.createElement('span', { key: t, className: 'badge' }, `${t} (${c})`))),
+            React.createElement('div', { className: 'dashboard-card' }, React.createElement('h3', null, '📈 Evolução'), React.createElement('canvas', { ref: chartRef, height: '150' }))
+          )
+        );
+      };
+
+      const Zettelkasten = () => {
+        const { zettels, addZettel, updateZettel, deleteZettel, addXP } = useStore();
+        const [newTitle, setNewTitle] = useState('');
+        const handleCreate = () => {
+          if (!newTitle.trim()) return;
+          const id = `z_${Date.now()}_${Math.random().toString(36)}`;
+          addZettel({ id, title: newTitle, content: '', tags: [], created: Date.now(), updated: Date.now() });
+          setNewTitle('');
+          addXP(5);
+        };
+        return React.createElement('div', null,
+          React.createElement('div', { className: 'search-area' },
+            React.createElement('input', { value: newTitle, onChange: e => setNewTitle(e.target.value), placeholder: 'Título da nota atômica' }),
+            React.createElement('button', { onClick: handleCreate }, '➕ Nova nota')
+          ),
+          React.createElement('div', { className: 'results-grid' }, zettels.map(z =>
+            React.createElement('div', { key: z.id, className: 'result-card' },
+              React.createElement('div', { className: 'card-content' },
+                React.createElement('div', { className: 'card-title' }, `📄 ${z.title}`),
+                React.createElement('textarea', { className: 'inline-edit', rows: '3', defaultValue: z.content, onBlur: (e) => { updateZettel(z.id, e.target.value); addXP(2); } }),
+                React.createElement('button', { className: 'action-btn', onClick: () => { if (confirm('Excluir?')) deleteZettel(z.id); } }, '🗑️ Excluir')
+              )
+            )
+          ))
+        );
+      };
+
+      const Radar = () => {
+        const { radarTopics, addRadarTopic, removeRadarTopic } = useStore();
+        const [topic, setTopic] = useState('');
+        const [articles, setArticles] = useState({});
+        useEffect(() => {
+          radarTopics.forEach(async t => {
+            const res = await fetchOpenAlex(t, 'article', true);
+            setArticles(prev => ({ ...prev, [t]: res.slice(0,3) }));
+          });
+        }, [radarTopics]);
+        const handleAdd = () => { if (topic.trim() && !radarTopics.includes(topic)) addRadarTopic(topic); setTopic(''); };
+        return React.createElement('div', null,
+          React.createElement('div', { className: 'search-area' },
+            React.createElement('input', { value: topic, onChange: e => setTopic(e.target.value), placeholder: 'Novo tema' }),
+            React.createElement('button', { onClick: handleAdd }, 'Adicionar')
+          ),
+          React.createElement('div', null, radarTopics.map((t,i) => React.createElement('span', { key: i, className: 'badge' }, t, React.createElement('button', { onClick: () => removeRadarTopic(i), style: { background: 'none', border: 'none', color: 'white', marginLeft: '6px' } }, '❌')))),
+          radarTopics.map(t => React.createElement('div', { key: t, className: 'dashboard-card' },
+            React.createElement('h3', null, `📡 ${t}`),
+            (articles[t] || []).map(a => React.createElement('div', { key: a.id }, React.createElement('a', { href: a.url, target: '_blank' }, a.title)))
+          ))
+        );
+      };
+
+      const Export = () => {
+        const store = useStore.getState();
+        const exportJSON = () => {
+          const data = { articles: store.articles, books: store.books, research: store.research, favorites: store.favorites, notes: Array.from(store.notes.entries()), tags: Array.from(store.tags.entries()), collections: store.collections, zettels: store.zettels, studyLog: store.studyLog, userProfile: store.userProfile };
+          const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
+          const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'readplus_backup.json'; a.click();
+        };
+        return React.createElement('div', null, React.createElement('button', { onClick: exportJSON, className: 'search-btn' }, 'Exportar JSON'));
+      };
+
+      const App = () => {
+        const { activeTab, setActiveTab, activeSubTab, setActiveSubTab, searchHistory } = useStore();
+        const renderContent = () => {
+          if (activeTab === 'articles') return React.createElement(SearchPanel, { type: 'articles' });
+          if (activeTab === 'books') return React.createElement(SearchPanel, { type: 'books' });
+          if (activeTab === 'research') return React.createElement(SearchPanel, { type: 'research' });
+          if (activeTab === 'brain') {
+            return React.createElement('div', null,
+              React.createElement('div', { className: 'sub-tabs' },
+                ['dashboard','zettel','radar','export'].map(sub =>
+                  React.createElement('button', { key: sub, className: `sub-tab ${activeSubTab === sub ? 'active' : ''}`, onClick: () => setActiveSubTab(sub) },
+                    sub === 'dashboard' ? '📊 Dashboard' : sub === 'zettel' ? '📔 Zettelkasten' : sub === 'radar' ? '📡 Radar' : '💾 Exportar'
+                  )
+                )
+              ),
+              activeSubTab === 'dashboard' && React.createElement(Dashboard, null),
+              activeSubTab === 'zettel' && React.createElement(Zettelkasten, null),
+              activeSubTab === 'radar' && React.createElement(Radar, null),
+              activeSubTab === 'export' && React.createElement(Export, null)
+            );
+          }
+          return React.createElement('div', null, 'Selecione uma aba');
+        };
+        return React.createElement('div', { className: 'app' },
+          React.createElement(ThemeToggle, null),
+          React.createElement('div', { className: 'header', style: { textAlign: 'center' } },
+            React.createElement('div', { className: 'logo' }, 'Read', React.createElement('span', null, '+')),
+            React.createElement('div', { className: 'tagline' }, 'forge your second brain'),
+            React.createElement('div', { className: 'description' }, 'Conecte artigos, livros e ideias. Construa seu conhecimento com Zettelkasten e backlinks.')
+          ),
+          React.createElement('div', { className: 'tabs' },
+            ['articles','books','research','brain'].map(tab =>
+              React.createElement('button', { key: tab, className: `tab ${activeTab === tab ? 'active' : ''}`, onClick: () => setActiveTab(tab) },
+                tab === 'articles' ? '📄 Artigos' : tab === 'books' ? '📚 Livros' : tab === 'research' ? '🔬 Pesquisas' : '🧠 Mind Forge'
               )
             )
           ),
-          activeSubTab === 'dashboard' && React.createElement(Dashboard, null),
-          activeSubTab === 'zettel' && React.createElement(Zettelkasten, null),
-          activeSubTab === 'radar' && React.createElement(Radar, null),
-          activeSubTab === 'export' && React.createElement(Export, null)
+          React.createElement('div', { className: 'card' }, renderContent()),
+          searchHistory.length > 0 && React.createElement('div', { style: { marginTop: '20px', fontSize: '0.7rem', color: '#9aa4bf', textAlign: 'center' } }, `Últimas buscas: ${searchHistory.slice(0,5).join(' · ')}`)
         );
-      }
-      return null;
-    };
-    return React.createElement('div', { className: 'app' },
-      React.createElement(ThemeToggle, null),
-      React.createElement('div', { className: 'header', style: { textAlign: 'center' } },
-        React.createElement('div', { className: 'logo' }, 'Read', React.createElement('span', null, '+')),
-        React.createElement('div', { className: 'tagline' }, 'forge your second brain'),
-        React.createElement('div', { className: 'description' }, 'Conecte artigos, livros e ideias. Construa seu conhecimento com Zettelkasten e backlinks.')
-      ),
-      React.createElement('div', { className: 'tabs' },
-        ['articles','books','research','brain'].map(tab =>
-          React.createElement('button', { key: tab, className: `tab ${activeTab === tab ? 'active' : ''}`, onClick: () => setActiveTab(tab) },
-            tab === 'articles' ? '📄 Artigos' : tab === 'books' ? '📚 Livros' : tab === 'research' ? '🔬 Pesquisas' : '🧠 Mind Forge'
-          )
-        )
-      ),
-      React.createElement('div', { className: 'card' }, renderContent()),
-      searchHistory.length > 0 && React.createElement('div', { style: { marginTop: '20px', fontSize: '0.7rem', color: '#9aa4bf', textAlign: 'center' } }, `Últimas buscas: ${searchHistory.slice(0,5).join(' · ')}`)
-    );
-  };
+      };
 
-  ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App, null));
+      ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App, null));
+    } catch (err) {
+      console.error('Erro fatal na inicialização:', err);
+      document.getElementById('root').innerHTML = '<div class="error-boundary">❌ Erro interno ao iniciar a aplicação. Verifique o console.</div>';
+    }
+  })();
 </script>
 </body>
 </html>
