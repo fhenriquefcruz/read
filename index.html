@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
   <meta name="theme-color" content="#14191c">
-  <title>📚 PaperSeek · Buscador de Artigos + Contador de Leituras</title>
+  <title>Read + · Buscador de Artigos</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet">
   <style>
     * {
@@ -15,31 +15,35 @@
 
     :root {
       --accent: #2D7A6E;
-      --accent-glow: rgba(45, 122, 110, 0.3);
-      --card-bg: rgba(20, 25, 28, 0.65);
+      --accent-light: #3f9c8d;
+      --accent-glow: rgba(45, 122, 110, 0.25);
+      --card-bg: rgba(20, 25, 28, 0.7);
       --border-light: rgba(255,255,255,0.1);
       --text-primary: #FCF7F0;
       --text-secondary: #CBD5E1;
       --overlay: rgba(0,0,0,0.55);
       --input-bg: rgba(255,255,255,0.08);
       --checkbox-bg: rgba(255,255,255,0.1);
+      --tab-active: var(--accent);
+      --tab-inactive: rgba(255,255,255,0.2);
     }
 
     body.light {
-      --card-bg: rgba(245, 248, 250, 0.75);
+      --card-bg: rgba(245, 248, 250, 0.85);
       --border-light: rgba(0, 0, 0, 0.08);
       --text-primary: #1e2a2e;
       --text-secondary: #2c3e3e;
       --overlay: rgba(255,255,255,0.4);
       --input-bg: rgba(0,0,0,0.04);
       --checkbox-bg: rgba(0,0,0,0.05);
+      --tab-inactive: rgba(0,0,0,0.1);
     }
 
     body {
       min-height: 100vh;
       font-family: 'Inter', sans-serif;
       background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-      transition: background 0.3s;
+      transition: background 0.3s, color 0.2s;
       padding: 20px 16px;
     }
     body.light {
@@ -59,7 +63,7 @@
       margin: 0 auto;
     }
 
-    /* HEADER com contador circular */
+    /* cabeçalho */
     .header {
       text-align: center;
       margin-bottom: 32px;
@@ -67,7 +71,7 @@
     }
     .header h1 {
       font-family: 'Playfair Display', serif;
-      font-size: 2.5rem;
+      font-size: 2.7rem;
       background: linear-gradient(135deg, #F5E7D3 0%, var(--accent) 100%);
       background-clip: text;
       color: transparent;
@@ -78,7 +82,7 @@
       margin-top: 8px;
     }
 
-    /* Botão tema */
+    /* botão tema */
     .theme-toggle {
       position: fixed;
       top: 20px;
@@ -95,7 +99,7 @@
       font-size: 1rem;
     }
 
-    /* Card principal */
+    /* card principal */
     .search-card {
       background: var(--card-bg);
       backdrop-filter: blur(16px);
@@ -105,11 +109,11 @@
       transition: all 0.3s;
     }
 
-    /* Área de pesquisa */
+    /* pesquisa */
     .input-group {
       display: flex;
       gap: 12px;
-      margin-bottom: 24px;
+      margin-bottom: 28px;
       flex-wrap: wrap;
     }
     #queryInput {
@@ -142,33 +146,69 @@
       gap: 8px;
     }
     #searchBtn:hover {
-      background: #1e5f55;
+      background: var(--accent-light);
       transform: scale(1.02);
     }
 
-    /* Barra de estatísticas e ações */
+    /* abas */
+    .tabs {
+      display: flex;
+      gap: 12px;
+      border-bottom: 1px solid var(--border-light);
+      margin-bottom: 24px;
+      padding-bottom: 8px;
+    }
+    .tab-btn {
+      background: none;
+      border: none;
+      padding: 8px 20px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      color: var(--text-secondary);
+      border-radius: 40px;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: var(--tab-active);
+      color: white;
+    }
+    .tab-btn:not(.active):hover {
+      background: var(--tab-inactive);
+      color: var(--text-primary);
+    }
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.2s ease;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px);}
+      to { opacity: 1; transform: translateY(0);}
+    }
+
+    /* estatísticas */
     .stats-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
       flex-wrap: wrap;
       gap: 12px;
-      border-top: 1px solid var(--border-light);
-      padding-top: 20px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 48px;
+      padding: 8px 16px;
     }
     .counter-circle {
       display: flex;
       align-items: center;
       gap: 12px;
-      background: rgba(0,0,0,0.3);
-      backdrop-filter: blur(4px);
-      padding: 6px 18px;
-      border-radius: 60px;
     }
     .progress-ring {
-      width: 48px;
-      height: 48px;
+      width: 44px;
+      height: 44px;
     }
     .progress-ring-circle {
       transition: stroke-dashoffset 0.35s;
@@ -179,9 +219,8 @@
       stroke-width: 4;
     }
     .counter-text {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: var(--text-primary);
+      font-size: 0.9rem;
+      font-weight: 500;
     }
     .action-buttons {
       display: flex;
@@ -190,11 +229,10 @@
     .action-btn {
       background: rgba(255,255,255,0.1);
       border: none;
-      padding: 8px 20px;
+      padding: 6px 16px;
       border-radius: 40px;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       cursor: pointer;
-      color: var(--text-primary);
       transition: background 0.2s;
     }
     .action-btn:hover {
@@ -202,16 +240,7 @@
       color: white;
     }
 
-    /* Lista de artigos */
-    .results-header {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 16px;
-    }
-    .results-header h2 {
-      font-size: 1.2rem;
-      font-weight: 500;
-    }
+    /* lista de artigos */
     .article-list {
       display: flex;
       flex-direction: column;
@@ -240,8 +269,8 @@
       margin-top: 4px;
     }
     .custom-checkbox {
-      width: 24px;
-      height: 24px;
+      width: 26px;
+      height: 26px;
       background: var(--checkbox-bg);
       border: 2px solid var(--accent);
       border-radius: 8px;
@@ -250,19 +279,19 @@
       justify-content: center;
       cursor: pointer;
       transition: all 0.2s;
+      font-size: 16px;
+      font-weight: bold;
       color: white;
-      font-size: 14px;
     }
     .custom-checkbox.checked {
       background: var(--accent);
-      border-color: var(--accent);
     }
     .article-content {
       flex: 1;
     }
     .article-title {
       font-weight: 700;
-      font-size: 1.1rem;
+      font-size: 1.05rem;
       color: var(--accent);
       text-decoration: none;
       display: inline-block;
@@ -272,7 +301,7 @@
       text-decoration: underline;
     }
     .article-authors {
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       color: var(--text-secondary);
       margin-bottom: 6px;
     }
@@ -288,10 +317,10 @@
       align-items: center;
       gap: 6px;
       background: rgba(45,122,110,0.85);
-      padding: 6px 14px;
+      padding: 5px 12px;
       border-radius: 40px;
       text-decoration: none;
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       font-weight: 500;
       color: white;
       transition: background 0.2s;
@@ -322,6 +351,7 @@
       #searchBtn { width: 100%; justify-content: center; }
       .article-card { flex-direction: column; }
       .stats-bar { flex-direction: column; align-items: stretch; }
+      .tabs { justify-content: center; }
     }
   </style>
 </head>
@@ -332,101 +362,107 @@
 </div>
 <div class="container">
   <div class="header">
-    <h1>📚 PaperSeek</h1>
-    <p>Busque artigos acadêmicos gratuitos · Marque seus lidos</p>
+    <h1>📚 Read +</h1>
+    <p>Descubra artigos acadêmicos gratuitos · salve seus lidos</p>
   </div>
   <div class="search-card">
     <div class="input-group">
       <input type="text" id="queryInput" placeholder="Ex: machine learning in healthcare, climate change, theology..." autocomplete="off">
       <button id="searchBtn">🔍 Pesquisar</button>
     </div>
-    <div id="resultsArea" style="display: none;">
-      <div class="stats-bar">
-        <div class="counter-circle">
-          <svg class="progress-ring" width="48" height="48">
-            <circle class="progress-ring-circle" cx="24" cy="24" r="20" stroke-width="4" fill="none" stroke="currentColor" stroke-dasharray="125.6" stroke-dashoffset="0"></circle>
-          </svg>
-          <span id="counterText" class="counter-text">0 / 0 lidos</span>
+
+    <!-- Abas -->
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="search">📄 Artigos encontrados</button>
+      <button class="tab-btn" data-tab="read">✅ Meus lidos</button>
+    </div>
+
+    <!-- Conteúdo da aba de busca -->
+    <div id="searchTab" class="tab-content active">
+      <div id="resultsArea" style="display: none;">
+        <div class="stats-bar">
+          <div class="counter-circle">
+            <svg class="progress-ring" width="44" height="44">
+              <circle class="progress-ring-circle" cx="22" cy="22" r="18" stroke-width="3" fill="none" stroke="currentColor" stroke-dasharray="113.1" stroke-dashoffset="0"></circle>
+            </svg>
+            <span id="counterText" class="counter-text">0 / 0 lidos</span>
+          </div>
+          <div class="action-buttons">
+            <button id="markAllBtn" class="action-btn">✅ Marcar todos</button>
+            <button id="clearAllBtn" class="action-btn">🗑️ Limpar leituras</button>
+          </div>
         </div>
-        <div class="action-buttons">
-          <button id="markAllBtn" class="action-btn">✅ Marcar todos</button>
-          <button id="clearAllBtn" class="action-btn">🗑️ Limpar leituras</button>
-        </div>
+        <div id="articleList" class="article-list"></div>
       </div>
-      <div class="results-header">
-        <h2>📄 Artigos encontrados</h2>
-        <span id="resultCount" style="font-size:0.8rem;"></span>
+      <div id="noResultsMsg" style="display: none;" class="no-results">🔎 Nenhum artigo encontrado. Tente outro termo.</div>
+    </div>
+
+    <!-- Conteúdo da aba de lidos -->
+    <div id="readTab" class="tab-content">
+      <div id="readList" class="article-list">
+        <div class="no-results">Nenhum artigo lido ainda. Marque ✓ nos artigos da aba "Artigos encontrados".</div>
       </div>
-      <div id="articleList" class="article-list"></div>
     </div>
   </div>
   <div class="footer">
-    <span>🔎 Fontes: CORE API + arXiv · Links para PDF · Leituras salvas no navegador</span>
+    <span>🔎 Fontes: OpenAlex (aberto) + arXiv · Leituras salvas no navegador</span>
   </div>
 </div>
 
 <script>
-  // ---------------------- BUSCADOR DE ARTIGOS ----------------------
+  // ====================== BUSCA COM OPENALEX + ARXIV ======================
   const queryInput = document.getElementById('queryInput');
   const searchBtn = document.getElementById('searchBtn');
   const resultsArea = document.getElementById('resultsArea');
   const articleListDiv = document.getElementById('articleList');
-  const resultCountSpan = document.getElementById('resultCount');
+  const noResultsMsg = document.getElementById('noResultsMsg');
+  const readListDiv = document.getElementById('readList');
   const counterTextSpan = document.getElementById('counterText');
   const progressCircle = document.querySelector('.progress-ring-circle');
   const markAllBtn = document.getElementById('markAllBtn');
   const clearAllBtn = document.getElementById('clearAllBtn');
 
-  // Tema
-  const themeToggle = document.getElementById('themeToggle');
-  if (localStorage.getItem('theme') === 'light') document.body.classList.add('light');
-  themeToggle.addEventListener('click', () => {
-    document.body.classList.toggle('light');
-    localStorage.setItem('theme', document.body.classList.contains('light') ? 'light' : 'dark');
-  });
+  // Armazenamento dos artigos lidos (persistente)
+  let readArticles = new Set();      // armazena ids dos artigos
+  let currentArticles = [];         // artigos da última busca (cada um com id único)
 
-  // Armazenamento dos artigos lidos (chave: identificador único)
-  let readArticles = new Set(); // guarda identificadores (ex: título + URL ou index)
-  let currentArticles = [];     // artigos da busca atual (cada um com id único)
-
+  // Carregar salvos
   function loadReadStatus() {
-    const stored = localStorage.getItem('paperseek_read');
-    if (stored) {
-      readArticles = new Set(JSON.parse(stored));
-    }
+    const stored = localStorage.getItem('readplus_read');
+    if (stored) readArticles = new Set(JSON.parse(stored));
   }
   function saveReadStatus() {
-    localStorage.setItem('paperseek_read', JSON.stringify([...readArticles]));
+    localStorage.setItem('readplus_read', JSON.stringify([...readArticles]));
   }
 
+  // Atualizar contador e anel de progresso (apenas para a aba de busca)
   function updateCounter() {
     const total = currentArticles.length;
     let readCount = 0;
-    currentArticles.forEach(art => {
-      if (readArticles.has(art.id)) readCount++;
-    });
+    currentArticles.forEach(art => { if (readArticles.has(art.id)) readCount++; });
     counterTextSpan.innerText = `${readCount} / ${total} lidos`;
-    // atualizar anel de progresso (circunferência = 2*pi*20 ≈ 125.66)
     const percent = total === 0 ? 0 : readCount / total;
-    const dashoffset = 125.66 * (1 - percent);
-    progressCircle.style.strokeDashoffset = dashoffset;
+    const circumference = 113.1;
+    progressCircle.style.strokeDashoffset = circumference * (1 - percent);
   }
 
+  // Renderizar artigos na aba de busca
   function renderArticles(articles) {
     currentArticles = articles;
     if (!articles.length) {
-      articleListDiv.innerHTML = `<div class="no-results">😕 Nenhum artigo encontrado. Tente outro termo.</div>`;
-      resultCountSpan.textContent = '0 resultados';
+      resultsArea.style.display = 'none';
+      noResultsMsg.style.display = 'block';
       updateCounter();
       return;
     }
-    resultCountSpan.textContent = `${articles.length} resultados`;
+    resultsArea.style.display = 'block';
+    noResultsMsg.style.display = 'none';
     articleListDiv.innerHTML = articles.map(art => {
-      const isChecked = readArticles.has(art.id);
+      const checked = readArticles.has(art.id);
       return `
         <div class="article-card" data-id="${art.id}">
           <div class="checkbox-wrapper">
-            <div class="custom-checkbox ${isChecked ? 'checked' : ''}" data-id="${art.id}">${isChecked ? '✓' : ''}</div>
+            <div class="custom-checkbox ${checked ? 'checked' : ''}" data-id="${art.id}">${checked ? '✓' : ''}</div>
           </div>
           <div class="article-content">
             <div>
@@ -434,10 +470,10 @@
                 📄 ${escapeHtml(art.title)}
               </a>
               <div class="article-authors">${art.authors.slice(0, 3).join(', ') || 'Autor(es) não informado'} ${art.authors.length > 3 ? '…' : ''}</div>
-              <div class="article-abstract">${escapeHtml(art.abstract.substring(0, 300))}${art.abstract.length > 300 ? '…' : ''}</div>
-              <div style="margin-top: 12px; display: flex; gap: 12px; align-items: center;">
-                ${art.pdfUrl ? `<a href="${art.pdfUrl}" target="_blank" class="btn-pdf">📖 Ler PDF</a>` : '<span style="font-size:0.75rem; opacity:0.6;">📄 PDF não disponível</span>'}
-                <span style="font-size:0.7rem; background:rgba(0,0,0,0.3); padding:2px 8px; border-radius:20px;">${art.source}</span>
+              <div class="article-abstract">${escapeHtml(art.abstract.substring(0, 280))}${art.abstract.length > 280 ? '…' : ''}</div>
+              <div style="margin-top: 8px;">
+                ${art.pdfUrl ? `<a href="${art.pdfUrl}" target="_blank" class="btn-pdf">📖 Ler PDF</a>` : '<span style="font-size:0.7rem;">📄 PDF não disponível</span>'}
+                <span style="font-size:0.65rem; background:rgba(0,0,0,0.3); padding:2px 8px; border-radius:20px; margin-left:8px;">${art.source}</span>
               </div>
             </div>
           </div>
@@ -445,62 +481,82 @@
       `;
     }).join('');
 
-    // Adicionar eventos de clique nos checkboxes
-    document.querySelectorAll('.custom-checkbox').forEach(checkbox => {
-      checkbox.addEventListener('click', (e) => {
+    // adicionar eventos nos checkboxes
+    document.querySelectorAll('.custom-checkbox').forEach(cb => {
+      cb.addEventListener('click', (e) => {
         e.stopPropagation();
-        const id = checkbox.getAttribute('data-id');
+        const id = cb.getAttribute('data-id');
         if (readArticles.has(id)) {
           readArticles.delete(id);
-          checkbox.classList.remove('checked');
-          checkbox.innerText = '';
+          cb.classList.remove('checked');
+          cb.innerText = '';
         } else {
           readArticles.add(id);
-          checkbox.classList.add('checked');
-          checkbox.innerText = '✓';
+          cb.classList.add('checked');
+          cb.innerText = '✓';
         }
         saveReadStatus();
         updateCounter();
-        // Atualizar visualmente o checkbox na lista (já foi)
+        renderReadTab();    // atualiza aba de lidos
       });
     });
     updateCounter();
   }
 
-  function markAllAsRead() {
-    currentArticles.forEach(art => {
-      readArticles.add(art.id);
+  // Renderizar aba "Meus lidos"
+  function renderReadTab() {
+    const readIds = [...readArticles];
+    const readItems = currentArticles.filter(art => readIds.includes(art.id));
+    if (!readItems.length) {
+      readListDiv.innerHTML = `<div class="no-results">📭 Nenhum artigo lido ainda. Marque ✓ nos artigos da aba "Artigos encontrados".</div>`;
+      return;
+    }
+    readListDiv.innerHTML = readItems.map(art => `
+      <div class="article-card">
+        <div class="article-content">
+          <a href="${art.pdfUrl || '#'}" target="_blank" class="article-title">📄 ${escapeHtml(art.title)}</a>
+          <div class="article-authors">${art.authors.slice(0, 3).join(', ') || 'Autor(es) não informado'}</div>
+          <div class="article-abstract">${escapeHtml(art.abstract.substring(0, 200))}…</div>
+          <div style="margin-top: 8px;">
+            ${art.pdfUrl ? `<a href="${art.pdfUrl}" target="_blank" class="btn-pdf">📖 Ler PDF</a>` : ''}
+            <button class="action-btn unread-btn" data-id="${art.id}" style="margin-left:8px;">🗑️ Remover dos lidos</button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+    // eventos para remover da lista de lidos
+    document.querySelectorAll('.unread-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        readArticles.delete(id);
+        saveReadStatus();
+        renderReadTab();
+        // se a aba de busca estiver ativa, atualizar checkboxes
+        if (document.querySelector('.tab-btn.active').getAttribute('data-tab') === 'search') {
+          // re-renderizar a busca (mantém artigos)
+          renderArticles(currentArticles);
+        } else {
+          updateCounter();
+        }
+      });
     });
-    saveReadStatus();
-    renderArticles(currentArticles); // recarrega a lista (atualiza checkboxes)
   }
 
-  function clearAllRead() {
-    currentArticles.forEach(art => {
-      readArticles.delete(art.id);
-    });
-    saveReadStatus();
-    renderArticles(currentArticles);
-  }
-
-  markAllBtn.addEventListener('click', markAllAsRead);
-  clearAllBtn.addEventListener('click', clearAllRead);
-
-  // Funções de busca (CORE + arXiv)
-  async function searchCore(query) {
-    const url = `https://api.core.ac.uk/v3/search/works?q=${encodeURIComponent(query)}&limit=10`;
+  // Funções de busca
+  async function searchOpenAlex(query) {
+    const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=open_access.is_oa:true&sort=relevance_score:desc&per-page=12`;
     try {
-      const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      const res = await fetch(url);
       if (!res.ok) return [];
       const data = await res.json();
-      return data.results.map(article => ({
-        title: article.title || 'Sem título',
-        authors: article.authors?.map(a => a.name) || [],
-        abstract: article.abstract || 'Resumo não disponível.',
-        pdfUrl: article.downloadUrl || article.pdfUrl || null,
-        source: 'CORE'
+      return data.results.map(work => ({
+        title: work.title || 'Sem título',
+        authors: work.authorships?.map(a => a.author.display_name) || [],
+        abstract: work.abstract || 'Resumo não disponível.',
+        pdfUrl: work.open_access?.oa_url || work.best_oa_location?.pdf_url || null,
+        source: 'OpenAlex'
       }));
-    } catch (e) { return []; }
+    } catch (e) { console.warn(e); return []; }
   }
 
   async function searchArXiv(query) {
@@ -516,9 +572,8 @@
         let pdfUrl = '';
         const links = entry.querySelectorAll('link');
         links.forEach(link => {
-          if (link.getAttribute('title') === 'pdf' || link.getAttribute('type') === 'application/pdf') {
+          if (link.getAttribute('title') === 'pdf' || link.getAttribute('type') === 'application/pdf')
             pdfUrl = link.getAttribute('href');
-          }
         });
         if (!pdfUrl) {
           const id = entry.querySelector('id')?.textContent;
@@ -539,12 +594,12 @@
   async function performSearch() {
     const query = queryInput.value.trim();
     if (!query) return;
+    articleListDiv.innerHTML = `<div class="loading">🔍 Buscando em OpenAlex e arXiv... Aguarde.</div>`;
     resultsArea.style.display = 'block';
-    articleListDiv.innerHTML = `<div class="loading">🔍 Buscando artigos em CORE e arXiv... Aguarde.</div>`;
-    resultCountSpan.textContent = 'buscando...';
-    const [core, arxiv] = await Promise.all([searchCore(query), searchArXiv(query)]);
-    let all = [...core, ...arxiv];
-    // remover duplicados simples por título
+    noResultsMsg.style.display = 'none';
+    const [openAlex, arxiv] = await Promise.all([searchOpenAlex(query), searchArXiv(query)]);
+    let all = [...openAlex, ...arxiv];
+    // remover duplicatas (título)
     const unique = [];
     const titles = new Set();
     for (const art of all) {
@@ -553,22 +608,62 @@
         unique.push(art);
       }
     }
-    // Atribuir ids únicos (baseados no título + fonte)
     const articlesWithId = unique.slice(0, 18).map((art, idx) => ({
       ...art,
       id: btoa(art.title + art.source + idx).replace(/[^a-zA-Z0-9]/g, '')
     }));
     renderArticles(articlesWithId);
+    renderReadTab(); // atualiza a aba lidos (caso tenha algo marcado)
   }
 
-  searchBtn.addEventListener('click', performSearch);
-  queryInput.addEventListener('keypress', (e) => e.key === 'Enter' && performSearch());
-
-  function escapeHtml(str) {
-    return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m]));
+  // Controle de abas
+  function initTabs() {
+    const tabs = document.querySelectorAll('.tab-btn');
+    tabs.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tabId = btn.getAttribute('data-tab');
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        if (tabId === 'search') {
+          document.getElementById('searchTab').classList.add('active');
+          if (currentArticles.length) renderArticles(currentArticles); // re-renderiza para sincronizar checkboxes
+        } else {
+          document.getElementById('readTab').classList.add('active');
+          renderReadTab();
+        }
+      });
+    });
   }
+
+  // Ações em massa
+  markAllBtn.addEventListener('click', () => {
+    currentArticles.forEach(art => readArticles.add(art.id));
+    saveReadStatus();
+    renderArticles(currentArticles);
+    renderReadTab();
+  });
+  clearAllBtn.addEventListener('click', () => {
+    currentArticles.forEach(art => readArticles.delete(art.id));
+    saveReadStatus();
+    renderArticles(currentArticles);
+    renderReadTab();
+  });
+
+  // Tema claro/escuro
+  const themeToggle = document.getElementById('themeToggle');
+  if (localStorage.getItem('theme') === 'light') document.body.classList.add('light');
+  themeToggle.addEventListener('click', () => {
+    document.body.classList.toggle('light');
+    localStorage.setItem('theme', document.body.classList.contains('light') ? 'light' : 'dark');
+  });
+
+  function escapeHtml(str) { return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m])); }
 
   loadReadStatus();
+  initTabs();
+  searchBtn.addEventListener('click', performSearch);
+  queryInput.addEventListener('keypress', (e) => e.key === 'Enter' && performSearch());
 </script>
 </body>
 </html>
