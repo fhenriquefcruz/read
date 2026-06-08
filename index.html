@@ -9,7 +9,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    /* ========== ESTILOS RESPONSIVOS E FLUIDOS (MOBILE-FIRST) ========== */
+    /* ========== DESIGN SYSTEM RESPONSIVO (MOBILE-FIRST) ========== */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
       --bg-dark: #05070f;
@@ -27,7 +27,7 @@
       background: radial-gradient(circle at 10% 20%, #0a0f1c, #02040c);
       color: var(--text-primary);
       min-height: 100vh;
-      padding: clamp(10px, 3vw, 30px);
+      padding: clamp(12px, 3vw, 24px);
       overflow-x: hidden;
     }
     body::before {
@@ -43,22 +43,20 @@
       z-index: 0;
     }
     .container { max-width: 1400px; margin: 0 auto; position: relative; z-index: 2; width: 100%; }
-    .header { text-align: center; margin-bottom: clamp(20px, 5vw, 40px); }
+    .header { text-align: center; margin-bottom: clamp(24px, 5vw, 40px); }
     .logo {
-      font-size: clamp(2.5rem, 8vw, 4.2rem); font-weight: 800; letter-spacing: -2px;
+      font-size: clamp(2.5rem, 7vw, 4.2rem); font-weight: 800; letter-spacing: -2px;
       background: linear-gradient(135deg, #fff 0%, var(--glow-primary) 40%, var(--glow-secondary) 80%);
       background-clip: text; color: transparent;
       display: inline-block;
-      animation: float 4s ease-in-out infinite;
     }
-    @keyframes float { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-5px); } }
     .logo span { font-size: 1.2rem; vertical-align: super; color: var(--glow-primary); font-weight: 700; margin-left: 4px; }
     .tagline { font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; color: var(--text-secondary); margin-top: 8px; }
     .description { max-width: 650px; margin: 12px auto 0; font-size: 0.85rem; line-height: 1.5; color: var(--text-secondary); background: rgba(0,0,0,0.3); backdrop-filter: blur(8px); border-radius: 30px; padding: 10px 20px; border: 1px solid var(--border-light); }
     
-    /* ABAS ADAPTATIVAS */
+    /* GESTÃO DE ABAS EM GRID ADAPTATIVO */
     .main-tabs {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;
       margin-bottom: 24px; border-bottom: 1px solid var(--border-light); padding-bottom: 12px;
     }
     .main-tab {
@@ -74,22 +72,29 @@
     
     .glass-card {
       background: var(--bg-card); backdrop-filter: blur(16px); border-radius: 1.5rem;
-      border: 1px solid var(--border-light); padding: clamp(15px, 4vw, 28px);
+      border: 1px solid var(--border-light); padding: clamp(16px, 4vw, 28px);
       box-shadow: 0 20px 35px -10px rgba(0,0,0,0.5);
     }
 
-    /* CAMPO DE BUSCA RESPONSIVO */
-    .search-area { display: flex; gap: 10px; margin-bottom: 24px; width: 100%; }
-    .search-input { flex: 1; padding: 12px 20px; border-radius: 40px; border: 1px solid var(--border-light); background: rgba(0,0,0,0.4); color: white; font-size: 0.95rem; min-width: 0; }
+    /* INPUTS RESPONSIVOS */
+    .search-area { display: flex; gap: 12px; margin-bottom: 24px; width: 100%; }
+    .search-input { flex: 1; padding: 14px 20px; border-radius: 40px; border: 1px solid var(--border-light); background: rgba(0,0,0,0.4); color: white; font-size: 0.95rem; min-width: 0; }
     .search-input:focus { border-color: var(--glow-primary); outline: none; }
-    .search-btn { background: linear-gradient(135deg, var(--glow-primary), var(--glow-secondary)); border: none; padding: 12px 28px; border-radius: 40px; font-weight: 700; color: white; cursor: pointer; transition: transform 0.2s; white-space: nowrap; }
+    .search-btn { background: linear-gradient(135deg, var(--glow-primary), var(--glow-secondary)); border: none; padding: 14px 32px; border-radius: 40px; font-weight: 700; color: white; cursor: pointer; transition: transform 0.2s; white-space: nowrap; }
     .search-btn:hover { transform: scale(1.02); }
 
-    /* RENDERIZAÇÃO VIRTUALIZADA / LISTAS */
+    /* MOTOR DE PERFORMANCE E RENDERIZAÇÃO */
     .results-grid { display: flex; flex-direction: column; gap: 14px; max-height: 650px; overflow-y: auto; padding-right: 4px; }
+    
+    /* Virtualização Nativa do Browser */
+    .virtual-row {
+      content-visibility: auto;
+      contain-intrinsic-size: 140px;
+    }
+    
     .result-card {
       background: rgba(0,0,0,0.35); backdrop-filter: blur(8px); border-radius: 20px; padding: 16px;
-      border: 1px solid rgba(0,212,255,0.15); display: flex; gap: 14px; align-items: flex-start; transition: border-color 0.2s;
+      border: 1px solid rgba(0,212,255,0.15); display: flex; gap: 14px; align-items: flex-start;
     }
     .result-card:hover { border-color: var(--glow-primary); }
     
@@ -103,16 +108,15 @@
     .no-results { text-align: center; padding: 40px; color: var(--text-secondary); font-size: 0.9rem; }
     .footer { text-align: center; margin-top: 24px; font-size: 0.7rem; color: var(--text-secondary); }
     
-    /* SEÇÕES DE RESUMO */
-    .summary-section { margin-bottom: 24px; }
+    .summary-section { margin-bottom: 28px; }
     .summary-title { font-size: 1.2rem; color: var(--glow-primary); margin-bottom: 12px; border-left: 3px solid var(--glow-secondary); padding-left: 8px; }
 
-    /* SCREEN ADAPTATION QUEUES (BREAKPOINTS) */
-    @media (max-width: 600px) {
-      .search-area { flex-direction: column; align-items: stretch; }
+    /* RESPONSIVIDADE EXTREMA EM DISPOSITIVOS MOBILE */
+    @media (max-width: 680px) {
+      .search-area { flex-direction: column; align-items: stretch; gap: 10px; }
       .search-btn { width: 100%; text-align: center; }
       .result-card { gap: 10px; padding: 12px; }
-      .main-tabs { grid-template-columns: repeat(2, 1fr); }
+      .main-tabs { grid-template-columns: repeat(2, 1fr); gap: 8px; }
     }
   </style>
 </head>
@@ -132,7 +136,7 @@
   </nav>
 
   <main class="glass-card" id="mainContent" role="main"></main>
-  <footer class="footer" role="contentinfo">🔎 API Integradas nativamente: OpenAlex · Google Books · Cache Local</footer>
+  <footer class="footer" role="contentinfo">🔎 APIs de Busca: OpenAlex · Google Books · IndexedDB Persistente</footer>
 </div>
 
 <script src="js/background.js"></script>
