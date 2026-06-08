@@ -1,4 +1,4 @@
-// ==================== ESTADO CENTRALIZADO ====================
+// ==================== ESTADO CENTRALIZADO DE FLUXO ====================
 const store = {
   articles: [], books: [], research: [],
   read: { article: new Set(), book: new Set(), research: new Set() },
@@ -23,7 +23,7 @@ function stableHash(str) {
   return Math.abs(h).toString(36);
 }
 
-// ==================== CONEXÃO INDEXEDDB ORIGINAL ====================
+// ==================== INDEXEDDB: PRESERVAÇÃO INTEGRAL V12 ====================
 async function openDB() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open('ReadPlusDB', 12);
@@ -63,11 +63,10 @@ async function loadInitialReadingLog() {
   });
 }
 
-// ==================== ENGINE DE BUSCA RECALIBRADO ====================
+// ==================== ENGINE DE BUSCA RECALIBRADO (FOCO EM PDF GRÁTIS) ====================
 async function fetchOpenAlex(query, type = 'article') {
-  // AJUSTE PONTO 3: Forçando filtro de Open Access completo e presença obrigatória de PDF grátis
+  // AJUSTE CRÍTICO: Removido filtros de tipo conflitantes. Forçando apenas PDFs de Acesso Aberto (Open Access)
   let filter = 'open_access.is_oa:true,has_pdf:true';
-  
   const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=${filter}&sort=relevance_score:desc&per-page=20`;
   
   try {
@@ -83,7 +82,7 @@ async function fetchOpenAlex(query, type = 'article') {
       source: type === 'research' ? 'Estudo & Pesquisa Livre (PDF)' : 'Artigo Científico Disponível'
     }));
   } catch (e) {
-    console.error(e); return [];
+    console.error("Erro na busca OpenAlex:", e); return [];
   }
 }
 
@@ -99,7 +98,7 @@ async function fetchBooks(query) {
         id: item.id,
         title: item.volumeInfo.title || 'Sem título',
         authors: item.volumeInfo.authors || ['Autor não informado'],
-        abstract: item.volumeInfo.description || 'Sinopse e metadados indisponíveis no momento.',
+        abstract: item.volumeInfo.description || 'Sinopse e descrição indisponíveis.',
         url: item.volumeInfo.previewLink || item.volumeInfo.infoLink || '#',
         source: 'Google Books Library'
       }));
@@ -114,7 +113,7 @@ async function fetchBooks(query) {
         id: stableHash(w.id || w.title),
         title: w.title || 'Sem título',
         authors: w.authorships?.map(a => a.author.display_name) || [],
-        abstract: w.abstract || 'Descrição textual indisponível no acervo alternativo.',
+        abstract: w.abstract || 'Descrição indisponível no acervo alternativo.',
         url: w.id,
         source: 'OpenAlex Backup Books'
       }));
@@ -122,7 +121,7 @@ async function fetchBooks(query) {
   }
 }
 
-// ==================== RENDERIZADOR PROFISSIONAL DE LAYOUT ====================
+// ==================== RENDERIZAÇÃO COGNITIVA E INJEÇÃO DE INTERFACE ====================
 function renderItemsGrid(container, items, type) {
   container.innerHTML = '';
   if (!items.length) {
@@ -160,6 +159,8 @@ function renderItemsGrid(container, items, type) {
 
 function injectSearchTab(placeholder, searchCallback, currentStoreType) {
   const container = document.getElementById('mainContent');
+  if (!container) return;
+
   container.innerHTML = `
     <div class="search-area">
       <input type="text" id="searchInputField" class="search-input" placeholder="${placeholder}" aria-label="Buscar">
@@ -172,7 +173,7 @@ function injectSearchTab(placeholder, searchCallback, currentStoreType) {
   const btn = document.getElementById('searchSubmitBtn');
   const grid = document.getElementById('mainResultsGrid');
 
-  if(store[currentStoreType] && store[currentStoreType].length > 0) {
+  if (store[currentStoreType] && store[currentStoreType].length > 0) {
     renderItemsGrid(grid, store[currentStoreType], currentStoreType.replace(/s$/, ''));
   } else {
     grid.innerHTML = '<div class="no-results">Digite a palavra-chave para iniciar o escaneamento cognitivo...</div>';
@@ -189,7 +190,7 @@ function injectSearchTab(placeholder, searchCallback, currentStoreType) {
   };
 
   btn.addEventListener('click', exec);
-  input.addEventListener('keypress', (e) => { if(e.key === 'Enter') exec(); });
+  input.addEventListener('keypress', (e) => { if (e.key === 'Enter') exec(); });
 }
 
 async function renderSummaryTab() {
@@ -220,12 +221,11 @@ async function renderSummaryTab() {
   `;
 
   const sections = ['article', 'book', 'research'];
-  
   sections.forEach(type => {
     const targetGrid = document.getElementById(`sum-${type}`);
     const matchedLogs = allLogs.filter(l => l.type === type);
 
-    if(!matchedLogs.length) {
+    if (!matchedLogs.length) {
       targetGrid.innerHTML = '<div class="no-results" style="padding:15px; font-size: 0.85rem;">Sem registros nesta trilha neural.</div>';
     } else {
       matchedLogs.forEach(log => {
@@ -245,31 +245,44 @@ async function renderSummaryTab() {
   });
 }
 
-// ==================== INICIALIZADOR CENTRAL ====================
-document.addEventListener('DOMContentLoaded', async () => {
-  await openDB();
-  await loadInitialReadingLog();
+// ==================== INICIALIZADOR EXECUTÁVEL E SEGURO ====================
+async function initSystem() {
+  try {
+    await openDB();
+    await loadInitialReadingLog();
 
-  const tabs = document.querySelectorAll('.main-tab');
-  
-  const handleTabSwitch = (activeTab) => {
-    tabs.forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
-    activeTab.classList.add('active');
-    activeTab.setAttribute('aria-selected', 'true');
+    const tabs = document.querySelectorAll('.main-tab');
     
-    store.currentTab = activeTab.getAttribute('data-main');
-    
-    if (store.currentTab === 'articles') {
-      injectSearchTab('Buscar artigos acadêmicos no OpenAlex...', async (q) => fetchOpenAlex(q, 'article'), 'articles');
-    } else if (store.currentTab === 'books') {
-      injectSearchTab('Localizar publicações no Google Books...', fetchBooks, 'books');
-    } else if (store.currentTab === 'research') {
-      injectSearchTab('Buscar pesquisas e estudos científicos gratuitos em PDF...', async (q) => fetchOpenAlex(q, 'research'), 'research');
-    } else if (store.currentTab === 'summary') {
-      renderSummaryTab();
-    }
-  };
+    const handleTabSwitch = (activeTab) => {
+      tabs.forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+      activeTab.classList.add('active');
+      activeTab.setAttribute('aria-selected', 'true');
+      
+      store.currentTab = activeTab.getAttribute('data-main');
+      
+      if (store.currentTab === 'articles') {
+        injectSearchTab('Buscar artigos acadêmicos no OpenAlex...', async (q) => fetchOpenAlex(q, 'article'), 'articles');
+      } else if (store.currentTab === 'books') {
+        injectSearchTab('Localizar publicações no Google Books...', fetchBooks, 'books');
+      } else if (store.currentTab === 'research') {
+        injectSearchTab('Buscar pesquisas e estudos científicos gratuitos em PDF...', async (q) => fetchOpenAlex(q, 'research'), 'research');
+      } else if (store.currentTab === 'summary') {
+        renderSummaryTab();
+      }
+    };
 
-  tabs.forEach(tab => tab.addEventListener('click', () => handleTabSwitch(tab)));
-  handleTabSwitch(tabs[0]);
-});
+    tabs.forEach(tab => tab.addEventListener('click', () => handleTabSwitch(tab)));
+    
+    // Força a renderização inicial imediatamente com segurança
+    handleTabSwitch(tabs[0]);
+  } catch (error) {
+    console.error("Falha fatal na inicialização neural:", error);
+  }
+}
+
+// Garante execução imediata assim que a árvore do DOM estiver montada
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initSystem);
+} else {
+  initSystem();
+}
