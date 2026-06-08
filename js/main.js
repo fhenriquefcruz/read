@@ -1,34 +1,19 @@
-// ==================== ESTADO CENTRALIZADO PROTEGIDO ====================
+// ==================== ESTADO E ARMAZENAMENTO ====================
 const store = {
   articles: [], books: [], research: [],
-  read: { article: new Set(), book: new Set(), research: new Set() },
-  favorites: { article: [], book: [], research: [] },
-  notes: new Map(),
-  tags: new Map(),
-  collections: [],
-  zettels: [],
-  backlinks: new Map(), // Chave: Zettel ID -> Valor: Set de IDs de notas que o referenciam
-  studyLog: [],
-  userProfile: { name: "Pesquisador", xp: 0, level: 0, badges: [] },
+  read: { articles: new Set(), books: new Set(), research: new Set() },
   currentTab: 'articles',
   db: null
 };
 
-// ==================== SANITIZAÇÃO COMPLETA CONTRA XSS ====================
 function escapeHtml(str) {
   if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+  return String(str).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[m]));
 }
 
 function sanitizeUrl(url) {
   if (!url || typeof url !== 'string') return '#';
-  const t = url.trim();
-  return (t.startsWith('http://') || t.startsWith('https://')) ? t : '#';
+  return (url.trim().startsWith('http://') || url.trim().startsWith('https://')) ? url.trim() : '#';
 }
 
 function stableHash(str) {
@@ -37,287 +22,261 @@ function stableHash(str) {
   return Math.abs(h).toString(36);
 }
 
-// ==================== UNIFICAÇÃO INDEXEDDB ====================
+// ==================== UNIFICAÇÃO DO INDEXEDDB ====================
 async function initDB() {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open('ReadPlusDB', 12);
+    const req = indexedDB.open('ReadPlusDB', 14); // Nova versão limpa
     req.onupgradeneeded = (e) => {
       const db = e.target.result;
-      const stores = ['articles','books','research','notes','collections','tags','favorites','reading_log','study_log','settings','zettels','backlinks'];
+      // Mantemos apenas as tabelas essenciais de registros e log de leitura
+      const stores = ['articles', 'books', 'research', 'reading_log'];
       stores.forEach(s => {
-        if (!db.objectStoreNames.contains(s)) db.createObjectStore(s, { keyPath: s === 'settings' ? 'key' : 'id' });
+        if (!db.objectStoreNames.contains(s)) db.createObjectStore(s, { keyPath: 'id' });
       });
     };
-    req.onsuccess = (e) => {
-      store.db = e.target.result;
-      resolve(e.target.result);
-    };
+    req.onsuccess = (e) => { store.db = e.target.result; resolve(); };
     req.onerror = (e) => reject(e.target.error);
   });
 }
 
-async function saveToDB(storeName, item) {
-  return new Promise((resolve, reject) => {
-    const tx = store.db.transaction([storeName], 'readwrite');
-    const s = tx.objectStore(storeName);
-    const req = s.put(item);
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(tx.error);
+async function saveItemToDB(storeName, item) {
+  const tx = store.db.transaction([storeName], 'readwrite');
+  tx.objectStore(storeName).put(item);
+}
+
+async function toggleReadStatus(id, type, itemData) {
+  const readSet = store.read[type];
+  const tx = store.db.transaction(['reading_log', type], 'readwrite');
+  
+  if (readSet.has(id)) {
+    readSet.delete(id);
+    tx.objectStore('reading_log').delete(id);
+  } else {
+    readSet.add(id);
+    tx.objectStore('reading_log').put({ id, type, date: new Date().toISOString(), title: itemData.title, url: itemData.url, authors: itemData.authors });
+    tx.objectStore(type).put(itemData);
+  }
+  
+  return new Promise(res => tx.oncomplete = () => res());
+}
+
+async function loadReadingLog() {
+  return new Promise((resolve) => {
+    const tx = store.db.transaction(['reading_log'], 'readonly');
+    tx.objectStore('reading_log').getAll().onsuccess = (e) => {
+      store.read.articles.clear(); store.read.books.clear(); store.read.research.clear();
+      const logs = e.target.result || [];
+      logs.forEach(log => {
+        if (store.read[log.type]) store.read[log.type].add(log.id);
+      });
+      resolve(logs);
+    };
   });
 }
 
-// ==================== MOTOR DE RECONSTRUÇÃO DE BACKLINKS ====================
-function rebuildAllBacklinks() {
-  store.backlinks.clear();
-  // Inicializa mapas vazios
-  store.zettels.forEach(z => store.backlinks.set(z.id, new Set()));
+// ==================== MOTORES DE BUSCA INDEPENDENTES ====================
+async function searchOpenAlex(query, isResearch = false) {
+  let filter = 'open_access.is_oa:true';
+  if (isResearch) filter += ',type:article,type:report';
+  const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=${filter}&sort=relevance_score:desc&per-page=20`;
   
-  // Analisa links do tipo [[ID ou Título]]
-  const linkRegex = /\[\[(.*?)\]\]/g;
-  
-  store.zettels.forEach(sourceZettel => {
-    let match;
-    const content = sourceZettel.content || '';
-    while ((match = linkRegex.exec(content)) !== null) {
-      const targetIdentifier = match[1].trim();
-      // Encontra a nota de destino por ID ou correspondência exata de Título
-      const targetZettel = store.zettels.find(z => z.id === targetIdentifier || z.title.toLowerCase() === targetIdentifier.toLowerCase());
-      
-      if (targetZettel && targetZettel.id !== sourceZettel.id) {
-        if (!store.backlinks.has(targetZettel.id)) {
-          store.backlinks.set(targetZettel.id, new Set());
-        }
-        store.backlinks.get(targetZettel.id).add(sourceZettel.id);
-      }
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    return (data.results || []).map(w => ({
+      id: stableHash(w.id || w.title),
+      title: w.title || 'Sem título',
+      authors: w.authorships?.map(a => a.author.display_name) || ['Autor desconhecido'],
+      abstract: w.abstract || (w.abstract_inverted_index ? Object.entries(w.abstract_inverted_index).sort((a,b)=>a[1][0]-b[1][0]).map(([w])=>w).join(' ') : 'Resumo indisponível'),
+      url: w.open_access?.oa_url || w.best_oa_location?.pdf_url || '#',
+      source: isResearch ? 'OpenAlex Research' : 'OpenAlex Articles'
+    }));
+  } catch (e) {
+    console.error(e); return [];
+  }
+}
+
+async function searchGoogleBooks(query) {
+  const proxyUrl = 'https://corsproxy.io/?';
+  const directUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20&printType=books`;
+  try {
+    const res = await fetch(proxyUrl + encodeURIComponent(directUrl));
+    const data = await res.json();
+    if (data.items) {
+      return data.items.map(item => ({
+        id: item.id,
+        title: item.volumeInfo.title || 'Sem título',
+        authors: item.volumeInfo.authors || ['Autor não informado'],
+        abstract: item.volumeInfo.description || 'Sinopse indisponível',
+        url: item.volumeInfo.previewLink || item.volumeInfo.infoLink || '#',
+        source: 'Google Books'
+      }));
     }
-  });
+    throw new Error();
+  } catch {
+    // Fallback limpo para OpenAlex se der CORS
+    const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=type:book&per-page=20`;
+    const res = await fetch(url);
+    const data = await res.json();
+    return (data.results || []).map(w => ({
+      id: stableHash(w.id || w.title),
+      title: w.title || 'Sem título',
+      authors: w.authorships?.map(a => a.author.display_name) || [],
+      abstract: w.abstract || 'Sinopse indisponível',
+      url: w.id,
+      source: 'OpenAlex Books Fallback'
+    }));
+  }
 }
 
-// ==================== PARSER MARKDOWN SIMPLIFICADO ====================
-function parseMarkdown(text) {
-  let html = escapeHtml(text);
-  
-  // Parser de Links Zettelkasten Dinâmicos [[id|Rótulo]] ou [[id]]
-  html = html.replace(/\[\[(.*?)\]\]/g, (match, p1) => {
-    const parts = p1.split('|');
-    const targetId = parts[0].trim();
-    const label = parts[1] ? parts[1].trim() : targetId;
-    
-    const targetZettel = store.zettels.find(z => z.id === targetId || z.title.toLowerCase() === targetId.toLowerCase());
-    if (targetZettel) {
-      return `<button class="backlink-item" onclick="loadZettelById('${targetZettel.id}')" aria-label="Navegar para nota ${escapeHtml(targetZettel.title)}">${escapeHtml(label)}</button>`;
-    }
-    return `<span style="opacity:0.5; text-decoration:line-through;">[[${escapeHtml(p1)}]]</span>`;
-  });
-
-  // Estilos Markdown Básicos adicionais
-  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-  html = html.replace(/\n/g, '<br>');
-  return html;
-}
-
-// ==================== ENGINE DE VIRTUALIZAÇÃO NATIVA ====================
-function virtualizeList(container, items, renderRowItemFunc) {
+// ==================== ENGINE DE VIRTUALIZAÇÃO NATIVA PERFEITA ====================
+function renderVirtualGrid(container, items, type) {
   container.innerHTML = '';
-  if (!items || items.length === 0) {
-    container.innerHTML = '<div class="no-results">🔍 Nenhum registro encontrado.</div>';
+  if (!items.length) {
+    container.innerHTML = '<div class="no-results">🔍 Nenhum resultado encontrado. Escreva algo acima e busque.</div>';
     return;
   }
 
-  // Instancia elementos leves de sustentação (Skeleton Trackers)
-  items.forEach((item, index) => {
-    const rowWrapper = document.createElement('div');
-    rowWrapper.style.minHeight = '120px';
-    rowWrapper.style.contentVisibility = 'auto';
-    rowWrapper.setAttribute('data-index', index);
+  items.forEach((item) => {
+    const row = document.createElement('div');
+    row.style.contentVisibility = 'auto';
+    row.style.containIntrinsicSize = '140px';
     
-    // Configura Intersection Observer para carregar conteúdo real sob demanda física
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          rowWrapper.innerHTML = renderRowItemFunc(item);
-          observer.unobserve(rowWrapper); // Evita re-trabalho após renderização inicial
-        }
-      });
-    }, { root: container, rootMargin: '100px' });
-
-    observer.observe(rowWrapper);
-    container.appendChild(rowWrapper);
-  });
-}
-
-// ==================== MONTAGEM DO MÓDULO MIND FORGE (ZETTELKASTEN) ====================
-function injectMindForgeModule() {
-  const container = document.getElementById('mainContent');
-  container.innerHTML = `
-    <div class="sub-tabs" role="tablist" aria-label="Sub-menus do Mind Forge">
-      <button class="sub-tab active" id="subtab-view" role="tab" aria-selected="true">Visualizar Notas</button>
-      <button class="sub-tab" id="subtab-create" role="tab" aria-selected="false">Criar Nota</button>
-    </div>
+    const isChecked = store.read[type].has(item.id);
     
-    <div id="mindforge-view-panel" class="sub-content active">
-      <input type="text" id="zettelSearch" class="search-input" placeholder="Filtrar notas por termo..." style="width:100%; margin-bottom:15px;" aria-label="Filtrar notas">
-      <div class="results-grid" id="zettelVirtualList"></div>
-    </div>
-
-    <div id="mindforge-create-panel" class="sub-content">
-      <input type="text" id="zettelTitle" class="search-input" placeholder="Título da Nota" style="width:100%; margin-bottom:10px;" aria-label="Título da nota Zettel">
-      <div class="zettel-editor-container">
-        <div>
-          <label for="zettelRawContent" class="card-meta">Conteúdo (Suporta Markdown e [[Links]]):</label>
-          <textarea id="zettelRawContent" class="zettel-textarea" aria-label="Editor de texto Markdown"></textarea>
-        </div>
-        <div>
-          <span class="card-meta">Live Preview:</span>
-          <div id="zettelLivePreview" class="zettel-preview"></div>
-        </div>
-      </div>
-      <button id="saveZettelBtn" class="search-btn" style="margin-top:15px;">Salvar Nota Física</button>
-      
-      <div class="backlinks-container">
-        <h4>Conexões de Entrada (Backlinks)</h4>
-        <div id="zettelBacklinksContainer"><span class="card-meta">Nenhuma nota aponta para este zettel.</span></div>
-      </div>
-    </div>
-  `;
-
-  // Inicializa Listeners de Controle do Editor
-  setupMindForgeListeners();
-  renderZettelList();
-}
-
-function setupMindForgeListeners() {
-  const viewTab = document.getElementById('subtab-view');
-  const createTab = document.getElementById('subtab-create');
-  const viewPanel = document.getElementById('mindforge-view-panel');
-  const createPanel = document.getElementById('mindforge-create-panel');
-  const tx = document.getElementById('zettelRawContent');
-  const prev = document.getElementById('zettelLivePreview');
-  const saveBtn = document.getElementById('saveZettelBtn');
-  const searchInput = document.getElementById('zettelSearch');
-
-  viewTab.addEventListener('click', () => {
-    viewTab.classList.add('active'); createTab.classList.remove('active');
-    viewPanel.classList.add('active'); createPanel.classList.remove('active');
-    renderZettelList();
-  });
-
-  createTab.addEventListener('click', () => {
-    createTab.classList.add('active'); viewTab.classList.remove('active');
-    createPanel.classList.add('active'); viewPanel.classList.remove('active');
-  });
-
-  tx.addEventListener('input', () => {
-    prev.innerHTML = parseMarkdown(tx.value);
-  });
-
-  searchInput.addEventListener('input', (e) => {
-    const term = e.target.value.toLowerCase();
-    const filtered = store.zettels.filter(z => z.title.toLowerCase().includes(term) || z.content.toLowerCase().includes(term));
-    renderZettelVirtualization(filtered);
-  });
-
-  saveBtn.addEventListener('click', async () => {
-    const title = document.getElementById('zettelTitle').value.trim();
-    const content = tx.value;
-    if(!title || !content) return alert('Por favor, preencha o título e conteúdo.');
-
-    const newZettel = { id: stableHash(title), title, content, date: new Date().toISOString() };
-    store.zettels = store.zettels.filter(z => z.id !== newZettel.id);
-    store.zettels.push(newZettel);
-
-    await saveToDB('zettels', newZettel);
-    rebuildAllBacklinks();
-    alert('Nota armazenada com sucesso no Mind Forge!');
-    viewTab.click();
-  });
-}
-
-function renderZettelList() {
-  rebuildAllBacklinks();
-  renderZettelVirtualization(store.zettels);
-}
-
-function renderZettelVirtualization(items) {
-  const listContainer = document.getElementById('zettelVirtualList');
-  if(!listContainer) return;
-
-  virtualizeList(listContainer, items, (zettel) => {
-    return `
-      <div class="result-card" style="width:100%;">
+    row.innerHTML = `
+      <div class="result-card">
+        <div class="checkbox ${isChecked ? 'checked' : ''}" data-id="${escapeHtml(item.id)}">${isChecked ? '✓' : ''}</div>
         <div class="card-content">
-          <button class="card-title" style="background:none; border:none; text-align:left; cursor:pointer;" onclick="loadZettelById('${zettel.id}')">
-            ${escapeHtml(zettel.title)}
-          </button>
-          <div class="card-meta">Identificador Único: [[${escapeHtml(zettel.id)}]] · Modificado em: ${new Date(zettel.date).toLocaleDateString()}</div>
-          <div class="card-abstract">${parseMarkdown(zettel.content.substring(0, 140))}...</div>
+          <a href="${sanitizeUrl(item.url)}" target="_blank" class="card-title">${escapeHtml(item.title)}</a>
+          <div class="card-meta">Por: ${escapeHtml(item.authors.join(', '))} | Fonte: ${escapeHtml(item.source)}</div>
+          <div class="card-abstract">${escapeHtml(item.abstract)}</div>
         </div>
       </div>
     `;
+
+    row.querySelector('.checkbox').addEventListener('click', async (e) => {
+      await toggleReadStatus(item.id, type, item);
+      e.target.classList.toggle('checked');
+      e.target.textContent = e.target.classList.contains('checked') ? '✓' : '';
+    });
+
+    container.appendChild(row);
   });
 }
 
-// Navegação direta acionada por clique em backlinks ou lista
-window.loadZettelById = function(id) {
-  const zettel = store.zettels.find(z => z.id === id);
-  if(!zettel) return;
+// ==================== RENDERIZADOR DAS ABAS E INTERFACES ====================
+function injectSearchInterface(placeholderText, searchAction) {
+  const container = document.getElementById('mainContent');
+  container.innerHTML = `
+    <div class="search-area">
+      <input type="text" id="queryInput" class="search-input" placeholder="${placeholderText}" aria-label="Campo de busca">
+      <button id="executeSearchBtn" class="search-btn">Buscar</button>
+    </div>
+    <div class="results-grid" id="verticalGrid"></div>
+  `;
 
-  document.getElementById('subtab-create').click();
-  document.getElementById('zettelTitle').value = zettel.title;
+  const input = document.getElementById('queryInput');
+  const btn = document.getElementById('executeSearchBtn');
+  const grid = document.getElementById('verticalGrid');
+
+  grid.innerHTML = '<div class="no-results">Pronto para buscar registros...</div>';
+
+  const triggerSearch = async () => {
+    const q = input.value.trim();
+    if (!q) return;
+    btn.textContent = 'Buscando...';
+    const results = await searchAction(q);
+    store[store.currentTab] = results;
+    renderVirtualGrid(grid, results, store.currentTab);
+    btn.textContent = 'Buscar';
+  };
+
+  btn.addEventListener('click', triggerSearch);
+  input.addEventListener('keypress', (e) => { if(e.key === 'Enter') triggerSearch(); });
+}
+
+async function renderSummaryTab() {
+  const container = document.getElementById('mainContent');
+  container.innerHTML = '<div class="no-results">Carregando histórico de leituras...</div>';
   
-  const tx = document.getElementById('zettelRawContent');
-  tx.value = zettel.content;
-  document.getElementById('zettelLivePreview').innerHTML = parseMarkdown(zettel.content);
-
-  // Carrega Backlinks na UI
-  const blContainer = document.getElementById('zettelBacklinksContainer');
-  blContainer.innerHTML = '';
-  const incomingLinks = store.backlinks.get(zettel.id);
-
-  if (incomingLinks && incomingLinks.size > 0) {
-    incomingLinks.forEach(sourceId => {
-      const sourceZettel = store.zettels.find(z => z.id === sourceId);
-      if (sourceZettel) {
-        const btn = document.createElement('button');
-        btn.className = 'backlink-item';
-        btn.textContent = sourceZettel.title;
-        btn.setAttribute('aria-label', `Nota de origem: ${sourceZettel.title}`);
-        btn.onclick = () => loadZettelById(sourceId);
-        blContainer.appendChild(btn);
-      }
-    });
-  } else {
-    blContainer.innerHTML = '<span class="card-meta">Nenhuma nota aponta para este zettel.</span>';
-  }
-};
-
-// ==================== INICIALIZADOR DE AMBIENTE INTERNO ====================
-document.addEventListener('DOMContentLoaded', async () => {
-  await initDB();
-  
-  // Mock ou carregamento de banco real
-  const tx = store.db.transaction(['zettels'], 'readonly');
-  store.zettels = await new Promise(res => tx.objectStore('zettels').getAll().onsuccess = e => res(e.target.result || []));
-  rebuildAllBacklinks();
-
-  // Gerenciamento de Abas Principais
-  const tabs = document.querySelectorAll('.main-tab');
-  tabs.forEach(tab => {
-    tab.addEventListener('click', (e) => {
-      tabs.forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
-      tab.classList.add('active');
-      tab.setAttribute('aria-selected', 'true');
-      
-      const target = tab.getAttribute('data-main');
-      if (target === 'brain') {
-        injectMindForgeModule();
-      } else {
-        document.getElementById('mainContent').innerHTML = `<div class="no-results">Painel de ${target} carregado. Pronto para buscas.</div>`;
-      }
-    });
+  const allLogs = await new Promise((resolve) => {
+    const tx = store.db.transaction(['reading_log'], 'readonly');
+    tx.objectStore('reading_log').getAll().onsuccess = (e) => resolve(e.target.result || []);
   });
 
-  // Carrega módulo inicial default
-  injectMindForgeModule();
+  if(!allLogs.length) {
+    container.innerHTML = '<div class="no-results">📚 Você ainda não marcou nenhum registro como lido.</div>';
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="summary-section">
+      <h3 class="summary-title">📄 Artigos Lidos</h3>
+      <div class="results-grid" id="summary-articles"></div>
+    </div>
+    <div class="summary-section" style="margin-top:20px;">
+      <h3 class="summary-title">📚 Livros Lidos</h3>
+      <div class="results-grid" id="summary-books"></div>
+    </div>
+    <div class="summary-section" style="margin-top:20px;">
+      <h3 class="summary-title">🔬 Pesquisas Lidas</h3>
+      <div class="results-grid" id="summary-research"></div>
+    </div>
+  `;
+
+  const types = { articles: 'summary-articles', books: 'summary-books', research: 'summary-research' };
+  
+  Object.keys(types).forEach(type => {
+    const sectionGrid = document.getElementById(types[type]);
+    const filteredLogs = allLogs.filter(l => l.type === type);
+    
+    if(!filteredLogs.length) {
+      sectionGrid.innerHTML = '<div class="no-results" style="padding:15px;">Nenhum item marcado nesta categoria.</div>';
+    } else {
+      filteredLogs.forEach(item => {
+        const row = document.createElement('div');
+        row.innerHTML = `
+          <div class="result-card" style="border-color: rgba(123,44,191,0.2)">
+            <div class="card-content">
+              <a href="${sanitizeUrl(item.url)}" target="_blank" class="card-title">${escapeHtml(item.title)}</a>
+              <div class="card-meta">Por: ${escapeHtml(item.authors ? item.authors.join(', ') : 'Desconhecido')}</div>
+            </div>
+          </div>
+        `;
+        sectionGrid.appendChild(row);
+      });
+    }
+  });
+}
+
+// ==================== INICIALIZADOR DE NAVEGAÇÃO ====================
+document.addEventListener('DOMContentLoaded', async () => {
+  await initDB();
+  await loadReadingLog();
+
+  const tabs = document.querySelectorAll('.main-tab');
+  
+  const switchTab = (tab) => {
+    tabs.forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+    tab.classList.add('active');
+    tab.setAttribute('aria-selected', 'true');
+    
+    store.currentTab = tab.getAttribute('data-main');
+    
+    if (store.currentTab === 'articles') {
+      injectSearchInterface('Buscar artigos científicos no OpenAlex...', async (q) => searchOpenAlex(q, false));
+    } else if (store.currentTab === 'books') {
+      injectSearchInterface('Buscar livros no Google Books...', searchGoogleBooks);
+    } else if (store.currentTab === 'research') {
+      injectSearchInterface('Buscar relatórios e pesquisas acadêmicas...', async (q) => searchOpenAlex(q, true));
+    } else if (store.currentTab === 'summary') {
+      renderSummaryTab();
+    }
+  };
+
+  tabs.forEach(tab => tab.addEventListener('click', () => switchTab(tab)));
+  
+  // Forçar gatilho inicial na aba correta e limpa
+  switchTab(tabs[0]);
 });
