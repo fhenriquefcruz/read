@@ -6,7 +6,6 @@ const store = {
   db: null
 };
 
-// ==================== SANITIZAÇÃO CONTRA XSS ====================
 function escapeHtml(str) {
   if (!str) return '';
   return String(str).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#039;" }[m]));
@@ -27,7 +26,7 @@ function stableHash(str) {
 // ==================== CONEXÃO INDEXEDDB ORIGINAL ====================
 async function openDB() {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open('ReadPlusDB', 12); // Preservando estritamente a versão 12 original
+    const req = indexedDB.open('ReadPlusDB', 12);
     req.onupgradeneeded = (e) => {
       const db = e.target.result;
       const stores = ['articles','books','research','notes','collections','tags','favorites','reading_log','study_log','radar','settings','zettels','backlinks'];
@@ -64,11 +63,10 @@ async function loadInitialReadingLog() {
   });
 }
 
-// ==================== APIS DE BUSCA ATUALIZADAS ====================
+// ==================== ENGINE DE BUSCA RECALIBRADO ====================
 async function fetchOpenAlex(query, type = 'article') {
-  let filter = 'open_access.is_oa:true';
-  // CORREÇÃO PONTO 3: Ajustado o filtro para relatórios e teses de formato válido no OpenAlex
-  if (type === 'research') filter += ',type:report|thesis';
+  // AJUSTE PONTO 3: Forçando filtro de Open Access completo e presença obrigatória de PDF grátis
+  let filter = 'open_access.is_oa:true,has_pdf:true';
   
   const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=${filter}&sort=relevance_score:desc&per-page=20`;
   
@@ -79,10 +77,10 @@ async function fetchOpenAlex(query, type = 'article') {
     return (data.results || []).map(w => ({
       id: stableHash(w.id || w.title),
       title: w.title || 'Sem título',
-      authors: w.authorships?.map(a => a.author.display_name) || ['Autor desconhecido'],
-      abstract: w.abstract || (w.abstract_inverted_index ? Object.entries(w.abstract_inverted_index).sort((a,b)=>a[1][0]-b[1][0]).map(([w])=>w).join(' ') : 'Resumo e dados de análise indisponíveis para este registro.'),
+      authors: w.authorships?.map(a => a.author.display_name) || ['Autor não identificado'],
+      abstract: w.abstract || (w.abstract_inverted_index ? Object.entries(w.abstract_inverted_index).sort((a,b)=>a[1][0]-b[1][0]).map(([w])=>w).join(' ') : 'Resumo e dados estruturais indisponíveis para consulta direta.'),
       url: w.open_access?.oa_url || w.best_oa_location?.pdf_url || w.id,
-      source: type === 'research' ? 'Pesquisa Institucional' : 'Artigo Científico'
+      source: type === 'research' ? 'Estudo & Pesquisa Livre (PDF)' : 'Artigo Científico Disponível'
     }));
   } catch (e) {
     console.error(e); return [];
@@ -101,7 +99,7 @@ async function fetchBooks(query) {
         id: item.id,
         title: item.volumeInfo.title || 'Sem título',
         authors: item.volumeInfo.authors || ['Autor não informado'],
-        abstract: item.volumeInfo.description || 'Sinopse e descrição indisponíveis no momento.',
+        abstract: item.volumeInfo.description || 'Sinopse e metadados indisponíveis no momento.',
         url: item.volumeInfo.previewLink || item.volumeInfo.infoLink || '#',
         source: 'Google Books Library'
       }));
@@ -116,7 +114,7 @@ async function fetchBooks(query) {
         id: stableHash(w.id || w.title),
         title: w.title || 'Sem título',
         authors: w.authorships?.map(a => a.author.display_name) || [],
-        abstract: w.abstract || 'Descrição do volume indisponível no acervo alternativo.',
+        abstract: w.abstract || 'Descrição textual indisponível no acervo alternativo.',
         url: w.id,
         source: 'OpenAlex Backup Books'
       }));
@@ -124,11 +122,11 @@ async function fetchBooks(query) {
   }
 }
 
-// ==================== RENDIMENTO GRÁFICO PROFISSIONAL ====================
+// ==================== RENDERIZADOR PROFISSIONAL DE LAYOUT ====================
 function renderItemsGrid(container, items, type) {
   container.innerHTML = '';
   if (!items.length) {
-    container.innerHTML = '<div class="no-results">Nenhum registro encontrado para os parâmetros informados.</div>';
+    container.innerHTML = '<div class="no-results">Nenhum estudo ou PDF gratuito foi localizado para este termo.</div>';
     return;
   }
 
@@ -143,7 +141,7 @@ function renderItemsGrid(container, items, type) {
         <div class="checkbox ${isRead ? 'checked' : ''}" data-id="${escapeHtml(item.id)}">${isRead ? '✓' : ''}</div>
         <div class="card-content">
           <a href="${sanitizeUrl(item.url)}" target="_blank" class="card-title">${escapeHtml(item.title)}</a>
-          <div class="card-meta">${escapeHtml(item.source)} // PRODUTOR: ${escapeHtml(item.authors.join(', '))}</div>
+          <div class="card-meta">${escapeHtml(item.source)} // RESPONSÁVEL: ${escapeHtml(item.authors.join(', '))}</div>
           <div class="card-abstract">${escapeHtml(item.abstract)}</div>
         </div>
       </div>
@@ -160,7 +158,6 @@ function renderItemsGrid(container, items, type) {
   });
 }
 
-// ==================== CONTROLE DE INTERFACE DINÂMICA ====================
 function injectSearchTab(placeholder, searchCallback, currentStoreType) {
   const container = document.getElementById('mainContent');
   container.innerHTML = `
@@ -178,7 +175,7 @@ function injectSearchTab(placeholder, searchCallback, currentStoreType) {
   if(store[currentStoreType] && store[currentStoreType].length > 0) {
     renderItemsGrid(grid, store[currentStoreType], currentStoreType.replace(/s$/, ''));
   } else {
-    grid.innerHTML = '<div class="no-results">Aguardando termo para processamento cognitivo...</div>';
+    grid.innerHTML = '<div class="no-results">Digite a palavra-chave para iniciar o escaneamento cognitivo...</div>';
   }
 
   const exec = async () => {
@@ -197,19 +194,19 @@ function injectSearchTab(placeholder, searchCallback, currentStoreType) {
 
 async function renderSummaryTab() {
   const container = document.getElementById('mainContent');
-  container.innerHTML = '<div class="no-results">Processando sinapses e leituras...</div>';
+  container.innerHTML = '<div class="no-results">Sincronizando banco de leituras assimiladas...</div>';
 
   const tx = store.db.transaction(['reading_log'], 'readonly');
   const allLogs = await new Promise(res => tx.objectStore('reading_log').getAll().onsuccess = e => res(e.target.result || []));
 
   if (!allLogs.length) {
-    container.innerHTML = '<div class="no-results">Nenhum registro foi assimilado na memória permanente ainda.</div>';
+    container.innerHTML = '<div class="no-results">Nenhum material foi arquivado na aba de leitura ainda.</div>';
     return;
   }
 
   container.innerHTML = `
     <div class="summary-section">
-      <h3 class="summary-title">Artigos Integrados (${store.read.article.size})</h3>
+      <h3 class="summary-title">Artigos Lidos (${store.read.article.size})</h3>
       <div class="results-grid" id="sum-article"></div>
     </div>
     <div class="summary-section" style="margin-top: 24px;">
@@ -237,8 +234,8 @@ async function renderSummaryTab() {
         row.innerHTML = `
           <div class="result-card" style="border-color: rgba(0, 212, 255, 0.08)">
             <div class="card-content">
-              <span class="card-title" style="font-size:1.05rem;">${escapeHtml(log.title || 'Registro sem identificador textual')}</span>
-              <div class="card-meta">Index: ${escapeHtml(log.id)} · Data de Absorção: ${new Date(log.date).toLocaleDateString()}</div>
+              <span class="card-title" style="font-size:1.05rem;">${escapeHtml(log.title || 'Material Sem Identificação')}</span>
+              <div class="card-meta">Indexador: ${escapeHtml(log.id)} · Absorvido em: ${new Date(log.date).toLocaleDateString()}</div>
             </div>
           </div>
         `;
@@ -263,11 +260,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     store.currentTab = activeTab.getAttribute('data-main');
     
     if (store.currentTab === 'articles') {
-      injectSearchTab('Mapear artigos científicos no OpenAlex...', async (q) => fetchOpenAlex(q, 'article'), 'articles');
+      injectSearchTab('Buscar artigos acadêmicos no OpenAlex...', async (q) => fetchOpenAlex(q, 'article'), 'articles');
     } else if (store.currentTab === 'books') {
-      injectSearchTab('Localizar volumes no Google Books...', fetchBooks, 'books');
+      injectSearchTab('Localizar publicações no Google Books...', fetchBooks, 'books');
     } else if (store.currentTab === 'research') {
-      injectSearchTab('Efetuar varredura em relatórios institucionais...', async (q) => fetchOpenAlex(q, 'research'), 'research');
+      injectSearchTab('Buscar pesquisas e estudos científicos gratuitos em PDF...', async (q) => fetchOpenAlex(q, 'research'), 'research');
     } else if (store.currentTab === 'summary') {
       renderSummaryTab();
     }
