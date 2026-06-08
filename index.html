@@ -1,168 +1,282 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
-  <meta name="theme-color" content="#05070f">
-  <title>Read+ · Mind Forge</title>
-  <link rel="manifest" href="./manifest.json">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    /* ========== ESTILOS BASE ========== */
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    :root {
-      --bg-dark: #05070f;
-      --bg-card: rgba(12, 18, 28, 0.65);
-      --glow-primary: #00d4ff;
-      --glow-secondary: #7b2cbf;
-      --accent: #00d4ff;
-      --text-primary: #f0f3fa;
-      --text-secondary: #9aa4bf;
-      --border-light: rgba(0, 212, 255, 0.2);
-      --shadow-neon: 0 0 12px rgba(0,212,255,0.3);
+// ==================== ESTADO E ARMAZENAMENTO ====================
+const store = {
+  articles: [], books: [], research: [],
+  read: { articles: new Set(), books: new Set(), research: new Set() },
+  currentTab: 'articles',
+  db: null
+};
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/[&<>"']/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;' }[m]));
+}
+
+function sanitizeUrl(url) {
+  if (!url || typeof url !== 'string') return '#';
+  return (url.trim().startsWith('http://') || url.trim().startsWith('https://')) ? url.trim() : '#';
+}
+
+function stableHash(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = ((h << 5) - h) + str.charCodeAt(i) | 0;
+  return Math.abs(h).toString(36);
+}
+
+// ==================== UNIFICAÇÃO DO INDEXEDDB ====================
+async function initDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('ReadPlusDB', 14); // Nova versão limpa
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      // Mantemos apenas as tabelas essenciais de registros e log de leitura
+      const stores = ['articles', 'books', 'research', 'reading_log'];
+      stores.forEach(s => {
+        if (!db.objectStoreNames.contains(s)) db.createObjectStore(s, { keyPath: 'id' });
+      });
+    };
+    req.onsuccess = (e) => { store.db = e.target.result; resolve(); };
+    req.onerror = (e) => reject(e.target.error);
+  });
+}
+
+async function saveItemToDB(storeName, item) {
+  const tx = store.db.transaction([storeName], 'readwrite');
+  tx.objectStore(storeName).put(item);
+}
+
+async function toggleReadStatus(id, type, itemData) {
+  const readSet = store.read[type];
+  const tx = store.db.transaction(['reading_log', type], 'readwrite');
+  
+  if (readSet.has(id)) {
+    readSet.delete(id);
+    tx.objectStore('reading_log').delete(id);
+  } else {
+    readSet.add(id);
+    tx.objectStore('reading_log').put({ id, type, date: new Date().toISOString(), title: itemData.title, url: itemData.url, authors: itemData.authors });
+    tx.objectStore(type).put(itemData);
+  }
+  
+  return new Promise(res => tx.oncomplete = () => res());
+}
+
+async function loadReadingLog() {
+  return new Promise((resolve) => {
+    const tx = store.db.transaction(['reading_log'], 'readonly');
+    tx.objectStore('reading_log').getAll().onsuccess = (e) => {
+      store.read.articles.clear(); store.read.books.clear(); store.read.research.clear();
+      const logs = e.target.result || [];
+      logs.forEach(log => {
+        if (store.read[log.type]) store.read[log.type].add(log.id);
+      });
+      resolve(logs);
+    };
+  });
+}
+
+// ==================== MOTORES DE BUSCA INDEPENDENTES ====================
+async function searchOpenAlex(query, isResearch = false) {
+  let filter = 'open_access.is_oa:true';
+  if (isResearch) filter += ',type:article,type:report';
+  const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=${filter}&sort=relevance_score:desc&per-page=20`;
+  
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    return (data.results || []).map(w => ({
+      id: stableHash(w.id || w.title),
+      title: w.title || 'Sem título',
+      authors: w.authorships?.map(a => a.author.display_name) || ['Autor desconhecido'],
+      abstract: w.abstract || (w.abstract_inverted_index ? Object.entries(w.abstract_inverted_index).sort((a,b)=>a[1][0]-b[1][0]).map(([w])=>w).join(' ') : 'Resumo indisponível'),
+      url: w.open_access?.oa_url || w.best_oa_location?.pdf_url || '#',
+      source: isResearch ? 'OpenAlex Research' : 'OpenAlex Articles'
+    }));
+  } catch (e) {
+    console.error(e); return [];
+  }
+}
+
+async function searchGoogleBooks(query) {
+  const proxyUrl = 'https://corsproxy.io/?';
+  const directUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20&printType=books`;
+  try {
+    const res = await fetch(proxyUrl + encodeURIComponent(directUrl));
+    const data = await res.json();
+    if (data.items) {
+      return data.items.map(item => ({
+        id: item.id,
+        title: item.volumeInfo.title || 'Sem título',
+        authors: item.volumeInfo.authors || ['Autor não informado'],
+        abstract: item.volumeInfo.description || 'Sinopse indisponível',
+        url: item.volumeInfo.previewLink || item.volumeInfo.infoLink || '#',
+        source: 'Google Books'
+      }));
     }
-    body {
-      font-family: 'Inter', sans-serif;
-      background: radial-gradient(circle at 10% 20%, #0a0f1c, #02040c);
-      color: var(--text-primary);
-      min-height: 100vh;
-      padding: 20px;
-    }
-    body::before {
-      content: "";
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background-image: linear-gradient(var(--border-light) 1px, transparent 1px),
-                        linear-gradient(90deg, var(--border-light) 1px, transparent 1px);
-      background-size: 40px 40px;
-      pointer-events: none;
-      opacity: 0.2;
-      z-index: 0;
-    }
-    .container { max-width: 1400px; margin: 0 auto; position: relative; z-index: 2; }
-    .header { text-align: center; margin-bottom: 40px; }
-    .logo-wrapper { display: inline-block; position: relative; }
-    .logo {
-      font-size: 4.2rem; font-weight: 800; letter-spacing: -3px;
-      background: linear-gradient(135deg, #fff 0%, var(--glow-primary) 40%, var(--glow-secondary) 80%);
-      background-clip: text; color: transparent;
-      text-shadow: 0 0 30px rgba(0,212,255,0.3);
-      display: inline-block;
-      animation: float 4s ease-in-out infinite;
-    }
-    @keyframes float { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-5px); } }
-    .logo span { font-size: 1.2rem; vertical-align: super; background: linear-gradient(135deg, var(--glow-primary), var(--glow-secondary)); background-clip: text; color: transparent; font-weight: 700; margin-left: 4px; }
-    .tagline { font-size: 0.85rem; letter-spacing: 2px; text-transform: uppercase; background: linear-gradient(90deg, var(--text-secondary), var(--glow-primary), var(--text-secondary)); background-clip: text; color: transparent; margin-top: 12px; font-weight: 400; }
-    .description { max-width: 650px; margin: 16px auto 0; font-size: 0.85rem; line-height: 1.5; color: var(--text-secondary); background: rgba(0,0,0,0.3); backdrop-filter: blur(8px); border-radius: 60px; padding: 10px 24px; border: 1px solid var(--border-light); }
+    throw new Error();
+  } catch {
+    // Fallback limpo para OpenAlex se der CORS
+    const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=type:book&per-page=20`;
+    const res = await fetch(url);
+    const data = await res.json();
+    return (data.results || []).map(w => ({
+      id: stableHash(w.id || w.title),
+      title: w.title || 'Sem título',
+      authors: w.authorships?.map(a => a.author.display_name) || [],
+      abstract: w.abstract || 'Sinopse indisponível',
+      url: w.id,
+      source: 'OpenAlex Books Fallback'
+    }));
+  }
+}
+
+// ==================== ENGINE DE VIRTUALIZAÇÃO NATIVA PERFEITA ====================
+function renderVirtualGrid(container, items, type) {
+  container.innerHTML = '';
+  if (!items.length) {
+    container.innerHTML = '<div class="no-results">🔍 Nenhum resultado encontrado. Escreva algo acima e busque.</div>';
+    return;
+  }
+
+  items.forEach((item) => {
+    const row = document.createElement('div');
+    row.style.contentVisibility = 'auto';
+    row.style.containIntrinsicSize = '140px';
     
-    .main-tabs {
-      display: flex; justify-content: center; gap: 20px; margin-bottom: 28px;
-      border-bottom: 1px solid var(--border-light); padding-bottom: 8px; flex-wrap: wrap;
-    }
-    .main-tab {
-      background: none; border: 1px solid transparent; font-size: 1.1rem; font-weight: 600;
-      padding: 10px 24px; border-radius: 60px; cursor: pointer;
-      color: var(--text-secondary); transition: all 0.3s; backdrop-filter: blur(4px);
-    }
-    .main-tab.active {
-      background: linear-gradient(135deg, rgba(0,212,255,0.2), rgba(123,44,191,0.2));
-      color: var(--glow-primary); box-shadow: var(--shadow-neon); border: 1px solid var(--glow-primary);
-    }
-    .main-tab:focus-visible { outline: 2px solid var(--glow-primary); outline-offset: 4px; }
+    const isChecked = store.read[type].has(item.id);
     
-    .glass-card {
-      background: var(--bg-card); backdrop-filter: blur(16px); border-radius: 2rem;
-      border: 1px solid var(--border-light); padding: 24px 28px;
-      box-shadow: 0 20px 35px -10px rgba(0,0,0,0.5);
-    }
+    row.innerHTML = `
+      <div class="result-card">
+        <div class="checkbox ${isChecked ? 'checked' : ''}" data-id="${escapeHtml(item.id)}">${isChecked ? '✓' : ''}</div>
+        <div class="card-content">
+          <a href="${sanitizeUrl(item.url)}" target="_blank" class="card-title">${escapeHtml(item.title)}</a>
+          <div class="card-meta">Por: ${escapeHtml(item.authors.join(', '))} | Fonte: ${escapeHtml(item.source)}</div>
+          <div class="card-abstract">${escapeHtml(item.abstract)}</div>
+        </div>
+      </div>
+    `;
 
-    /* VIRTUALIZATION ENGINE STORAGE */
-    .results-grid {
-      display: flex; flex-direction: column; gap: 14px;
-      max-height: 600px; overflow-y: auto; padding-right: 8px;
-      position: relative; content-visibility: auto;
-    }
-    .result-card {
-      background: rgba(0,0,0,0.35); backdrop-filter: blur(8px); border-radius: 24px; padding: 16px;
-      transition: all 0.2s; border: 1px solid rgba(0,212,255,0.2); display: flex; gap: 14px; align-items: flex-start;
-      min-height: 120px;
-    }
-    .result-card:hover { transform: translateX(4px); border-color: var(--glow-primary); }
+    row.querySelector('.checkbox').addEventListener('click', async (e) => {
+      await toggleReadStatus(item.id, type, item);
+      e.target.classList.toggle('checked');
+      e.target.textContent = e.target.classList.contains('checked') ? '✓' : '';
+    });
+
+    container.appendChild(row);
+  });
+}
+
+// ==================== RENDERIZADOR DAS ABAS E INTERFACES ====================
+function injectSearchInterface(placeholderText, searchAction) {
+  const container = document.getElementById('mainContent');
+  container.innerHTML = `
+    <div class="search-area">
+      <input type="text" id="queryInput" class="search-input" placeholder="${placeholderText}" aria-label="Campo de busca">
+      <button id="executeSearchBtn" class="search-btn">Buscar</button>
+    </div>
+    <div class="results-grid" id="verticalGrid"></div>
+  `;
+
+  const input = document.getElementById('queryInput');
+  const btn = document.getElementById('executeSearchBtn');
+  const grid = document.getElementById('verticalGrid');
+
+  grid.innerHTML = '<div class="no-results">Pronto para buscar registros...</div>';
+
+  const triggerSearch = async () => {
+    const q = input.value.trim();
+    if (!q) return;
+    btn.textContent = 'Buscando...';
+    const results = await searchAction(q);
+    store[store.currentTab] = results;
+    renderVirtualGrid(grid, results, store.currentTab);
+    btn.textContent = 'Buscar';
+  };
+
+  btn.addEventListener('click', triggerSearch);
+  input.addEventListener('keypress', (e) => { if(e.key === 'Enter') triggerSearch(); });
+}
+
+async function renderSummaryTab() {
+  const container = document.getElementById('mainContent');
+  container.innerHTML = '<div class="no-results">Carregando histórico de leituras...</div>';
+  
+  const allLogs = await new Promise((resolve) => {
+    const tx = store.db.transaction(['reading_log'], 'readonly');
+    tx.objectStore('reading_log').getAll().onsuccess = (e) => resolve(e.target.result || []);
+  });
+
+  if(!allLogs.length) {
+    container.innerHTML = '<div class="no-results">📚 Você ainda não marcou nenhum registro como lido.</div>';
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="summary-section">
+      <h3 class="summary-title">📄 Artigos Lidos</h3>
+      <div class="results-grid" id="summary-articles"></div>
+    </div>
+    <div class="summary-section" style="margin-top:20px;">
+      <h3 class="summary-title">📚 Livros Lidos</h3>
+      <div class="results-grid" id="summary-books"></div>
+    </div>
+    <div class="summary-section" style="margin-top:20px;">
+      <h3 class="summary-title">🔬 Pesquisas Lidas</h3>
+      <div class="results-grid" id="summary-research"></div>
+    </div>
+  `;
+
+  const types = { articles: 'summary-articles', books: 'summary-books', research: 'summary-research' };
+  
+  Object.keys(types).forEach(type => {
+    const sectionGrid = document.getElementById(types[type]);
+    const filteredLogs = allLogs.filter(l => l.type === type);
     
-    /* INTERFACE EDITOR & INTERFACES */
-    .zettel-editor-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px; }
-    .zettel-textarea { width: 100%; min-height: 250px; background: rgba(0,0,0,0.5); border: 1px solid var(--border-light); border-radius: 14px; padding: 14px; color: white; font-family: monospace; resize: vertical; }
-    .zettel-textarea:focus { border-color: var(--glow-primary); outline: none; }
-    .zettel-preview { background: rgba(255,255,255,0.02); border: 1px dashed var(--border-light); border-radius: 14px; padding: 14px; overflow-y: auto; max-height: 350px; }
-    .backlinks-container { margin-top: 20px; padding-top: 15px; border-top: 1px dashed var(--border-light); }
-    .backlink-item { display: inline-block; background: rgba(123,44,191,0.25); border: 1px solid var(--glow-secondary); padding: 6px 12px; border-radius: 20px; margin: 4px; font-size: 0.8rem; cursor: pointer; color: #fff; transition: 0.2s; }
-    .backlink-item:hover { background: var(--glow-secondary); }
+    if(!filteredLogs.length) {
+      sectionGrid.innerHTML = '<div class="no-results" style="padding:15px;">Nenhum item marcado nesta categoria.</div>';
+    } else {
+      filteredLogs.forEach(item => {
+        const row = document.createElement('div');
+        row.innerHTML = `
+          <div class="result-card" style="border-color: rgba(123,44,191,0.2)">
+            <div class="card-content">
+              <a href="${sanitizeUrl(item.url)}" target="_blank" class="card-title">${escapeHtml(item.title)}</a>
+              <div class="card-meta">Por: ${escapeHtml(item.authors ? item.authors.join(', ') : 'Desconhecido')}</div>
+            </div>
+          </div>
+        `;
+        sectionGrid.appendChild(row);
+      });
+    }
+  });
+}
+
+// ==================== INICIALIZADOR DE NAVEGAÇÃO ====================
+document.addEventListener('DOMContentLoaded', async () => {
+  await initDB();
+  await loadReadingLog();
+
+  const tabs = document.querySelectorAll('.main-tab');
+  
+  const switchTab = (tab) => {
+    tabs.forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+    tab.classList.add('active');
+    tab.setAttribute('aria-selected', 'true');
     
-    /* COMPONENTES PADRÕES */
-    .search-area { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
-    .search-input { flex: 1; padding: 12px 20px; border-radius: 60px; border: 1px solid var(--border-light); background: rgba(0,0,0,0.4); color: white; font-size: 0.95rem; }
-    .search-btn { background: linear-gradient(135deg, var(--glow-primary), var(--glow-secondary)); border: none; padding: 10px 28px; border-radius: 60px; font-weight: 700; color: white; cursor: pointer; transition: transform 0.2s; }
-    .search-btn:hover { transform: scale(1.02); }
-    .checkbox { width: 22px; height: 22px; background: rgba(255,255,255,0.1); border: 2px solid var(--glow-primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-    .checkbox.checked { background: var(--glow-primary); color: black; }
-    .card-content { flex: 1; }
-    .card-title { font-size: 1rem; font-weight: 700; color: var(--glow-primary); text-decoration: none; }
-    .card-meta { font-size: 0.7rem; color: var(--text-secondary); margin: 4px 0; }
-    .card-abstract { font-size: 0.8rem; margin: 6px 0; opacity: 0.9; line-height: 1.4; }
-    .action-btn { display: inline-flex; align-items: center; gap: 4px; background: rgba(0,212,255,0.2); padding: 4px 10px; border-radius: 30px; border: none; color: white; cursor: pointer; font-size: 0.65rem; margin-right: 6px; }
-    .action-btn:hover { background: var(--glow-primary); color: #02040c; }
-    .badge { background: linear-gradient(135deg, #00d4ff, #7b2cbf); border-radius: 30px; padding: 3px 10px; font-size: 0.65rem; display: inline-block; margin: 2px; cursor: pointer; }
-    .no-results { text-align: center; padding: 40px; color: var(--text-secondary); }
-    .footer { text-align: center; margin-top: 24px; font-size: 0.65rem; color: var(--text-secondary); }
+    store.currentTab = tab.getAttribute('data-main');
     
-    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(12px); z-index: 10000; align-items: center; justify-content: center; }
-    .modal-content { background: var(--bg-card); backdrop-filter: blur(16px); border-radius: 32px; padding: 24px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; border: 1px solid var(--border-light); }
-    .modal-content .close { float: right; font-size: 24px; cursor: pointer; }
+    if (store.currentTab === 'articles') {
+      injectSearchInterface('Buscar artigos científicos no OpenAlex...', async (q) => searchOpenAlex(q, false));
+    } else if (store.currentTab === 'books') {
+      injectSearchInterface('Buscar livros no Google Books...', searchGoogleBooks);
+    } else if (store.currentTab === 'research') {
+      injectSearchInterface('Buscar relatórios e pesquisas acadêmicas...', async (q) => searchOpenAlex(q, true));
+    } else if (store.currentTab === 'summary') {
+      renderSummaryTab();
+    }
+  };
 
-    .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 20px; opacity: 0; visibility: hidden; transition: all 0.3s ease; }
-    .loading-overlay.active { opacity: 1; visibility: visible; }
-    .loading-spinner { width: 50px; height: 50px; border: 3px solid rgba(0,212,255,0.2); border-top-color: var(--glow-primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { font-size: 0.9rem; color: white; letter-spacing: 2px; }
-  </style>
-</head>
-<body>
-<div class="container">
-  <header class="header" role="banner">
-    <div class="logo-wrapper"><div class="logo" id="logoApp">Read<span>+</span></div></div>
-    <div class="tagline">forge your second brain</div>
-    <div class="description">Conecte artigos, livros e ideias. Construa seu conhecimento com Zettelkasten e backlinks.</div>
-  </header>
-
-  <nav class="main-tabs" role="tablist" aria-label="Navegação Principal do Sistema">
-    <button class="main-tab active" data-main="articles" role="tab" aria-selected="true" id="tab-articles">📄 Artigos</button>
-    <button class="main-tab" data-main="books" role="tab" aria-selected="false" id="tab-books">📚 Livros</button>
-    <button class="main-tab" data-main="research" role="tab" aria-selected="false" id="tab-research">🔬 Pesquisas</button>
-    <button class="main-tab" data-main="brain" role="tab" aria-selected="false" id="tab-brain">🧠 Mind Forge</button>
-  </nav>
-
-  <main class="glass-card" id="mainContent" role="main"></main>
-  <footer class="footer" role="contentinfo">🔎 Fontes: OpenAlex · Google Books · IndexedDB · Backlinks</footer>
-</div>
-
-<div id="collectionModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="collectionModalTitle">
-  <div class="modal-content">
-    <span class="close" aria-label="Fechar Modal" tabindex="0">&times;</span>
-    <h3 id="collectionModalTitle">📂 Coleções</h3>
-    <div id="collectionList"></div>
-    <input type="text" id="newCollectionName" placeholder="Nova coleção" aria-label="Nome da nova coleção">
-    <button id="createCollectionBtn" class="search-btn" style="margin-top:10px;">Criar</button>
-  </div>
-</div>
-
-<div id="loadingOverlay" class="loading-overlay" aria-live="assertive">
-  <div class="loading-spinner"></div>
-  <div class="loading-text">carregando conhecimento...</div>
-</div>
-
-<script src="js/background.js"></script>
-<script src="js/main.js"></script>
-</body>
-</html>
+  tabs.forEach(tab => tab.addEventListener('click', () => switchTab(tab)));
+  
+  // Forçar gatilho inicial na aba correta e limpa
+  switchTab(tabs[0]);
+});
