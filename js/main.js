@@ -288,12 +288,12 @@ function getDemoBooks(query) {
   ];
 }
 
-// ==================== MOTOR DE BUSCA — ARTIGOS ====================
+// ==================== MOTOR DE BUSCA — ARTIGOS (50 resultados) ====================
 async function fetchArticles(query, page, filters) {
   if (page === undefined) page = 1;
   if (filters === undefined) filters = {};
 
-  var perPage = 20;
+  var perPage = 50;
   var url = 'https://api.openalex.org/works?search=' + encodeURIComponent(query) + 
             '&filter=open_access.is_oa:true,type:article&sort=relevance_score:desc&per-page=' + perPage;
 
@@ -370,12 +370,12 @@ async function fetchArticles(query, page, filters) {
   }
 }
 
-// ==================== MOTOR DE BUSCA — PESQUISAS ====================
+// ==================== MOTOR DE BUSCA — PESQUISAS (50 resultados) ====================
 async function fetchResearch(query, page, filters) {
   if (page === undefined) page = 1;
   if (filters === undefined) filters = {};
 
-  var perPage = 20;
+  var perPage = 50;
   var url = 'https://api.openalex.org/works?search=' + encodeURIComponent(query) + 
             '&filter=open_access.is_oa:true,type:research|dissertation|thesis&sort=relevance_score:desc&per-page=' + perPage;
 
@@ -689,7 +689,7 @@ function injectSearchTab(placeholder, searchCallback, storeKey, itemType) {
 
   if (store[storeKey] && store[storeKey].length > 0) {
     renderItemsGrid(grid, store[storeKey], itemType);
-    store.pagination.hasMore = store[storeKey].length >= 20;
+    store.pagination.hasMore = store[storeKey].length >= 50;
   } else {
     grid.innerHTML = '<div class="hint-text">Digite a palavra-chave para iniciar o escaneamento cognitivo...</div>';
   }
@@ -725,7 +725,7 @@ function injectSearchTab(placeholder, searchCallback, storeKey, itemType) {
       renderItemsGrid(grid, store[storeKey], itemType);
       updateProgress(100);
 
-      store.pagination.hasMore = results.length >= 20;
+      store.pagination.hasMore = results.length >= 50;
       var existingBtn = document.getElementById('loadMoreBtn');
       if (existingBtn) existingBtn.remove();
 
@@ -892,18 +892,37 @@ var TAB_ROUTES = {
 function applyTheme(theme) {
   if (theme === 'light') {
     document.body.classList.add('light-theme');
-    document.documentElement.style.setProperty('--bg-dark', '#f5f7fa');
+    document.documentElement.style.setProperty('--bg-dark', '#f0f2f8');
     document.documentElement.style.setProperty('--text-primary', '#1a1a2e');
-    document.documentElement.style.setProperty('--text-secondary', '#4a4a6a');
-    document.documentElement.style.setProperty('--bg-card', 'rgba(255,255,255,0.85)');
-    document.documentElement.style.setProperty('--border-glow', 'rgba(0,0,0,0.08)');
+    document.documentElement.style.setProperty('--text-secondary', '#3d3d5c');
+    document.documentElement.style.setProperty('--text-tertiary', '#6b6b8a');
+    document.documentElement.style.setProperty('--bg-card', 'rgba(255,255,255,0.92)');
+    document.documentElement.style.setProperty('--border-glow', 'rgba(0,0,0,0.06)');
+    document.documentElement.style.setProperty('--bg-surface', '#ffffff');
+    document.documentElement.style.setProperty('--bg-hover', '#e8ecf4');
+    document.documentElement.style.setProperty('--bg-subtle', '#f5f7fc');
+    document.documentElement.style.setProperty('--shadow-color', 'rgba(0,0,0,0.08)');
+    // Cores específicas do card no tema claro
+    document.documentElement.style.setProperty('--card-bg', '#ffffff');
+    document.documentElement.style.setProperty('--card-border', 'rgba(0,0,0,0.06)');
+    document.documentElement.style.setProperty('--meta-color', '#4a4a6a');
+    document.documentElement.style.setProperty('--abstract-color', '#3d3d5c');
   } else {
     document.body.classList.remove('light-theme');
     document.documentElement.style.setProperty('--bg-dark', '#05070f');
     document.documentElement.style.setProperty('--text-primary', '#e8edf5');
     document.documentElement.style.setProperty('--text-secondary', '#6b7a96');
+    document.documentElement.style.setProperty('--text-tertiary', '#4a5a78');
     document.documentElement.style.setProperty('--bg-card', 'rgba(8,14,28,0.85)');
     document.documentElement.style.setProperty('--border-glow', 'rgba(0,212,255,0.12)');
+    document.documentElement.style.setProperty('--bg-surface', '#0d1424');
+    document.documentElement.style.setProperty('--bg-hover', '#1a2236');
+    document.documentElement.style.setProperty('--bg-subtle', '#0a0f1e');
+    document.documentElement.style.setProperty('--shadow-color', 'rgba(0,0,0,0.4)');
+    document.documentElement.style.setProperty('--card-bg', 'rgba(8,14,28,0.85)');
+    document.documentElement.style.setProperty('--card-border', 'rgba(0,212,255,0.08)');
+    document.documentElement.style.setProperty('--meta-color', '#6b7a96');
+    document.documentElement.style.setProperty('--abstract-color', '#8a9ab8');
   }
   localStorage.setItem('read-theme', theme);
 }
@@ -933,7 +952,6 @@ function initSystem() {
   });
   handleTabSwitch(tabs[0]);
 
-  // Inicializar tema
   var savedTheme = localStorage.getItem('read-theme') || 'dark';
   applyTheme(savedTheme);
 
@@ -959,7 +977,7 @@ function initSystem() {
     }
   });
 
-  // BOTÃO DE TEMA (substitui o anterior)
+  // BOTÃO DE TEMA
   var themeBtn = document.createElement('button');
   themeBtn.id = 'themeToggle';
   themeBtn.innerHTML = '🌓';
