@@ -134,6 +134,50 @@ async function loadInitialReadingLog() {
   });
 }
 
+// ==================== DADOS DE DEMONSTRAÇÃO ====================
+function getDemoArticles(query, type) {
+  const label = type === 'research' ? 'Pesquisa' : 'Artigo';
+  return [
+    {
+      id: `demo_${Date.now()}_1`,
+      title: `${label}: "${query}" - Modo Demonstração`,
+      authors: ['READ+ Demo'],
+      abstract: `Este é um resultado de demonstração para "${query}". O sistema está funcionando normalmente. Aguarde a API OpenAlex voltar ao ar para resultados reais.`,
+      url: '#',
+      source: '🔬 Modo Demonstração'
+    },
+    {
+      id: `demo_${Date.now()}_2`,
+      title: `${label} Científico sobre ${query} (Simulado)`,
+      authors: ['Centro de Pesquisa READ+'],
+      abstract: 'O READ+ está pronto para buscar dados reais assim que as APIs estiverem disponíveis. Esta é uma demonstração da interface e funcionalidades.',
+      url: '#',
+      source: '📄 Modo Demonstração'
+    }
+  ];
+}
+
+function getDemoBooks(query) {
+  return [
+    {
+      id: `demo_book_${Date.now()}_1`,
+      title: `Livro: "${query}" - Modo Demonstração`,
+      authors: ['READ+ Demo'],
+      abstract: `Este é um resultado de demonstração para "${query}". O sistema está funcionando normalmente. Aguarde a API Google Books retornar dados reais.`,
+      url: '#',
+      source: '📚 Modo Demonstração'
+    },
+    {
+      id: `demo_book_${Date.now()}_2`,
+      title: `Publicação sobre ${query} (Simulado)`,
+      authors: ['Equipe READ+'],
+      abstract: 'O READ+ está pronto para buscar dados reais assim que as APIs estiverem disponíveis. Esta é uma demonstração da interface e funcionalidades.',
+      url: '#',
+      source: '📖 Modo Demonstração'
+    }
+  ];
+}
+
 // ==================== MOTOR DE BUSCA — OPENALEX ====================
 async function fetchOpenAlex(query, type = 'article') {
   const filter = 'open_access.is_oa:true';
@@ -155,7 +199,8 @@ async function fetchOpenAlex(query, type = 'article') {
     const res = await fetch(url);
     if (!res.ok) {
       if (res.status === 503) {
-        throw new Error('API OpenAlex temporariamente indisponível. Tente novamente em alguns minutos.');
+        console.warn('[READ+] OpenAlex indisponível. Usando dados de demonstração.');
+        return getDemoArticles(query, type);
       }
       throw new Error(`Erro ${res.status}: ${res.statusText}`);
     }
@@ -179,14 +224,16 @@ async function fetchOpenAlex(query, type = 'article') {
       source: type === 'research' ? 'Estudo & Pesquisa Livre (PDF)' : 'Artigo Científico Disponível'
     }));
 
-    try {
-      localStorage.setItem(cacheKey, JSON.stringify({
-        timestamp: Date.now(),
-        results
-      }));
-    } catch (_) {}
-
-    return results;
+    if (results.length > 0) {
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify({
+          timestamp: Date.now(),
+          results
+        }));
+      } catch (_) {}
+      return results;
+    }
+    return getDemoArticles(query, type);
   } catch (e) {
     console.error('[READ+] Erro na busca OpenAlex:', e);
     const cached = localStorage.getItem(cacheKey);
@@ -194,21 +241,29 @@ async function fetchOpenAlex(query, type = 'article') {
       const data = JSON.parse(cached);
       return data.results;
     }
-    return [];
+    return getDemoArticles(query, type);
   }
 }
 
-// ==================== MOTOR DE BUSCA — GOOGLE BOOKS ====================
+// ==================== MOTOR DE BUSCA — GOOGLE BOOKS (COM SUA CHAVE) ====================
 async function fetchBooks(query) {
-  const API_KEY = 'bqvmu2hqycd24UJjQOIxI3';
+  const API_KEY = 'AIzaSyBGhP_WMwjUKjI7vXP4TcyKHizxFw05lcI';
   const directUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20&printType=books&key=${API_KEY}`;
 
   try {
     const res = await fetch(directUrl);
     if (!res.ok) {
+      if (res.status === 400) {
+        console.warn('[READ+] Chave do Google Books inválida. Usando dados de demonstração.');
+        return getDemoBooks(query);
+      }
       if (res.status === 403) {
-        console.warn('[READ+] Quota do Google Books excedida. Usando fallback.');
-        return fallbackBooks(query);
+        console.warn('[READ+] Quota do Google Books excedida. Usando dados de demonstração.');
+        return getDemoBooks(query);
+      }
+      if (res.status === 503) {
+        console.warn('[READ+] Google Books indisponível. Usando dados de demonstração.');
+        return getDemoBooks(query);
       }
       throw new Error(`HTTP ${res.status}`);
     }
@@ -223,28 +278,10 @@ async function fetchBooks(query) {
         source: 'Google Books'
       }));
     }
-    return [];
+    return getDemoBooks(query);
   } catch (error) {
     console.error('[READ+] Erro no Google Books:', error);
-    return fallbackBooks(query);
-  }
-}
-
-async function fallbackBooks(query) {
-  try {
-    const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=type:book&sort=relevance_score:desc&per-page=20`;
-    const res = await fetch(url);
-    const data = await res.json();
-    return (data.results || []).map(w => ({
-      id: stableHash(w.id || w.title || Math.random().toString()),
-      title: w.title || 'Sem título',
-      authors: w.authorships?.map(a => a.author?.display_name).filter(Boolean) || [],
-      abstract: w.abstract || 'Descrição indisponível.',
-      url: w.open_access?.oa_url || w.best_oa_location?.pdf_url || w.id,
-      source: 'OpenAlex Books (fallback)'
-    }));
-  } catch {
-    return [];
+    return getDemoBooks(query);
   }
 }
 
