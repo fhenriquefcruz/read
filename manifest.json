@@ -4,15 +4,15 @@
   "description": "Forge your second brain - Conecte artigos, livros e ideias.",
   "icons": [
     {
-      "src": "./icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
+      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%2300d4ff'><path d='M448 32H64C46.3 32 32 46.3 32 64v384c0 17.7 14.3 32 32 32h384c17.7 0 32-14.3 32-32V64c0-17.7-14.3-32-32-32zm-16 400H80V80h352v352z'/><circle cx='256' cy='256' r='64'/></svg>",
+      "type": "image/svg+xml",
+      "sizes": "512x512",
       "purpose": "any maskable"
     },
     {
-      "src": "./icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
+      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%2300d4ff'><path d='M448 32H64C46.3 32 32 46.3 32 64v384c0 17.7 14.3 32 32 32h384c17.7 0 32-14.3 32-32V64c0-17.7-14.3-32-32-32zm-16 400H80V80h352v352z'/><circle cx='256' cy='256' r='64'/></svg>",
+      "type": "image/svg+xml",
+      "sizes": "192x192",
       "purpose": "any maskable"
     }
   ],
