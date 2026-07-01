@@ -1,12 +1,7 @@
-// ATENÇÃO: Incrementar CACHE_NAME a cada deploy para forçar atualização nos navegadores
-const CACHE_NAME = 'readplus-v4';
+// ATENÇÃO: Incrementar CACHE_NAME a cada deploy
+const CACHE_NAME = 'readplus-v5';
 
-const ASSETS = [
-  './',
-  './index.html',
-  './js/main.js',
-  './js/background.js'
-];
+const ASSETS = ['./', './index.html', './js/main.js', './js/background.js'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
@@ -29,7 +24,6 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
 
-  // APIs externas: nunca em cache, com fallback para offline
   if (
     url.hostname.includes('api.openalex.org') ||
     url.hostname.includes('googleapis.com') ||
@@ -39,7 +33,7 @@ self.addEventListener('fetch', (e) => {
   ) {
     e.respondWith(
       fetch(e.request).catch(() => {
-        return new Response(JSON.stringify({ error: 'Serviço indisponível no momento' }), {
+        return new Response(JSON.stringify({ error: 'Serviço indisponível' }), {
           status: 503,
           headers: { 'Content-Type': 'application/json' }
         });
@@ -48,7 +42,6 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // Assets: cache first
   e.respondWith(
     caches.match(e.request).then(cached => {
       return cached || fetch(e.request).then(response => {
