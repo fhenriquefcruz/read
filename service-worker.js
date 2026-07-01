@@ -1,5 +1,5 @@
-// ATENÇÃO: Incrementar CACHE_NAME a cada deploy
-const CACHE_NAME = 'readplus-v4'; // ← incrementei
+// ATENÇÃO: Incrementar CACHE_NAME a cada deploy para forçar atualização nos navegadores
+const CACHE_NAME = 'readplus-v4';
 
 const ASSETS = [
   './',
@@ -29,7 +29,7 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
 
-  // APIs externas: nunca em cache, mas com fallback para offline
+  // APIs externas: nunca em cache, com fallback para offline
   if (
     url.hostname.includes('api.openalex.org') ||
     url.hostname.includes('googleapis.com') ||
@@ -37,7 +37,6 @@ self.addEventListener('fetch', (e) => {
     url.hostname.includes('fonts.googleapis.com') ||
     url.hostname.includes('fonts.gstatic.com')
   ) {
-    // Para APIs, tenta rede, se falhar retorna erro 503 customizado
     e.respondWith(
       fetch(e.request).catch(() => {
         return new Response(JSON.stringify({ error: 'Serviço indisponível no momento' }), {
