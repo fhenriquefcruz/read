@@ -3,24 +3,56 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#05070f" />
+  <meta name="theme-color" content="#05070f" id="themeColor" />
   <title>READ+ · Mind Forge</title>
   <link rel="manifest" href="./manifest.json" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
   <style>
+    /* ==================== BASE ==================== */
     :root {
       --bg-dark: #05070f;
       --bg-card: rgba(8, 14, 28, 0.85);
+      --bg-surface: #0d1424;
+      --bg-hover: #1a2236;
+      --bg-subtle: #0a0f1e;
       --text-primary: #e8edf5;
       --text-secondary: #6b7a96;
+      --text-tertiary: #4a5a78;
       --glow-primary: #00d4ff;
       --glow-purple: #7b2cbf;
       --accent-neon: #00d4ff;
       --border-glow: rgba(0, 212, 255, 0.12);
+      --border-default: rgba(255, 255, 255, 0.06);
+      --shadow-color: rgba(0, 0, 0, 0.4);
+      --card-bg: rgba(8, 14, 28, 0.85);
+      --card-border: rgba(0, 212, 255, 0.08);
+      --meta-color: #6b7a96;
+      --abstract-color: #8a9ab8;
+      --transition: all 0.3s ease;
     }
 
+    /* ==================== TEMA CLARO (MELHORADO) ==================== */
+    body.light-theme {
+      --bg-dark: #f0f2f8;
+      --bg-card: rgba(255, 255, 255, 0.92);
+      --bg-surface: #ffffff;
+      --bg-hover: #e8ecf4;
+      --bg-subtle: #f5f7fc;
+      --text-primary: #1a1a2e;
+      --text-secondary: #3d3d5c;
+      --text-tertiary: #6b6b8a;
+      --border-glow: rgba(0, 0, 0, 0.06);
+      --border-default: rgba(0, 0, 0, 0.08);
+      --shadow-color: rgba(0, 0, 0, 0.08);
+      --card-bg: #ffffff;
+      --card-border: rgba(0, 0, 0, 0.06);
+      --meta-color: #4a4a6a;
+      --abstract-color: #3d3d5c;
+    }
+
+    /* ==================== RESET ==================== */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
@@ -31,9 +63,10 @@
       padding: clamp(16px, 4vw, 32px);
       overflow-x: hidden;
       position: relative;
+      transition: background var(--transition), color var(--transition);
     }
 
-    /* ── BACKGROUND NEURAL ── */
+    /* ==================== BACKGROUND NEURAL ==================== */
     .neural-network-bg {
       position: fixed;
       top: 0; left: 0; width: 100vw; height: 100vh;
@@ -66,7 +99,7 @@
     .container { max-width: 1200px; margin: 0 auto; position: relative; z-index: 2; width: 100%; }
     .header { text-align: left; margin-bottom: 40px; max-width: 900px; }
 
-    /* ── LOGO NEURAL DESCONSTRUÍDA ── */
+    /* ==================== LOGO ==================== */
     .logo-concept {
       position: relative;
       display: inline-flex;
@@ -76,7 +109,6 @@
       user-select: none;
       padding-bottom: 4px;
     }
-
     .logo-char {
       font-family: 'Inter', sans-serif;
       text-transform: uppercase;
@@ -84,8 +116,6 @@
       display: inline-block;
       position: relative;
     }
-
-    /* R — ultra light, grande, cai levemente */
     .logo-char:nth-child(1) {
       font-size: clamp(3.6rem, 8vw, 5.8rem);
       font-weight: 200;
@@ -93,8 +123,6 @@
       transform: translateY(8px) skewX(-3deg);
       letter-spacing: -4px;
     }
-
-    /* E — black weight, menor, sobe */
     .logo-char:nth-child(2) {
       font-size: clamp(2.4rem, 5.5vw, 3.8rem);
       font-weight: 900;
@@ -105,8 +133,6 @@
       transform: translateY(-10px) scaleX(1.08);
       letter-spacing: 2px;
     }
-
-    /* A — médio, alinhado na base */
     .logo-char:nth-child(3) {
       font-size: clamp(3rem, 7vw, 5rem);
       font-weight: 500;
@@ -114,8 +140,6 @@
       transform: translateY(4px) rotate(1.5deg);
       letter-spacing: -6px;
     }
-
-    /* D — extra bold, menor */
     .logo-char:nth-child(4) {
       font-size: clamp(2.2rem, 5vw, 3.5rem);
       font-weight: 800;
@@ -125,7 +149,17 @@
       margin-right: 14px;
     }
 
-    /* nó sináptico entre D e + */
+    /* Tema claro - Logo */
+    body.light-theme .logo-char:nth-child(1) { color: rgba(0, 0, 0, 0.8); }
+    body.light-theme .logo-char:nth-child(3) { color: rgba(0, 0, 0, 0.6); }
+    body.light-theme .logo-char:nth-child(4) { color: rgba(0, 0, 0, 0.9); }
+    body.light-theme .logo-char:nth-child(2) {
+      background: linear-gradient(135deg, #1a1a2e 0%, #4a4a6a 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
     .logo-node {
       display: inline-block;
       width: clamp(6px, 1vw, 9px);
@@ -143,7 +177,6 @@
       50%       { transform: scale(1.6); box-shadow: 0 0 22px var(--glow-primary), 0 0 44px rgba(0,212,255,0.4); }
     }
 
-    /* + sinapse */
     .logo-synapse {
       font-family: 'Space Mono', monospace;
       font-weight: 700;
@@ -161,8 +194,6 @@
       50%       { opacity: 1; transform: translateY(-14px) rotate(6deg) scale(1.12);
                   text-shadow: 0 0 30px var(--glow-primary), 0 0 70px rgba(123,44,191,0.6); }
     }
-
-    /* linha de conexão decorativa sob a logo */
     .logo-concept::after {
       content: '';
       position: absolute;
@@ -184,9 +215,9 @@
       border-left: 2px solid var(--glow-primary);
       padding-left: 16px;
     }
-    .tagline strong { color: #c8d6ea; font-weight: 600; }
+    .tagline strong { color: var(--text-primary); font-weight: 600; }
 
-    /* ── ABAS ── */
+    /* ==================== ABAS ==================== */
     .main-tabs {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -216,7 +247,22 @@
       box-shadow: inset 0 0 18px rgba(0,212,255,0.12), 0 0 10px rgba(0,212,255,0.06);
     }
 
-    /* ── GLASS CARD ── */
+    /* Tema claro - Abas */
+    body.light-theme .main-tab {
+      color: #3d3d5c;
+      border-color: rgba(0, 0, 0, 0.06);
+    }
+    body.light-theme .main-tab:hover {
+      color: #1a1a2e;
+    }
+    body.light-theme .main-tab.active {
+      background: #ffffff;
+      color: #1a1a2e;
+      border-color: #00d4ff;
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.1);
+    }
+
+    /* ==================== GLASS CARD ==================== */
     .glass-card {
       background: var(--bg-card);
       backdrop-filter: blur(24px);
@@ -224,11 +270,12 @@
       border-radius: 8px;
       border: 1px solid var(--border-glow);
       padding: clamp(20px, 5vw, 36px);
-      box-shadow: 0 40px 80px -20px rgba(0,0,0,0.8);
+      box-shadow: 0 40px 80px -20px var(--shadow-color);
       min-height: 300px;
+      transition: background var(--transition), border var(--transition), box-shadow var(--transition);
     }
 
-    /* ── BUSCADOR ── */
+    /* ==================== BUSCADOR ==================== */
     .search-area { display: flex; gap: 12px; margin-bottom: 28px; width: 100%; }
     .search-input {
       flex: 1;
@@ -264,7 +311,20 @@
     .search-btn:hover { background: var(--glow-primary); box-shadow: 0 0 24px rgba(0,212,255,0.3); }
     .search-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    /* ── RESULTADOS ── */
+    /* Tema claro - Buscador */
+    body.light-theme .search-input {
+      background: #ffffff;
+      border-color: rgba(0, 0, 0, 0.08);
+      color: #1a1a2e;
+    }
+    body.light-theme .search-input::placeholder { color: #6b6b8a; }
+    body.light-theme .search-btn {
+      background: #1a1a2e;
+      color: #ffffff;
+    }
+    body.light-theme .search-btn:hover { background: #2d2d4a; }
+
+    /* ==================== RESULTADOS ==================== */
     .results-grid {
       display: flex;
       flex-direction: column;
@@ -280,18 +340,30 @@
     .virtual-row { content-visibility: auto; contain-intrinsic-size: 0 140px; }
 
     .result-card {
-      background: rgba(255,255,255,0.012);
+      background: var(--card-bg);
       border-radius: 6px;
       padding: 20px 22px;
-      border: 1px solid rgba(255,255,255,0.03);
+      border: 1px solid var(--card-border);
       display: flex;
       gap: 18px;
       align-items: flex-start;
       transition: all 0.25s ease;
     }
     .result-card:hover {
-      background: rgba(255,255,255,0.025);
+      background: var(--bg-hover);
+      border-color: var(--glow-primary);
       border-color: rgba(0,212,255,0.18);
+    }
+
+    /* Tema claro - Resultados */
+    body.light-theme .result-card {
+      background: #ffffff;
+      border-color: rgba(0, 0, 0, 0.06);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+    body.light-theme .result-card:hover {
+      background: #f8faff;
+      border-color: rgba(0, 212, 255, 0.2);
     }
 
     .checkbox {
@@ -313,17 +385,34 @@
       font-weight: 900;
     }
 
+    /* Tema claro - Checkbox */
+    body.light-theme .checkbox {
+      border-color: rgba(0, 0, 0, 0.15);
+      background: #ffffff;
+    }
+    body.light-theme .checkbox.checked {
+      background: #00d4ff;
+      border-color: #00d4ff;
+      color: #ffffff;
+    }
+
     .card-content { flex: 1; min-width: 0; }
     .card-title {
       font-size: 1.08rem;
       font-weight: 600;
-      color: #dde8f5;
+      color: var(--text-primary);
       text-decoration: none;
       display: block;
       margin-bottom: 6px;
       line-height: 1.4;
+      transition: color 0.2s;
     }
     .card-title:hover { color: var(--glow-primary); }
+
+    /* Tema claro - Card Title */
+    body.light-theme .card-title { color: #1a1a2e; }
+    body.light-theme .card-title:hover { color: #00d4ff; }
+
     .card-meta {
       font-size: 0.72rem;
       color: var(--glow-primary);
@@ -333,11 +422,21 @@
       font-weight: 500;
       opacity: 0.85;
     }
+
+    /* Tema claro - Card Meta */
+    body.light-theme .card-meta { color: #4a4a6a; }
+
     .card-abstract {
       font-size: 0.89rem;
-      color: #8a9ab8;
+      color: var(--abstract-color);
       line-height: 1.65;
     }
+
+    /* Tema claro - Card Abstract */
+    body.light-theme .card-abstract { color: #3d3d5c; }
+
+    .favorite-btn { color: #ffd700; }
+    .note-btn { color: #7b2cbf; }
 
     .hint-text {
       text-align: center;
@@ -347,11 +446,36 @@
       line-height: 1.7;
     }
 
-    /* ── RESUMO ── */
+    /* Tema claro - Hint Text */
+    body.light-theme .hint-text { color: #6b6b8a; }
+
+    /* ==================== FILTROS ==================== */
+    .filters-bar select {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border-default);
+      border-radius: 4px;
+      padding: 8px 12px;
+      color: var(--text-primary);
+      font-family: inherit;
+      transition: border 0.2s;
+    }
+    .filters-bar select:focus {
+      border-color: var(--glow-primary);
+      outline: none;
+    }
+
+    /* Tema claro - Filtros */
+    body.light-theme .filters-bar select {
+      background: #ffffff;
+      color: #1a1a2e;
+      border-color: rgba(0, 0, 0, 0.08);
+    }
+
+    /* ==================== RESUMO ==================== */
     .summary-section { margin-bottom: 36px; }
     .summary-title {
       font-size: 0.9rem;
-      color: #ffffff;
+      color: var(--text-primary);
       margin-bottom: 16px;
       text-transform: uppercase;
       letter-spacing: 1.5px;
@@ -360,7 +484,10 @@
       padding-left: 10px;
     }
 
-    /* ── FOOTER ── */
+    /* Tema claro - Summary Title */
+    body.light-theme .summary-title { color: #1a1a2e; }
+
+    /* ==================== FOOTER ==================== */
     .footer {
       text-align: left;
       margin-top: 36px;
@@ -373,12 +500,118 @@
       letter-spacing: 2px;
     }
 
-    /* ── RESPONSIVE ── */
+    /* ==================== RESPONSIVE ==================== */
     @media (max-width: 768px) {
       .search-area { flex-direction: column; gap: 10px; }
       .search-btn { width: 100%; }
       .result-card { gap: 12px; padding: 16px; }
       .main-tabs { grid-template-columns: repeat(2, 1fr); }
+      .logo-char:nth-child(1) { font-size: clamp(2.8rem, 10vw, 4rem); }
+      .logo-char:nth-child(2) { font-size: clamp(1.8rem, 6vw, 2.8rem); }
+      .logo-char:nth-child(3) { font-size: clamp(2.2rem, 8vw, 3.5rem); }
+      .logo-char:nth-child(4) { font-size: clamp(1.6rem, 5vw, 2.5rem); }
+      .logo-synapse { font-size: clamp(1.6rem, 5vw, 2.4rem); }
+    }
+
+    @media (max-width: 480px) {
+      body { padding: 12px; }
+      .glass-card { padding: 16px; }
+      .result-card { flex-direction: column; gap: 10px; }
+      .main-tabs { grid-template-columns: 1fr 1fr; gap: 6px; }
+      .main-tab { font-size: 0.7rem; padding: 10px 8px; }
+    }
+
+    /* ==================== SCROLLBAR GLOBAL ==================== */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--text-tertiary); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+
+    /* Tema claro - Scrollbar */
+    body.light-theme ::-webkit-scrollbar-thumb { background: #c0c8d8; }
+    body.light-theme ::-webkit-scrollbar-thumb:hover { background: #a0a8b8; }
+
+    /* ==================== BOTÃO DE TEMA ==================== */
+    #themeToggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 999;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      cursor: pointer;
+      font-size: 1.2rem;
+      transition: all 0.3s;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 12px var(--shadow-color);
+    }
+    #themeToggle:hover {
+      transform: scale(1.05);
+      border-color: var(--glow-primary);
+    }
+
+    /* ==================== BOTÃO DE INSTALAÇÃO PWA ==================== */
+    #pwa-install-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #00d4ff;
+      color: #05070f;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 40px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      z-index: 9999;
+      box-shadow: 0 0 30px rgba(0, 212, 255, 0.4);
+      display: none;
+      transition: all 0.3s;
+    }
+    #pwa-install-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 40px rgba(0, 212, 255, 0.6);
+    }
+
+    /* Tema claro - PWA Button */
+    body.light-theme #pwa-install-btn {
+      color: #1a1a2e;
+    }
+
+    /* ==================== BOTÃO "CARREGAR MAIS" ==================== */
+    #loadMoreBtn {
+      width: 100%;
+      padding: 14px;
+      margin-top: 16px;
+      background: var(--bg-hover);
+      border: 1px solid var(--border-default);
+      border-radius: 6px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.85rem;
+      transition: all 0.3s;
+    }
+    #loadMoreBtn:hover {
+      background: var(--bg-subtle);
+      border-color: var(--glow-primary);
+    }
+
+    /* Tema claro - Load More Button */
+    body.light-theme #loadMoreBtn {
+      background: #f0f2f8;
+      color: #3d3d5c;
+      border-color: rgba(0, 0, 0, 0.06);
+    }
+    body.light-theme #loadMoreBtn:hover {
+      background: #e8ecf4;
+      border-color: #00d4ff;
     }
   </style>
 </head>
@@ -401,10 +634,10 @@
     </header>
 
     <nav class="main-tabs" role="tablist" aria-label="Navegação principal">
-      <button class="main-tab" data-main="articles" role="tab" aria-selected="true">Artigos</button>
-      <button class="main-tab" data-main="books"    role="tab" aria-selected="false">Livros</button>
-      <button class="main-tab" data-main="research" role="tab" aria-selected="false">Pesquisas</button>
-      <button class="main-tab" data-main="summary"  role="tab" aria-selected="false">Resumo</button>
+      <button class="main-tab active" data-main="articles" role="tab" aria-selected="true">📄 Artigos</button>
+      <button class="main-tab" data-main="books" role="tab" aria-selected="false">📚 Livros</button>
+      <button class="main-tab" data-main="research" role="tab" aria-selected="false">🔬 Pesquisas</button>
+      <button class="main-tab" data-main="summary" role="tab" aria-selected="false">📊 Resumo</button>
     </nav>
 
     <main class="glass-card">
@@ -414,7 +647,7 @@
     <footer class="footer">READ+ · Mind Forge · Repositórios Globais de Conhecimento Livre</footer>
   </div>
 
-  <script src="./js/main.js"></script>
   <script src="./js/background.js"></script>
+  <script src="./js/main.js"></script>
 </body>
 </html>
