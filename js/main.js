@@ -1,5 +1,5 @@
 // ==================== ESTADO CENTRALIZADO ====================
-const store = {
+var store = {
   articles: [],
   books: [],
   research: [],
@@ -55,6 +55,12 @@ function truncateText(text, maxLength) {
   if (!text) return '';
   if (text.length <= maxLength) return text;
   return text.substring(0, maxLength) + '...';
+}
+
+function isPDFUrl(url) {
+  if (!url) return false;
+  var lower = url.toLowerCase();
+  return lower.endsWith('.pdf') || lower.includes('pdf') || lower.includes('arxiv') || lower.includes('sci-hub');
 }
 
 // ==================== INDEXEDDB ====================
@@ -220,23 +226,25 @@ async function loadInitialData() {
 
 // ==================== DADOS DE DEMONSTRAÇÃO ====================
 function getDemoArticles(query, type) {
-  var label = type === 'research' ? 'Pesquisa' : 'Artigo';
+  var label = type === 'research' ? 'Pesquisa Científica' : 'Artigo Acadêmico';
   return [
     {
       id: 'demo_' + Date.now() + '_1',
       title: label + ': "' + query + '" - Modo Demonstração',
       authors: ['READ+ Demo'],
-      abstract: 'Este é um resultado de demonstração para "' + query + '". O sistema está funcionando normalmente. Aguarde a API OpenAlex voltar ao ar para resultados reais.',
+      abstract: 'Este é um resultado de demonstração para "' + query + '". O sistema está funcionando normalmente.',
       url: '#',
-      source: '🔬 Modo Demonstração'
+      source: '🔬 Modo Demonstração',
+      isPDF: false
     },
     {
       id: 'demo_' + Date.now() + '_2',
-      title: label + ' Científico sobre ' + query + ' (Simulado)',
+      title: label + ' sobre ' + query + ' (Simulado)',
       authors: ['Centro de Pesquisa READ+'],
       abstract: 'O READ+ está pronto para buscar dados reais assim que as APIs estiverem disponíveis.',
       url: '#',
-      source: '📄 Modo Demonstração'
+      source: '📄 Modo Demonstração',
+      isPDF: false
     }
   ];
 }
@@ -247,42 +255,44 @@ function getDemoBooks(query) {
       id: 'demo_book_' + Date.now() + '_1',
       title: 'Livro: "' + query + '" - Modo Demonstração',
       authors: ['READ+ Demo'],
-      abstract: 'Este é um resultado de demonstração para "' + query + '". O sistema está funcionando normalmente.',
+      abstract: 'Este é um resultado de demonstração para "' + query + '".',
       url: '#',
-      source: '📚 Modo Demonstração'
+      source: '📚 Modo Demonstração',
+      isPDF: false
     },
     {
       id: 'demo_book_' + Date.now() + '_2',
       title: 'Publicação sobre ' + query + ' (Simulado)',
       authors: ['Equipe READ+'],
-      abstract: 'O READ+ está pronto para buscar dados reais assim que as APIs estiverem disponíveis.',
+      abstract: 'O READ+ está pronto para buscar dados reais.',
       url: '#',
-      source: '📖 Modo Demonstração'
+      source: '📖 Modo Demonstração',
+      isPDF: false
     }
   ];
 }
 
-// ==================== MOTOR DE BUSCA — OPENALEX ====================
-async function fetchOpenAlex(query, type, page, filters) {
-  if (type === undefined) type = 'article';
+// ==================== MOTOR DE BUSCA — ARTIGOS (OpenAlex - apenas artigos) ====================
+async function fetchArticles(query, page, filters) {
   if (page === undefined) page = 1;
   if (filters === undefined) filters = {};
 
   var perPage = 20;
-  var url = 'https://api.openalex.org/works?search=' + encodeURIComponent(query) + '&filter=open_access.is_oa:true&sort=relevance_score:desc&per-page=' + perPage;
+  var url = 'https://api.openalex.org/works?search=' + encodeURIComponent(query) + 
+            '&filter=open_access.is_oa:true,type:article&sort=relevance_score:desc&per-page=' + perPage;
 
   if (page > 1 && store._openAlexCursor && store._openAlexCursor !== '*') {
     url += '&cursor=' + store._openAlexCursor;
   }
 
-  if (filters.year) url += '&filter=publication_year:' + filters.year;
+  if (filters.year) url += ',publication_year:' + filters.year;
   if (filters.sort === 'date') {
     url = url.replace('sort=relevance_score:desc', 'sort=publication_date:desc');
   } else if (filters.sort === 'citations') {
     url = url.replace('sort=relevance_score:desc', 'sort=cited_by_count:desc');
   }
 
-  var cacheKey = 'openalex_' + query + '_' + type + '_' + page + '_' + JSON.stringify(filters);
+  var cacheKey = 'articles_' + query + '_' + page + '_' + JSON.stringify(filters);
 
   try {
     var cached = localStorage.getItem(cacheKey);
@@ -300,7 +310,7 @@ async function fetchOpenAlex(query, type, page, filters) {
     if (!res.ok) {
       if (res.status === 503) {
         console.warn('[READ+] OpenAlex indisponível.');
-        return getDemoArticles(query, type);
+        return getDemoArticles(query, 'article');
       }
       throw new Error('Erro ' + res.status);
     }
@@ -308,17 +318,20 @@ async function fetchOpenAlex(query, type, page, filters) {
     store._openAlexCursor = data.meta ? data.meta.next_cursor || '*' : '*';
 
     var results = (data.results || []).filter(function(w) {
-      return w.open_access && w.open_access.is_oa && (w.open_access.oa_url || (w.best_oa_location && w.best_oa_location.pdf_url));
+      return w.open_access && w.open_access.is_oa && 
+             (w.open_access.oa_url || (w.best_oa_location && w.best_oa_location.pdf_url));
     }).map(function(w) {
+      var pdfUrl = (w.best_oa_location && w.best_oa_location.pdf_url) || w.open_access.oa_url || w.id;
       return {
         id: stableHash(w.id || w.title || Math.random().toString()),
         title: w.title || 'Sem título',
         authors: (w.authorships || []).map(function(a) { return a.author ? a.author.display_name : null; }).filter(Boolean) || ['Autor não identificado'],
         abstract: w.abstract || (w.abstract_inverted_index ? Object.entries(w.abstract_inverted_index).sort(function(a, b) { return a[1][0] - b[1][0]; }).map(function(entry) { return entry[0]; }).join(' ') : 'Resumo indisponível.'),
-        url: (w.best_oa_location && w.best_oa_location.pdf_url) || w.open_access.oa_url || w.id,
-        source: type === 'research' ? 'Estudo & Pesquisa Livre (PDF)' : 'Artigo Científico Disponível',
+        url: pdfUrl,
+        source: '📄 Artigo Científico (PDF)',
         publicationYear: w.publication_year,
-        citedByCount: w.cited_by_count
+        citedByCount: w.cited_by_count,
+        isPDF: isPDFUrl(pdfUrl)
       };
     });
 
@@ -328,27 +341,109 @@ async function fetchOpenAlex(query, type, page, filters) {
       } catch (_) {}
       return results;
     }
-    return getDemoArticles(query, type);
+    return getDemoArticles(query, 'article');
   } catch (e) {
-    console.error('[READ+] Erro OpenAlex:', e);
+    console.error('[READ+] Erro ao buscar artigos:', e);
     var cached2 = localStorage.getItem(cacheKey);
     if (cached2) {
       var data2 = JSON.parse(cached2);
       store._openAlexCursor = data2.cursor || '*';
       return data2.results;
     }
-    return getDemoArticles(query, type);
+    return getDemoArticles(query, 'article');
   }
 }
 
-// ==================== MOTOR DE BUSCA — GOOGLE BOOKS ====================
+// ==================== MOTOR DE BUSCA — PESQUISAS (OpenAlex - apenas pesquisas/estudos) ====================
+async function fetchResearch(query, page, filters) {
+  if (page === undefined) page = 1;
+  if (filters === undefined) filters = {};
+
+  var perPage = 20;
+  var url = 'https://api.openalex.org/works?search=' + encodeURIComponent(query) + 
+            '&filter=open_access.is_oa:true,type:research|dissertation|thesis&sort=relevance_score:desc&per-page=' + perPage;
+
+  if (page > 1 && store._openAlexCursor && store._openAlexCursor !== '*') {
+    url += '&cursor=' + store._openAlexCursor;
+  }
+
+  if (filters.year) url += ',publication_year:' + filters.year;
+  if (filters.sort === 'date') {
+    url = url.replace('sort=relevance_score:desc', 'sort=publication_date:desc');
+  } else if (filters.sort === 'citations') {
+    url = url.replace('sort=relevance_score:desc', 'sort=cited_by_count:desc');
+  }
+
+  var cacheKey = 'research_' + query + '_' + page + '_' + JSON.stringify(filters);
+
+  try {
+    var cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      var data = JSON.parse(cached);
+      if (Date.now() - data.timestamp < 300000) {
+        store._openAlexCursor = data.cursor || '*';
+        return data.results;
+      }
+    }
+  } catch (_) {}
+
+  try {
+    var res = await fetch(url);
+    if (!res.ok) {
+      if (res.status === 503) {
+        console.warn('[READ+] OpenAlex indisponível.');
+        return getDemoArticles(query, 'research');
+      }
+      throw new Error('Erro ' + res.status);
+    }
+    var data = await res.json();
+    store._openAlexCursor = data.meta ? data.meta.next_cursor || '*' : '*';
+
+    var results = (data.results || []).filter(function(w) {
+      return w.open_access && w.open_access.is_oa && 
+             (w.open_access.oa_url || (w.best_oa_location && w.best_oa_location.pdf_url));
+    }).map(function(w) {
+      var pdfUrl = (w.best_oa_location && w.best_oa_location.pdf_url) || w.open_access.oa_url || w.id;
+      return {
+        id: stableHash(w.id || w.title || Math.random().toString()),
+        title: w.title || 'Sem título',
+        authors: (w.authorships || []).map(function(a) { return a.author ? a.author.display_name : null; }).filter(Boolean) || ['Autor não identificado'],
+        abstract: w.abstract || (w.abstract_inverted_index ? Object.entries(w.abstract_inverted_index).sort(function(a, b) { return a[1][0] - b[1][0]; }).map(function(entry) { return entry[0]; }).join(' ') : 'Resumo indisponível.'),
+        url: pdfUrl,
+        source: '🔬 Pesquisa Científica (PDF)',
+        publicationYear: w.publication_year,
+        citedByCount: w.cited_by_count,
+        isPDF: isPDFUrl(pdfUrl)
+      };
+    });
+
+    if (results.length > 0) {
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), results: results, cursor: store._openAlexCursor }));
+      } catch (_) {}
+      return results;
+    }
+    return getDemoArticles(query, 'research');
+  } catch (e) {
+    console.error('[READ+] Erro ao buscar pesquisas:', e);
+    var cached2 = localStorage.getItem(cacheKey);
+    if (cached2) {
+      var data2 = JSON.parse(cached2);
+      store._openAlexCursor = data2.cursor || '*';
+      return data2.results;
+    }
+    return getDemoArticles(query, 'research');
+  }
+}
+
+// ==================== MOTOR DE BUSCA — LIVROS (Google Books - apenas com PDF) ====================
 async function fetchBooks(query, page, filters) {
   if (page === undefined) page = 1;
   if (filters === undefined) filters = {};
   
   var API_KEY = 'AIzaSyBGhP_WMwjUKjI7vXP4TcyKHizxFw05lcI';
   var startIndex = (page - 1) * 20;
-  var url = 'https://www.googleapis.com/books/v1/volumes?q=' + encodeURIComponent(query) + '&maxResults=20&startIndex=' + startIndex + '&key=' + API_KEY;
+  var url = 'https://www.googleapis.com/books/v1/volumes?q=' + encodeURIComponent(query) + '&maxResults=40&startIndex=' + startIndex + '&key=' + API_KEY;
 
   if (filters.year) url += '&printType=books&publishedDate=' + filters.year;
   if (filters.sort === 'date') url += '&orderBy=newest';
@@ -363,18 +458,48 @@ async function fetchBooks(query, page, filters) {
       throw new Error('HTTP ' + res.status);
     }
     var data = await res.json();
+    
     if (data.items && data.items.length) {
-      return data.items.map(function(item) {
+      var results = data.items.map(function(item) {
+        var info = item.volumeInfo || {};
+        var accessInfo = item.accessInfo || {};
+        var pdfAvailable = accessInfo.pdf && accessInfo.pdf.isAvailable;
+        var epubAvailable = accessInfo.epub && accessInfo.epub.isAvailable;
+        var previewLink = info.previewLink || '';
+        var downloadLink = info.downloadLink || '';
+        var pdfLink = '';
+        
+        if (pdfAvailable) {
+          pdfLink = downloadLink || previewLink;
+        } else if (epubAvailable) {
+          pdfLink = downloadLink || previewLink;
+        } else if (previewLink) {
+          pdfLink = previewLink;
+        }
+        
         return {
           id: item.id,
-          title: item.volumeInfo ? item.volumeInfo.title || 'Sem título' : 'Sem título',
-          authors: item.volumeInfo ? item.volumeInfo.authors || ['Autor não informado'] : ['Autor não informado'],
-          abstract: item.volumeInfo ? item.volumeInfo.description || 'Sinopse indisponível.' : 'Sinopse indisponível.',
-          url: item.volumeInfo ? item.volumeInfo.previewLink || item.volumeInfo.infoLink || '#' : '#',
-          source: 'Google Books',
-          publicationYear: item.volumeInfo && item.volumeInfo.publishedDate ? item.volumeInfo.publishedDate.substring(0, 4) : undefined
+          title: info.title || 'Sem título',
+          authors: info.authors || ['Autor não informado'],
+          abstract: info.description || 'Sinopse indisponível.',
+          url: pdfLink || previewLink || '#',
+          source: pdfAvailable || epubAvailable ? '📚 PDF Disponível' : '📖 Visualizar',
+          publicationYear: info.publishedDate ? info.publishedDate.substring(0, 4) : undefined,
+          isPDF: pdfAvailable || epubAvailable || isPDFUrl(previewLink)
         };
       });
+
+      // Filtra para mostrar apenas livros com conteúdo disponível
+      var filteredResults = results.filter(function(book) {
+        return book.isPDF && book.url !== '#';
+      });
+
+      if (filteredResults.length > 0) {
+        return filteredResults;
+      }
+      
+      // Fallback: mostra os primeiros 10 mesmo sem PDF
+      return results.slice(0, 10);
     }
     return getDemoBooks(query);
   } catch (error) {
@@ -441,13 +566,15 @@ function renderItemsGrid(container, items, type, showExport) {
 
     var isRead = store.read[type] && store.read[type].has(item.id) || false;
     var isFavorite = store.favorites[type] && store.favorites[type].has(item.id) || false;
+    var isPdf = item.isPDF || false;
+    var pdfBadge = isPdf ? ' 📄' : '';
 
     wrapper.innerHTML = 
       '<div class="result-card" style="position:relative;">' +
         '<div style="display:flex; gap:12px; flex:1;">' +
           '<div class="checkbox ' + (isRead ? 'checked' : '') + '" data-id="' + escapeHtml(item.id) + '" data-type="' + escapeHtml(type) + '" title="Marcar como lido">' + (isRead ? '✓' : '') + '</div>' +
           '<div class="card-content" style="flex:1;">' +
-            '<a href="' + sanitizeUrl(item.url) + '" target="_blank" rel="noopener noreferrer" class="card-title">' + escapeHtml(item.title) + '</a>' +
+            '<a href="' + sanitizeUrl(item.url) + '" target="_blank" rel="noopener noreferrer" class="card-title" title="Abrir PDF">' + escapeHtml(item.title) + pdfBadge + '</a>' +
             '<div class="card-meta">' + escapeHtml(item.source) + ' &nbsp;//&nbsp; ' + escapeHtml(item.authors.slice(0, 3).join(', ')) + (item.publicationYear ? ' · ' + item.publicationYear : '') + '</div>' +
             '<div class="card-abstract">' + escapeHtml(truncateText(item.abstract, 350)) + '</div>' +
           '</div>' +
@@ -695,9 +822,9 @@ async function renderSummaryTab() {
         '<h3 class="summary-title">📊 Leituras por Mês</h3>' +
         '<div style="margin:12px 0 24px 0;">' + monthHtml + '</div>' +
       '</div>' +
-      '<div class="summary-section"><h3 class="summary-title">Artigos Lidos (' + store.read.article.size + ')</h3><div class="results-grid" id="sum-article"></div></div>' +
-      '<div class="summary-section"><h3 class="summary-title">Livros Concluídos (' + store.read.book.size + ')</h3><div class="results-grid" id="sum-book"></div></div>' +
-      '<div class="summary-section"><h3 class="summary-title">Pesquisas Mapeadas (' + store.read.research.size + ')</h3><div class="results-grid" id="sum-research"></div></div>';
+      '<div class="summary-section"><h3 class="summary-title">📄 Artigos Lidos (' + store.read.article.size + ')</h3><div class="results-grid" id="sum-article"></div></div>' +
+      '<div class="summary-section"><h3 class="summary-title">📚 Livros Concluídos (' + store.read.book.size + ')</h3><div class="results-grid" id="sum-book"></div></div>' +
+      '<div class="summary-section"><h3 class="summary-title">🔬 Pesquisas Mapeadas (' + store.read.research.size + ')</h3><div class="results-grid" id="sum-research"></div></div>';
 
     ['article', 'book', 'research'].forEach(function(type) {
       var grid = document.getElementById('sum-' + type);
@@ -733,13 +860,13 @@ async function renderSummaryTab() {
 // ==================== ROUTER DE ABAS ====================
 var TAB_ROUTES = {
   articles: function() {
-    injectSearchTab('Buscar artigos acadêmicos no OpenAlex...', function(q, p, f) { return fetchOpenAlex(q, 'article', p, f); }, 'articles', 'article');
+    injectSearchTab('Buscar artigos acadêmicos em PDF...', fetchArticles, 'articles', 'article');
   },
   books: function() {
-    injectSearchTab('Localizar publicações no Google Books...', fetchBooks, 'books', 'book');
+    injectSearchTab('Buscar livros disponíveis para leitura...', fetchBooks, 'books', 'book');
   },
   research: function() {
-    injectSearchTab('Buscar pesquisas e estudos científicos gratuitos em PDF...', function(q, p, f) { return fetchOpenAlex(q, 'research', p, f); }, 'research', 'research');
+    injectSearchTab('Buscar pesquisas e estudos científicos em PDF...', fetchResearch, 'research', 'research');
   },
   summary: function() {
     renderSummaryTab();
