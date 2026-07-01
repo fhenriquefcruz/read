@@ -33,62 +33,75 @@ function stableHash(str) {
 }
 
 // ==================== INDEXEDDB — BOOT RESILIENTE ====================
-// Trata VersionError: se o banco local estiver numa versão MAIOR que 12,
-// abre sem especificar versão (usa a versão atual do navegador) em vez de travar.
 async function openDB() {
-  return new Promise((resolve, reject) => {
+  const DB_NAME = 'ReadPlusDB';
+  const STORES = [
+    'articles', 'books', 'research', 'notes', 'collections',
+    'tags', 'favorites', 'reading_log', 'study_log', 'radar',
+    'settings', 'zettels', 'backlinks'
+  ];
+  const TARGET_VERSION = 12;
 
-    const STORES = [
-      'articles', 'books', 'research', 'notes', 'collections',
-      'tags', 'favorites', 'reading_log', 'study_log', 'radar',
-      'settings', 'zettels', 'backlinks'
-    ];
-
-    const request = indexedDB.open('ReadPlusDB', 12);
-
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result;
-      STORES.forEach(storeName => {
-        if (!db.objectStoreNames.contains(storeName)) {
-          db.createObjectStore(storeName, {
-            keyPath: storeName === 'settings' ? 'key' : 'id'
-          });
-        }
-      });
-    };
-
-    request.onsuccess = (event) => {
-      store.db = event.target.result;
-      console.log('[READ+] IndexedDB aberto. Versão:', store.db.version);
-      resolve(store.db);
-    };
-
-    // VersionError: banco local está numa versão maior que 12
-    // Solução: abre sem versão para usar a versão que já existe
-    request.onerror = (event) => {
-      const err = event.target.error;
-
-      if (err && err.name === 'VersionError') {
-        console.warn('[READ+] VersionError detectado. Abrindo na versão local existente...');
-
-        const recovery = indexedDB.open('ReadPlusDB');
-
-        recovery.onsuccess = (e) => {
-          store.db = e.target.result;
-          console.log('[READ+] Banco recuperado na versão:', store.db.version);
-          resolve(store.db);
-        };
-
-        recovery.onerror = (e) => {
-          console.error('[READ+] Falha na recuperação do banco:', e.target.error);
-          reject(e.target.error);
-        };
-
-      } else {
-        reject(err);
+  try {
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, TARGET_VERSION);
+      request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        STORES.forEach(storeName => {
+          if (!db.objectStoreNames.contains(storeName)) {
+            db.createObjectStore(storeName, {
+              keyPath: storeName === 'settings' ? 'key' : 'id'
+            });
+          }
+        });
+      };
+      request.onsuccess = (e) => resolve(e.target.result);
+      request.onerror = (e) => reject(e.target.error);
+    });
+    store.db = db;
+    console.log('[READ+] IndexedDB aberto. Versão:', db.version);
+    return db;
+  } catch (err) {
+    if (err.name === 'VersionError') {
+      console.warn('[READ+] VersionError. Tentando abrir com versão existente...');
+      try {
+        const db = await new Promise((resolve, reject) => {
+          const request = indexedDB.open(DB_NAME);
+          request.onsuccess = (e) => resolve(e.target.result);
+          request.onerror = (e) => reject(e.target.error);
+        });
+        store.db = db;
+        console.log('[READ+] Banco recuperado na versão:', db.version);
+        return db;
+      } catch (fallbackErr) {
+        console.error('[READ+] Falha na recuperação. Tentando deletar e recriar...');
+        await new Promise((resolve, reject) => {
+          const deleteReq = indexedDB.deleteDatabase(DB_NAME);
+          deleteReq.onsuccess = () => resolve();
+          deleteReq.onerror = () => reject(deleteReq.error);
+        });
+        const db = await new Promise((resolve, reject) => {
+          const request = indexedDB.open(DB_NAME, TARGET_VERSION);
+          request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            STORES.forEach(storeName => {
+              if (!db.objectStoreNames.contains(storeName)) {
+                db.createObjectStore(storeName, {
+                  keyPath: storeName === 'settings' ? 'key' : 'id'
+                });
+              }
+            });
+          };
+          request.onsuccess = (e) => resolve(e.target.result);
+          request.onerror = (e) => reject(e.target.error);
+        });
+        store.db = db;
+        console.log('[READ+] Banco recriado com sucesso. Versão:', db.version);
+        return db;
       }
-    };
-  });
+    }
+    throw err;
+  }
 }
 
 async function markAsReadInDB(id, type, isRead) {
@@ -121,24 +134,37 @@ async function loadInitialReadingLog() {
   });
 }
 
-// ==================== MOTOR DE BUSCA — OPENALEX ====================
+// ==================== MOTOR DE BUSCA — OPENALEX (com cache) ====================
 async function fetchOpenAlex(query, type = 'article') {
-  // Filtra apenas PDFs Open Access válidos
   const filter = 'open_access.is_oa:true';
   const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=${filter}&sort=relevance_score:desc&per-page=20`;
+  const cacheKey = `openalex_${query}_${type}`;
+
+  try {
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      const data = JSON.parse(cached);
+      if (Date.now() - data.timestamp < 5 * 60 * 1000) {
+        console.log('[READ+] Usando cache para:', query);
+        return data.results;
+      }
+    }
+  } catch (_) {}
 
   try {
     const res = await fetch(url);
-    if (!res.ok) return [];
+    if (!res.ok) {
+      if (res.status === 503) {
+        throw new Error('API OpenAlex temporariamente indisponível. Tente novamente em alguns minutos.');
+      }
+      throw new Error(`Erro ${res.status}: ${res.statusText}`);
+    }
     const data = await res.json();
 
-    // Filtragem local: garante que existe URL de PDF gratuito
     const results = (data.results || []).filter(w =>
       w.open_access?.is_oa &&
       (w.open_access?.oa_url || w.best_oa_location?.pdf_url)
-    );
-
-    return results.map(w => ({
+    ).map(w => ({
       id: stableHash(w.id || w.title || Math.random().toString()),
       title: w.title || 'Sem título',
       authors: w.authorships?.map(a => a.author?.display_name).filter(Boolean) || ['Autor não identificado'],
@@ -153,8 +179,21 @@ async function fetchOpenAlex(query, type = 'article') {
       source: type === 'research' ? 'Estudo & Pesquisa Livre (PDF)' : 'Artigo Científico Disponível'
     }));
 
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify({
+        timestamp: Date.now(),
+        results
+      }));
+    } catch (_) {}
+
+    return results;
   } catch (e) {
     console.error('[READ+] Erro na busca OpenAlex:', e);
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      const data = JSON.parse(cached);
+      return data.results;
+    }
     return [];
   }
 }
@@ -163,7 +202,6 @@ async function fetchOpenAlex(query, type = 'article') {
 async function fetchBooks(query) {
   const directUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20&printType=books`;
 
-  // Tenta Google Books com proxy CORS
   try {
     const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(directUrl);
     const res = await fetch(proxyUrl);
@@ -181,7 +219,6 @@ async function fetchBooks(query) {
     }
     throw new Error('no items');
   } catch {
-    // Fallback: OpenAlex com filtro de livros
     try {
       const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=type:book&sort=relevance_score:desc&per-page=20`;
       const res = await fetch(url);
@@ -254,7 +291,6 @@ function injectSearchTab(placeholder, searchCallback, storeKey, itemType) {
   const btn   = document.getElementById('searchSubmitBtn');
   const grid  = document.getElementById('mainResultsGrid');
 
-  // Exibe resultados anteriores se houver
   if (store[storeKey]?.length > 0) {
     renderItemsGrid(grid, store[storeKey], itemType);
   } else {
@@ -399,22 +435,20 @@ function initSystem() {
 
   tabs.forEach(tab => tab.addEventListener('click', () => handleTabSwitch(tab)));
 
-  // PASSO 1: Renderiza a interface imediatamente — não espera o banco
+  // Renderiza a interface imediatamente
   handleTabSwitch(tabs[0]);
 
-  // PASSO 2: Abre o banco em background sem bloquear a UI
+  // Abre o banco em background
   openDB()
     .then(() => loadInitialReadingLog())
     .then(() => {
       console.log('[READ+] Banco sincronizado com sucesso.');
-      // Se o usuário já estiver na aba Resumo, re-renderiza com os dados reais
       if (store.currentTab === 'summary') {
         renderSummaryTab();
       }
     })
     .catch(err => {
       console.error('[READ+] Banco indisponível (modo offline ou erro):', err);
-      // App continua funcional para busca, apenas sem persistência
     });
 }
 
@@ -424,3 +458,49 @@ if (document.readyState === 'loading') {
 } else {
   initSystem();
 }
+
+// ==================== PWA — INSTALAÇÃO ====================
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+
+  const installBtn = document.createElement('button');
+  installBtn.id = 'pwa-install-btn';
+  installBtn.textContent = '📲 Instalar App';
+  installBtn.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #00d4ff;
+    color: #05070f;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 40px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    z-index: 9999;
+    box-shadow: 0 0 30px rgba(0,212,255,0.4);
+    display: none;
+  `;
+  document.body.appendChild(installBtn);
+
+  installBtn.addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const result = await deferredPrompt.userChoice;
+      console.log('[READ+] Instalação:', result.outcome);
+      deferredPrompt = null;
+      installBtn.style.display = 'none';
+    }
+  });
+
+  setTimeout(() => {
+    if (deferredPrompt) installBtn.style.display = 'block';
+  }, 3000);
+});
+
+window.addEventListener('appinstalled', () => {
+  document.getElementById('pwa-install-btn')?.remove();
+});
