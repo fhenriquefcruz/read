@@ -1,5 +1,5 @@
-// ATENÇÃO: Incrementar CACHE_NAME a cada deploy para forçar atualização nos navegadores
-const CACHE_NAME = 'readplus-v3';
+// ATENÇÃO: Incrementar CACHE_NAME a cada deploy
+const CACHE_NAME = 'readplus-v4'; // ← incrementei
 
 const ASSETS = [
   './',
@@ -27,17 +27,29 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  // APIs externas: sempre da rede, nunca do cache
+  const url = new URL(e.request.url);
+
+  // APIs externas: nunca em cache, mas com fallback para offline
   if (
-    e.request.url.includes('api.openalex.org') ||
-    e.request.url.includes('googleapis.com') ||
-    e.request.url.includes('corsproxy.io') ||
-    e.request.url.includes('fonts.googleapis.com') ||
-    e.request.url.includes('fonts.gstatic.com')
+    url.hostname.includes('api.openalex.org') ||
+    url.hostname.includes('googleapis.com') ||
+    url.hostname.includes('corsproxy.io') ||
+    url.hostname.includes('fonts.googleapis.com') ||
+    url.hostname.includes('fonts.gstatic.com')
   ) {
+    // Para APIs, tenta rede, se falhar retorna erro 503 customizado
+    e.respondWith(
+      fetch(e.request).catch(() => {
+        return new Response(JSON.stringify({ error: 'Serviço indisponível no momento' }), {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      })
+    );
     return;
   }
 
+  // Assets: cache first
   e.respondWith(
     caches.match(e.request).then(cached => {
       return cached || fetch(e.request).then(response => {
