@@ -36,18 +36,31 @@ function escapeHtml(str) {
 function sanitizeUrl(url) {
   if (!url || typeof url !== 'string') return '#';
   var t = url.trim();
+
+  // Se já for uma URL HTTP/HTTPS válida, retorna
   if (t.startsWith('http://') || t.startsWith('https://')) {
     return t;
   }
+
+  // Converte arXiv para PDF
   if (t.includes('arxiv.org/abs/')) {
     return t.replace('arxiv.org/abs/', 'arxiv.org/pdf/') + '.pdf';
   }
+
+  // Converte DOI para link
   if (t.startsWith('10.') || t.includes('doi.org')) {
     var doi = t.replace(/^.*doi\.org\//, '').trim();
     if (doi) {
       return 'https://doi.org/' + doi;
     }
   }
+
+  // Se for um ID (ex: "W1234567890" do OpenAlex), tenta construir URL
+  if (t.match(/^W\d+$/)) {
+    return 'https://openalex.org/' + t;
+  }
+
+  // Fallback: retorna o próprio valor
   return t;
 }
 
@@ -69,14 +82,41 @@ function truncateText(text, maxLength) {
 function isPDFUrl(url) {
   if (!url) return false;
   var lower = url.toLowerCase();
-  return lower.endsWith('.pdf') || 
-         lower.includes('pdf') || 
-         lower.includes('arxiv.org/pdf') ||
-         lower.includes('sci-hub') ||
-         lower.includes('doi.org') ||
-         lower.includes('openaccess') ||
-         lower.includes('oa_url') ||
-         lower.includes('best_oa_location');
+  return lower.endsWith('.pdf') ||
+    lower.includes('.pdf') ||
+    lower.includes('arxiv.org/pdf') ||
+    lower.includes('sci-hub') ||
+    lower.includes('doi.org') ||
+    lower.includes('openaccess') ||
+    lower.includes('oa_url') ||
+    lower.includes('best_oa_location');
+}
+
+function getDirectPDFUrl(item) {
+  // Tenta encontrar a URL do PDF diretamente
+  if (item.url && item.url !== '#' && item.url !== '') {
+    var sanitized = sanitizeUrl(item.url);
+    if (sanitized && sanitized !== '#') {
+      return sanitized;
+    }
+  }
+
+  // Se tiver best_oa_location, usa ele
+  if (item.best_oa_location && item.best_oa_location.pdf_url) {
+    return sanitizeUrl(item.best_oa_location.pdf_url);
+  }
+
+  // Se tiver open_access.oa_url
+  if (item.open_access && item.open_access.oa_url) {
+    return sanitizeUrl(item.open_access.oa_url);
+  }
+
+  // Fallback: usa o ID
+  if (item.id) {
+    return 'https://openalex.org/' + item.id;
+  }
+
+  return '#';
 }
 
 // ==================== INDEXEDDB ====================
@@ -243,59 +283,53 @@ async function loadInitialData() {
 // ==================== DADOS DE DEMONSTRAÇÃO ====================
 function getDemoArticles(query, type) {
   var label = type === 'research' ? 'Pesquisa Científica' : 'Artigo Acadêmico';
-  return [
-    {
-      id: 'demo_' + Date.now() + '_1',
-      title: label + ': "' + query + '" - Modo Demonstração',
-      authors: ['READ+ Demo'],
-      abstract: 'Este é um resultado de demonstração para "' + query + '". O sistema está funcionando normalmente.',
-      url: '#',
-      source: '🔬 Modo Demonstração',
-      isPDF: false
-    },
-    {
-      id: 'demo_' + Date.now() + '_2',
-      title: label + ' sobre ' + query + ' (Simulado)',
-      authors: ['Centro de Pesquisa READ+'],
-      abstract: 'O READ+ está pronto para buscar dados reais assim que as APIs estiverem disponíveis.',
-      url: '#',
-      source: '📄 Modo Demonstração',
-      isPDF: false
-    }
-  ];
+  return [{
+    id: 'demo_' + Date.now() + '_1',
+    title: label + ': "' + query + '" - Modo Demonstração',
+    authors: ['READ+ Demo'],
+    abstract: 'Este é um resultado de demonstração para "' + query + '". O sistema está funcionando normalmente.',
+    url: '#',
+    source: '🔬 Modo Demonstração',
+    isPDF: false
+  }, {
+    id: 'demo_' + Date.now() + '_2',
+    title: label + ' sobre ' + query + ' (Simulado)',
+    authors: ['Centro de Pesquisa READ+'],
+    abstract: 'O READ+ está pronto para buscar dados reais assim que as APIs estiverem disponíveis.',
+    url: '#',
+    source: '📄 Modo Demonstração',
+    isPDF: false
+  }];
 }
 
 function getDemoBooks(query) {
-  return [
-    {
-      id: 'demo_book_' + Date.now() + '_1',
-      title: 'Livro: "' + query + '" - Modo Demonstração',
-      authors: ['READ+ Demo'],
-      abstract: 'Este é um resultado de demonstração para "' + query + '".',
-      url: '#',
-      source: '📚 Modo Demonstração',
-      isPDF: false
-    },
-    {
-      id: 'demo_book_' + Date.now() + '_2',
-      title: 'Publicação sobre ' + query + ' (Simulado)',
-      authors: ['Equipe READ+'],
-      abstract: 'O READ+ está pronto para buscar dados reais.',
-      url: '#',
-      source: '📖 Modo Demonstração',
-      isPDF: false
-    }
-  ];
+  return [{
+    id: 'demo_book_' + Date.now() + '_1',
+    title: 'Livro: "' + query + '" - Modo Demonstração',
+    authors: ['READ+ Demo'],
+    abstract: 'Este é um resultado de demonstração para "' + query + '".',
+    url: '#',
+    source: '📚 Modo Demonstração',
+    isPDF: false
+  }, {
+    id: 'demo_book_' + Date.now() + '_2',
+    title: 'Publicação sobre ' + query + ' (Simulado)',
+    authors: ['Equipe READ+'],
+    abstract: 'O READ+ está pronto para buscar dados reais.',
+    url: '#',
+    source: '📖 Modo Demonstração',
+    isPDF: false
+  }];
 }
 
-// ==================== MOTOR DE BUSCA — ARTIGOS (50 resultados) ====================
+// ==================== MOTOR DE BUSCA — ARTIGOS ====================
 async function fetchArticles(query, page, filters) {
   if (page === undefined) page = 1;
   if (filters === undefined) filters = {};
 
   var perPage = 50;
-  var url = 'https://api.openalex.org/works?search=' + encodeURIComponent(query) + 
-            '&filter=open_access.is_oa:true,type:article&sort=relevance_score:desc&per-page=' + perPage;
+  var url = 'https://api.openalex.org/works?search=' + encodeURIComponent(query) +
+    '&filter=open_access.is_oa:true,type:article&sort=relevance_score:desc&per-page=' + perPage;
 
   if (page > 1 && store._openAlexCursor && store._openAlexCursor !== '*') {
     url += '&cursor=' + store._openAlexCursor;
@@ -334,20 +368,34 @@ async function fetchArticles(query, page, filters) {
     store._openAlexCursor = data.meta ? data.meta.next_cursor || '*' : '*';
 
     var results = (data.results || []).filter(function(w) {
-      return w.open_access && w.open_access.is_oa && 
-             (w.open_access.oa_url || (w.best_oa_location && w.best_oa_location.pdf_url));
+      return w.open_access && w.open_access.is_oa &&
+        (w.open_access.oa_url || (w.best_oa_location && w.best_oa_location.pdf_url));
     }).map(function(w) {
-      var pdfUrl = (w.best_oa_location && w.best_oa_location.pdf_url) || w.open_access.oa_url || w.id;
+      var pdfUrl = (w.best_oa_location && w.best_oa_location.pdf_url) ||
+        w.open_access.oa_url ||
+        w.id;
+
+      // Se for apenas um ID do OpenAlex, constrói a URL
+      if (pdfUrl && !pdfUrl.startsWith('http')) {
+        pdfUrl = 'https://openalex.org/' + pdfUrl;
+      }
+
+      var finalUrl = sanitizeUrl(pdfUrl) || '#';
+
       return {
         id: stableHash(w.id || w.title || Math.random().toString()),
         title: w.title || 'Sem título',
-        authors: (w.authorships || []).map(function(a) { return a.author ? a.author.display_name : null; }).filter(Boolean) || ['Autor não identificado'],
-        abstract: w.abstract || (w.abstract_inverted_index ? Object.entries(w.abstract_inverted_index).sort(function(a, b) { return a[1][0] - b[1][0]; }).map(function(entry) { return entry[0]; }).join(' ') : 'Resumo indisponível.'),
-        url: sanitizeUrl(pdfUrl),
+        authors: (w.authorships || []).map(function(a) {
+          return a.author ? a.author.display_name : null;
+        }).filter(Boolean) || ['Autor não identificado'],
+        abstract: w.abstract || (w.abstract_inverted_index ? Object.entries(w.abstract_inverted_index).sort(function(a, b) {
+          return a[1][0] - b[1][0];
+        }).map(function(entry) { return entry[0]; }).join(' ') : 'Resumo indisponível.'),
+        url: finalUrl,
         source: '📄 Artigo Científico (PDF)',
         publicationYear: w.publication_year,
         citedByCount: w.cited_by_count,
-        isPDF: isPDFUrl(pdfUrl)
+        isPDF: finalUrl !== '#' && (isPDFUrl(finalUrl) || finalUrl.includes('openalex.org'))
       };
     });
 
@@ -370,14 +418,14 @@ async function fetchArticles(query, page, filters) {
   }
 }
 
-// ==================== MOTOR DE BUSCA — PESQUISAS (50 resultados) ====================
+// ==================== MOTOR DE BUSCA — PESQUISAS ====================
 async function fetchResearch(query, page, filters) {
   if (page === undefined) page = 1;
   if (filters === undefined) filters = {};
 
   var perPage = 50;
-  var url = 'https://api.openalex.org/works?search=' + encodeURIComponent(query) + 
-            '&filter=open_access.is_oa:true,type:research|dissertation|thesis&sort=relevance_score:desc&per-page=' + perPage;
+  var url = 'https://api.openalex.org/works?search=' + encodeURIComponent(query) +
+    '&filter=open_access.is_oa:true,type:research|dissertation|thesis&sort=relevance_score:desc&per-page=' + perPage;
 
   if (page > 1 && store._openAlexCursor && store._openAlexCursor !== '*') {
     url += '&cursor=' + store._openAlexCursor;
@@ -416,20 +464,33 @@ async function fetchResearch(query, page, filters) {
     store._openAlexCursor = data.meta ? data.meta.next_cursor || '*' : '*';
 
     var results = (data.results || []).filter(function(w) {
-      return w.open_access && w.open_access.is_oa && 
-             (w.open_access.oa_url || (w.best_oa_location && w.best_oa_location.pdf_url));
+      return w.open_access && w.open_access.is_oa &&
+        (w.open_access.oa_url || (w.best_oa_location && w.best_oa_location.pdf_url));
     }).map(function(w) {
-      var pdfUrl = (w.best_oa_location && w.best_oa_location.pdf_url) || w.open_access.oa_url || w.id;
+      var pdfUrl = (w.best_oa_location && w.best_oa_location.pdf_url) ||
+        w.open_access.oa_url ||
+        w.id;
+
+      if (pdfUrl && !pdfUrl.startsWith('http')) {
+        pdfUrl = 'https://openalex.org/' + pdfUrl;
+      }
+
+      var finalUrl = sanitizeUrl(pdfUrl) || '#';
+
       return {
         id: stableHash(w.id || w.title || Math.random().toString()),
         title: w.title || 'Sem título',
-        authors: (w.authorships || []).map(function(a) { return a.author ? a.author.display_name : null; }).filter(Boolean) || ['Autor não identificado'],
-        abstract: w.abstract || (w.abstract_inverted_index ? Object.entries(w.abstract_inverted_index).sort(function(a, b) { return a[1][0] - b[1][0]; }).map(function(entry) { return entry[0]; }).join(' ') : 'Resumo indisponível.'),
-        url: sanitizeUrl(pdfUrl),
+        authors: (w.authorships || []).map(function(a) {
+          return a.author ? a.author.display_name : null;
+        }).filter(Boolean) || ['Autor não identificado'],
+        abstract: w.abstract || (w.abstract_inverted_index ? Object.entries(w.abstract_inverted_index).sort(function(a, b) {
+          return a[1][0] - b[1][0];
+        }).map(function(entry) { return entry[0]; }).join(' ') : 'Resumo indisponível.'),
+        url: finalUrl,
         source: '🔬 Pesquisa Científica (PDF)',
         publicationYear: w.publication_year,
         citedByCount: w.cited_by_count,
-        isPDF: isPDFUrl(pdfUrl)
+        isPDF: finalUrl !== '#' && (isPDFUrl(finalUrl) || finalUrl.includes('openalex.org'))
       };
     });
 
@@ -456,7 +517,7 @@ async function fetchResearch(query, page, filters) {
 async function fetchBooks(query, page, filters) {
   if (page === undefined) page = 1;
   if (filters === undefined) filters = {};
-  
+
   var API_KEY = 'AIzaSyBGhP_WMwjUKjI7vXP4TcyKHizxFw05lcI';
   var startIndex = (page - 1) * 20;
   var url = 'https://www.googleapis.com/books/v1/volumes?q=' + encodeURIComponent(query) + '&maxResults=40&startIndex=' + startIndex + '&key=' + API_KEY;
@@ -474,7 +535,7 @@ async function fetchBooks(query, page, filters) {
       throw new Error('HTTP ' + res.status);
     }
     var data = await res.json();
-    
+
     if (data.items && data.items.length) {
       var results = data.items.map(function(item) {
         var info = item.volumeInfo || {};
@@ -484,7 +545,7 @@ async function fetchBooks(query, page, filters) {
         var previewLink = info.previewLink || '';
         var downloadLink = info.downloadLink || '';
         var pdfLink = '';
-        
+
         if (pdfAvailable) {
           pdfLink = downloadLink || previewLink;
         } else if (epubAvailable) {
@@ -492,16 +553,18 @@ async function fetchBooks(query, page, filters) {
         } else if (previewLink) {
           pdfLink = previewLink;
         }
-        
+
+        var finalUrl = sanitizeUrl(pdfLink || previewLink || '#');
+
         return {
           id: item.id,
           title: info.title || 'Sem título',
           authors: info.authors || ['Autor não informado'],
           abstract: info.description || 'Sinopse indisponível.',
-          url: sanitizeUrl(pdfLink || previewLink || '#'),
+          url: finalUrl,
           source: pdfAvailable || epubAvailable ? '📚 PDF Disponível' : '📖 Visualizar',
           publicationYear: info.publishedDate ? info.publishedDate.substring(0, 4) : undefined,
-          isPDF: pdfAvailable || epubAvailable || isPDFUrl(previewLink)
+          isPDF: finalUrl !== '#' && (pdfAvailable || epubAvailable || isPDFUrl(previewLink))
         };
       });
 
@@ -512,7 +575,7 @@ async function fetchBooks(query, page, filters) {
       if (filteredResults.length > 0) {
         return filteredResults;
       }
-      
+
       return results.slice(0, 10);
     }
     return getDemoBooks(query);
@@ -565,13 +628,13 @@ function renderItemsGrid(container, items, type, showExport) {
     var exportBtn = document.createElement('button');
     exportBtn.className = 'export-btn';
     exportBtn.textContent = '📥 Exportar CSV';
-    exportBtn.style.cssText = 'background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:6px 14px; color:#fff; cursor:pointer; font-size:0.8rem;';
+    exportDiv.appendChild(exportBtn);
+    container.appendChild(exportDiv);
+
     exportBtn.addEventListener('click', function() {
       var currentItems = store[type === 'article' ? 'articles' : type === 'book' ? 'books' : 'research'] || [];
       exportResults(currentItems, 'csv');
     });
-    exportDiv.appendChild(exportBtn);
-    container.appendChild(exportDiv);
   }
 
   items.forEach(function(item) {
@@ -582,22 +645,22 @@ function renderItemsGrid(container, items, type, showExport) {
     var isFavorite = store.favorites[type] && store.favorites[type].has(item.id) || false;
     var isPdf = item.isPDF || false;
     var pdfBadge = isPdf ? ' 📄' : '';
-    var linkUrl = (item.url && item.url !== '#') ? item.url : (item.pdfUrl || '#');
+    var linkUrl = (item.url && item.url !== '#' && item.url !== '') ? item.url : '#';
 
-    wrapper.innerHTML = 
+    wrapper.innerHTML =
       '<div class="result-card" style="position:relative;">' +
-        '<div style="display:flex; gap:12px; flex:1;">' +
-          '<div class="checkbox ' + (isRead ? 'checked' : '') + '" data-id="' + escapeHtml(item.id) + '" data-type="' + escapeHtml(type) + '" title="Marcar como lido">' + (isRead ? '✓' : '') + '</div>' +
-          '<div class="card-content" style="flex:1;">' +
-            '<a href="' + linkUrl + '" target="_blank" rel="noopener noreferrer" class="card-title" title="Abrir PDF">' + escapeHtml(item.title) + pdfBadge + '</a>' +
-            '<div class="card-meta">' + escapeHtml(item.source) + ' &nbsp;//&nbsp; ' + escapeHtml(item.authors.slice(0, 3).join(', ')) + (item.publicationYear ? ' · ' + item.publicationYear : '') + '</div>' +
-            '<div class="card-abstract">' + escapeHtml(truncateText(item.abstract, 350)) + '</div>' +
-          '</div>' +
-          '<div style="display:flex; flex-direction:column; gap:6px; align-items:center; min-width:32px;">' +
-            '<div class="favorite-btn ' + (isFavorite ? 'active' : '') + '" data-id="' + escapeHtml(item.id) + '" data-type="' + escapeHtml(type) + '" title="Favorito" style="cursor:pointer; font-size:1.2rem; opacity:' + (isFavorite ? 1 : 0.3) + '; transition:all 0.2s;">⭐</div>' +
-            '<div class="note-btn" data-id="' + escapeHtml(item.id) + '" data-type="' + escapeHtml(type) + '" title="Adicionar nota" style="cursor:pointer; font-size:1rem; opacity:0.5; transition:all 0.2s;">📝</div>' +
-          '</div>' +
-        '</div>' +
+      '<div style="display:flex; gap:12px; flex:1;">' +
+      '<div class="checkbox ' + (isRead ? 'checked' : '') + '" data-id="' + escapeHtml(item.id) + '" data-type="' + escapeHtml(type) + '" title="Marcar como lido">' + (isRead ? '✓' : '') + '</div>' +
+      '<div class="card-content" style="flex:1;">' +
+      '<a href="' + linkUrl + '" target="_blank" rel="noopener noreferrer" class="card-title" title="Abrir PDF">' + escapeHtml(item.title) + pdfBadge + '</a>' +
+      '<div class="card-meta">' + escapeHtml(item.source) + ' &nbsp;//&nbsp; ' + escapeHtml(item.authors.slice(0, 3).join(', ')) + (item.publicationYear ? ' · ' + item.publicationYear : '') + '</div>' +
+      '<div class="card-abstract">' + escapeHtml(truncateText(item.abstract, 350)) + '</div>' +
+      '</div>' +
+      '<div style="display:flex; flex-direction:column; gap:6px; align-items:center; min-width:32px;">' +
+      '<div class="favorite-btn ' + (isFavorite ? 'active' : '') + '" data-id="' + escapeHtml(item.id) + '" data-type="' + escapeHtml(type) + '" title="Favorito" style="cursor:pointer; font-size:1.2rem; opacity:' + (isFavorite ? 1 : 0.3) + '; transition:all 0.2s;">⭐</div>' +
+      '<div class="note-btn" data-id="' + escapeHtml(item.id) + '" data-type="' + escapeHtml(type) + '" title="Adicionar nota" style="cursor:pointer; font-size:1rem; opacity:0.5; transition:all 0.2s;">📝</div>' +
+      '</div>' +
+      '</div>' +
       '</div>';
 
     var checkbox = wrapper.querySelector('.checkbox');
@@ -642,13 +705,13 @@ function renderFilters() {
     years += '<option value="' + y + '">' + y + '</option>';
   }
   return '<div class="filters-bar" style="display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">' +
-    '<select id="filterYear" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:8px 12px; color:#fff; font-family:inherit;"><option value="">Todos os anos</option>' + years + '</select>' +
-    '<select id="filterSort" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:8px 12px; color:#fff; font-family:inherit;">' +
-      '<option value="relevance">Relevância</option>' +
-      '<option value="date">Data (mais recente)</option>' +
-      '<option value="citations">Citações</option>' +
+    '<select id="filterYear" style="background:rgba(255,255,255,0.05); border:1px solid var(--border-default); border-radius:4px; padding:8px 12px; color:var(--text-primary); font-family:inherit;"><option value="">Todos os anos</option>' + years + '</select>' +
+    '<select id="filterSort" style="background:rgba(255,255,255,0.05); border:1px solid var(--border-default); border-radius:4px; padding:8px 12px; color:var(--text-primary); font-family:inherit;">' +
+    '<option value="relevance">Relevância</option>' +
+    '<option value="date">Data (mais recente)</option>' +
+    '<option value="citations">Citações</option>' +
     '</select>' +
-  '</div>';
+    '</div>';
 }
 
 // ==================== INJEÇÃO DO BUSCADOR ====================
@@ -659,14 +722,14 @@ function injectSearchTab(placeholder, searchCallback, storeKey, itemType) {
   store.pagination.page = 1;
   store.pagination.hasMore = true;
 
-  container.innerHTML = 
+  container.innerHTML =
     '<div class="search-area">' +
-      '<input type="text" id="searchInputField" class="search-input" placeholder="' + placeholder + '" aria-label="Campo de busca" autocomplete="off" />' +
-      '<button id="searchSubmitBtn" class="search-btn">Buscar</button>' +
+    '<input type="text" id="searchInputField" class="search-input" placeholder="' + placeholder + '" aria-label="Campo de busca" autocomplete="off" />' +
+    '<button id="searchSubmitBtn" class="search-btn">Buscar</button>' +
     '</div>' +
     renderFilters() +
     '<div id="progressContainer" style="width:100%; height:3px; background:rgba(255,255,255,0.05); border-radius:2px; margin:8px 0; display:none;">' +
-      '<div id="progressBar" style="width:0%; height:100%; background:linear-gradient(90deg, #00d4ff, #7b2cbf); border-radius:2px; transition:width 0.3s;"></div>' +
+    '<div id="progressBar" style="width:0%; height:100%; background:linear-gradient(90deg, #00d4ff, #7b2cbf); border-radius:2px; transition:width 0.3s;"></div>' +
     '</div>' +
     '<div class="results-grid" id="mainResultsGrid"></div>';
 
@@ -733,9 +796,13 @@ function injectSearchTab(placeholder, searchCallback, storeKey, itemType) {
         var loadMoreBtn = document.createElement('button');
         loadMoreBtn.id = 'loadMoreBtn';
         loadMoreBtn.textContent = '📥 Carregar mais resultados';
-        loadMoreBtn.style.cssText = 'width:100%; padding:14px; margin-top:16px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:var(--text-secondary); cursor:pointer; font-family:"Inter",sans-serif; font-size:0.85rem; transition:all 0.3s;';
-        loadMoreBtn.addEventListener('mouseenter', function() { loadMoreBtn.style.background = 'rgba(255,255,255,0.08)'; });
-        loadMoreBtn.addEventListener('mouseleave', function() { loadMoreBtn.style.background = 'rgba(255,255,255,0.05)'; });
+        loadMoreBtn.style.cssText = 'width:100%; padding:14px; margin-top:16px; background:rgba(255,255,255,0.05); border:1px solid var(--border-default); border-radius:6px; color:var(--text-secondary); cursor:pointer; font-family:"Inter",sans-serif; font-size:0.85rem; transition:all 0.3s;';
+        loadMoreBtn.addEventListener('mouseenter', function() {
+          loadMoreBtn.style.background = 'rgba(255,255,255,0.08)';
+        });
+        loadMoreBtn.addEventListener('mouseleave', function() {
+          loadMoreBtn.style.background = 'rgba(255,255,255,0.05)';
+        });
         loadMoreBtn.addEventListener('click', function() {
           store.pagination.page++;
           exec(true);
@@ -811,31 +878,31 @@ async function renderSummaryTab() {
         monthHtml += '<div style="display:flex; align-items:center; gap:8px; margin:4px 0;">' +
           '<span style="min-width:90px; font-size:0.75rem; color:var(--text-secondary);">' + month + '</span>' +
           '<div style="flex:1; height:20px; background:rgba(255,255,255,0.03); border-radius:4px; overflow:hidden;">' +
-            '<div style="width:' + pct + '%; height:100%; background:linear-gradient(90deg, #00d4ff, #7b2cbf); border-radius:4px; transition:width 0.5s;"></div>' +
+          '<div style="width:' + pct + '%; height:100%; background:linear-gradient(90deg, #00d4ff, #7b2cbf); border-radius:4px; transition:width 0.5s;"></div>' +
           '</div>' +
           '<span style="font-size:0.75rem; min-width:30px; color:var(--text-secondary);">' + count + '</span>' +
-        '</div>';
+          '</div>';
       }
     }
 
-    container.innerHTML = 
+    container.innerHTML =
       '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px,1fr)); gap:12px; margin-bottom:24px;">' +
-        '<div style="background:rgba(255,255,255,0.03); border-radius:8px; padding:16px; text-align:center; border:1px solid rgba(255,255,255,0.05);">' +
-          '<div style="font-size:1.8rem; font-weight:700; color:#00d4ff;">' + totalRead + '</div>' +
-          '<div style="font-size:0.75rem; color:var(--text-secondary);">Itens lidos</div>' +
-        '</div>' +
-        '<div style="background:rgba(255,255,255,0.03); border-radius:8px; padding:16px; text-align:center; border:1px solid rgba(255,255,255,0.05);">' +
-          '<div style="font-size:1.8rem; font-weight:700; color:#ffd700;">' + totalFav + '</div>' +
-          '<div style="font-size:0.75rem; color:var(--text-secondary);">Favoritos</div>' +
-        '</div>' +
-        '<div style="background:rgba(255,255,255,0.03); border-radius:8px; padding:16px; text-align:center; border:1px solid rgba(255,255,255,0.05);">' +
-          '<div style="font-size:1.8rem; font-weight:700; color:#7b2cbf;">' + totalNotes + '</div>' +
-          '<div style="font-size:0.75rem; color:var(--text-secondary);">Notas</div>' +
-        '</div>' +
+      '<div style="background:rgba(255,255,255,0.03); border-radius:8px; padding:16px; text-align:center; border:1px solid rgba(255,255,255,0.05);">' +
+      '<div style="font-size:1.8rem; font-weight:700; color:#00d4ff;">' + totalRead + '</div>' +
+      '<div style="font-size:0.75rem; color:var(--text-secondary);">Itens lidos</div>' +
+      '</div>' +
+      '<div style="background:rgba(255,255,255,0.03); border-radius:8px; padding:16px; text-align:center; border:1px solid rgba(255,255,255,0.05);">' +
+      '<div style="font-size:1.8rem; font-weight:700; color:#ffd700;">' + totalFav + '</div>' +
+      '<div style="font-size:0.75rem; color:var(--text-secondary);">Favoritos</div>' +
+      '</div>' +
+      '<div style="background:rgba(255,255,255,0.03); border-radius:8px; padding:16px; text-align:center; border:1px solid rgba(255,255,255,0.05);">' +
+      '<div style="font-size:1.8rem; font-weight:700; color:#7b2cbf;">' + totalNotes + '</div>' +
+      '<div style="font-size:0.75rem; color:var(--text-secondary);">Notas</div>' +
+      '</div>' +
       '</div>' +
       '<div class="summary-section">' +
-        '<h3 class="summary-title">📊 Leituras por Mês</h3>' +
-        '<div style="margin:12px 0 24px 0;">' + monthHtml + '</div>' +
+      '<h3 class="summary-title">📊 Leituras por Mês</h3>' +
+      '<div style="margin:12px 0 24px 0;">' + monthHtml + '</div>' +
       '</div>' +
       '<div class="summary-section"><h3 class="summary-title">📄 Artigos Lidos (' + store.read.article.size + ')</h3><div class="results-grid" id="sum-article"></div></div>' +
       '<div class="summary-section"><h3 class="summary-title">📚 Livros Concluídos (' + store.read.book.size + ')</h3><div class="results-grid" id="sum-book"></div></div>' +
@@ -854,13 +921,13 @@ async function renderSummaryTab() {
         var note = allNotes.filter(function(n) { return n.id === log.id; })[0];
         var noteText = note ? note.note || '' : '';
         var isFav = allFavorites.some(function(f) { return f.id === log.id; });
-        row.innerHTML = 
+        row.innerHTML =
           '<div class="result-card">' +
-            '<div class="card-content">' +
-              '<span class="card-title" style="font-size:1rem; cursor:default;">' + escapeHtml(log.title || 'Material sem identificação') + '</span>' +
-              '<div class="card-meta">' + (isFav ? '⭐ ' : '') + 'ID: ' + escapeHtml(log.id) + ' &nbsp;·&nbsp; Lido em: ' + new Date(log.date).toLocaleDateString('pt-BR') + '</div>' +
-              (noteText ? '<div class="card-abstract" style="font-size:0.8rem; color:#7b2cbf; margin-top:4px;">📝 ' + escapeHtml(noteText) + '</div>' : '') +
-            '</div>' +
+          '<div class="card-content">' +
+          '<span class="card-title" style="font-size:1rem; cursor:default;">' + escapeHtml(log.title || 'Material sem identificação') + '</span>' +
+          '<div class="card-meta">' + (isFav ? '⭐ ' : '') + 'ID: ' + escapeHtml(log.id) + ' &nbsp;·&nbsp; Lido em: ' + new Date(log.date).toLocaleDateString('pt-BR') + '</div>' +
+          (noteText ? '<div class="card-abstract" style="font-size:0.8rem; color:#7b2cbf; margin-top:4px;">📝 ' + escapeHtml(noteText) + '</div>' : '') +
+          '</div>' +
           '</div>';
         grid.appendChild(row);
       });
@@ -888,41 +955,42 @@ var TAB_ROUTES = {
   }
 };
 
-// ==================== TEMA (ESCOURO/CLARO) ====================
+// ==================== TEMA (ESCURO/CLARO) ====================
 function applyTheme(theme) {
   if (theme === 'light') {
     document.body.classList.add('light-theme');
-    document.documentElement.style.setProperty('--bg-dark', '#f0f2f8');
+    document.documentElement.style.setProperty('--bg-dark', '#eef1f7');
     document.documentElement.style.setProperty('--text-primary', '#1a1a2e');
-    document.documentElement.style.setProperty('--text-secondary', '#3d3d5c');
+    document.documentElement.style.setProperty('--text-secondary', '#4a4a6a');
     document.documentElement.style.setProperty('--text-tertiary', '#6b6b8a');
-    document.documentElement.style.setProperty('--bg-card', 'rgba(255,255,255,0.92)');
-    document.documentElement.style.setProperty('--border-glow', 'rgba(0,0,0,0.06)');
+    document.documentElement.style.setProperty('--bg-card', 'rgba(255, 255, 255, 0.95)');
+    document.documentElement.style.setProperty('--border-glow', 'rgba(0, 0, 0, 0.06)');
     document.documentElement.style.setProperty('--bg-surface', '#ffffff');
-    document.documentElement.style.setProperty('--bg-hover', '#e8ecf4');
+    document.documentElement.style.setProperty('--bg-hover', 'rgba(0, 0, 0, 0.03)');
     document.documentElement.style.setProperty('--bg-subtle', '#f5f7fc');
-    document.documentElement.style.setProperty('--shadow-color', 'rgba(0,0,0,0.08)');
-    // Cores específicas do card no tema claro
+    document.documentElement.style.setProperty('--shadow-color', 'rgba(0, 0, 0, 0.06)');
     document.documentElement.style.setProperty('--card-bg', '#ffffff');
-    document.documentElement.style.setProperty('--card-border', 'rgba(0,0,0,0.06)');
+    document.documentElement.style.setProperty('--card-border', 'rgba(0, 0, 0, 0.06)');
     document.documentElement.style.setProperty('--meta-color', '#4a4a6a');
     document.documentElement.style.setProperty('--abstract-color', '#3d3d5c');
+    document.getElementById('themeColor').content = '#eef1f7';
   } else {
     document.body.classList.remove('light-theme');
     document.documentElement.style.setProperty('--bg-dark', '#05070f');
     document.documentElement.style.setProperty('--text-primary', '#e8edf5');
-    document.documentElement.style.setProperty('--text-secondary', '#6b7a96');
-    document.documentElement.style.setProperty('--text-tertiary', '#4a5a78');
-    document.documentElement.style.setProperty('--bg-card', 'rgba(8,14,28,0.85)');
-    document.documentElement.style.setProperty('--border-glow', 'rgba(0,212,255,0.12)');
+    document.documentElement.style.setProperty('--text-secondary', '#8a9ab8');
+    document.documentElement.style.setProperty('--text-tertiary', '#5a6a88');
+    document.documentElement.style.setProperty('--bg-card', 'rgba(8, 14, 28, 0.85)');
+    document.documentElement.style.setProperty('--border-glow', 'rgba(0, 212, 255, 0.12)');
     document.documentElement.style.setProperty('--bg-surface', '#0d1424');
-    document.documentElement.style.setProperty('--bg-hover', '#1a2236');
+    document.documentElement.style.setProperty('--bg-hover', 'rgba(255, 255, 255, 0.03)');
     document.documentElement.style.setProperty('--bg-subtle', '#0a0f1e');
-    document.documentElement.style.setProperty('--shadow-color', 'rgba(0,0,0,0.4)');
-    document.documentElement.style.setProperty('--card-bg', 'rgba(8,14,28,0.85)');
-    document.documentElement.style.setProperty('--card-border', 'rgba(0,212,255,0.08)');
+    document.documentElement.style.setProperty('--shadow-color', 'rgba(0, 0, 0, 0.4)');
+    document.documentElement.style.setProperty('--card-bg', 'rgba(8, 14, 28, 0.85)');
+    document.documentElement.style.setProperty('--card-border', 'rgba(0, 212, 255, 0.08)');
     document.documentElement.style.setProperty('--meta-color', '#6b7a96');
     document.documentElement.style.setProperty('--abstract-color', '#8a9ab8');
+    document.getElementById('themeColor').content = '#05070f';
   }
   localStorage.setItem('read-theme', theme);
 }
@@ -981,7 +1049,7 @@ function initSystem() {
   var themeBtn = document.createElement('button');
   themeBtn.id = 'themeToggle';
   themeBtn.innerHTML = '🌓';
-  themeBtn.style.cssText = 'position:fixed; top:20px; right:20px; z-index:999; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:50%; width:40px; height:40px; cursor:pointer; font-size:1.2rem; transition:all 0.3s;';
+  themeBtn.style.cssText = 'position:fixed; top:20px; right:20px; z-index:999; background:var(--bg-surface); border:1px solid var(--border-default); border-radius:50%; width:40px; height:40px; cursor:pointer; font-size:1.2rem; transition:all 0.3s; color:var(--text-primary); display:flex; align-items:center; justify-content:center; box-shadow:0 2px 12px var(--shadow-color);';
   themeBtn.addEventListener('click', function() {
     var currentTheme = localStorage.getItem('read-theme') || 'dark';
     var newTheme = currentTheme === 'dark' ? 'light' : 'dark';
