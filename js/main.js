@@ -15,13 +15,13 @@ const store = {
   },
   currentTab: 'articles',
   db: null,
-  // Paginação
   pagination: {
     page: 1,
     query: '',
     hasMore: true,
     isLoading: false
-  }
+  },
+  _openAlexCursor: '*'
 };
 
 // ==================== UTILITÁRIOS ====================
@@ -50,7 +50,7 @@ function truncateText(text, maxLength = 300) {
   return text.substring(0, maxLength) + '...';
 }
 
-// ==================== INDEXEDDB ====================
+// ==================== INDEXEDDB — BOOT RESILIENTE ====================
 async function openDB() {
   const DB_NAME = 'ReadPlusDB';
   const STORES = [
@@ -71,7 +71,6 @@ async function openDB() {
             db.createObjectStore(storeName, options);
           }
         });
-        // Criar índices para buscas mais rápidas
         if (!db.objectStoreNames.contains('reading_log')) {
           const logStore = db.createObjectStore('reading_log', { keyPath: 'id' });
           logStore.createIndex('type', 'type', { unique: false });
@@ -80,6 +79,10 @@ async function openDB() {
         if (!db.objectStoreNames.contains('notes')) {
           const notesStore = db.createObjectStore('notes', { keyPath: 'id' });
           notesStore.createIndex('type', 'type', { unique: false });
+        }
+        if (!db.objectStoreNames.contains('favorites')) {
+          const favStore = db.createObjectStore('favorites', { keyPath: 'id' });
+          favStore.createIndex('type', 'type', { unique: false });
         }
       };
       request.onsuccess = (e) => resolve(e.target.result);
@@ -134,11 +137,7 @@ async function markAsReadInDB(id, type, isRead) {
   if (!store.db) return;
   const tx = store.db.transaction(['reading_log'], 'readwrite');
   if (isRead) {
-    const log = {
-      id: `${type}_${id}`,
-      type,
-      date: new Date().toISOString()
-    };
+    const log = { id: `${type}_${id}`, type, date: new Date().toISOString() };
     tx.objectStore('reading_log').put(log);
     store.read[type].add(id);
   } else {
@@ -152,11 +151,7 @@ async function toggleFavoriteInDB(id, type, isFavorite) {
   if (!store.db) return;
   const tx = store.db.transaction(['favorites'], 'readwrite');
   if (isFavorite) {
-    tx.objectStore('favorites').put({
-      id: `${type}_${id}`,
-      type,
-      date: new Date().toISOString()
-    });
+    tx.objectStore('favorites').put({ id: `${type}_${id}`, type, date: new Date().toISOString() });
     store.favorites[type].add(id);
   } else {
     tx.objectStore('favorites').delete(`${type}_${id}`);
@@ -168,28 +163,30 @@ async function toggleFavoriteInDB(id, type, isFavorite) {
 async function saveNoteInDB(id, type, note) {
   if (!store.db) return;
   const tx = store.db.transaction(['notes'], 'readwrite');
-  const noteObj = {
-    id: `${type}_${id}`,
-    type,
-    note: note || '',
-    date: new Date().toISOString()
-  };
-  tx.objectStore('notes').put(noteObj);
+  tx.objectStore('notes').put({ id: `${type}_${id}`, type, note: note || '', date: new Date().toISOString() });
   return new Promise(res => { tx.oncomplete = () => res(); });
+}
+
+async function getNoteFromDB(id, type) {
+  if (!store.db) return null;
+  return new Promise((resolve) => {
+    const tx = store.db.transaction(['notes'], 'readonly');
+    const req = tx.objectStore('notes').get(`${type}_${id}`);
+    req.onsuccess = () => resolve(req.result?.note || null);
+    req.onerror = () => resolve(null);
+  });
 }
 
 async function loadInitialData() {
   if (!store.db) return;
-  
-  // Carrega leituras
+
   await new Promise((resolve) => {
     const tx = store.db.transaction(['reading_log'], 'readonly');
     tx.objectStore('reading_log').getAll().onsuccess = (e) => {
       store.read.article.clear();
       store.read.book.clear();
       store.read.research.clear();
-      const data = e.target.result || [];
-      data.forEach(log => {
+      (e.target.result || []).forEach(log => {
         const type = log.type || 'article';
         const id = log.id.replace(/^[^_]+_/, '');
         if (store.read[type]) store.read[type].add(id);
@@ -198,15 +195,13 @@ async function loadInitialData() {
     };
   });
 
-  // Carrega favoritos
   await new Promise((resolve) => {
     const tx = store.db.transaction(['favorites'], 'readonly');
     tx.objectStore('favorites').getAll().onsuccess = (e) => {
       store.favorites.article.clear();
       store.favorites.book.clear();
       store.favorites.research.clear();
-      const data = e.target.result || [];
-      data.forEach(item => {
+      (e.target.result || []).forEach(item => {
         const type = item.type || 'article';
         const id = item.id.replace(/^[^_]+_/, '');
         if (store.favorites[type]) store.favorites[type].add(id);
@@ -232,7 +227,7 @@ function getDemoArticles(query, type) {
       id: `demo_${Date.now()}_2`,
       title: `${label} Científico sobre ${query} (Simulado)`,
       authors: ['Centro de Pesquisa READ+'],
-      abstract: 'O READ+ está pronto para buscar dados reais assim que as APIs estiverem disponíveis. Esta é uma demonstração da interface e funcionalidades.',
+      abstract: 'O READ+ está pronto para buscar dados reais assim que as APIs estiverem disponíveis.',
       url: '#',
       source: '📄 Modo Demonstração'
     }
@@ -245,7 +240,7 @@ function getDemoBooks(query) {
       id: `demo_book_${Date.now()}_1`,
       title: `Livro: "${query}" - Modo Demonstração`,
       authors: ['READ+ Demo'],
-      abstract: `Este é um resultado de demonstração para "${query}". O sistema está funcionando normalmente. Aguarde a API Google Books retornar dados reais.`,
+      abstract: `Este é um resultado de demonstração para "${query}". O sistema está funcionando normalmente.`,
       url: '#',
       source: '📚 Modo Demonstração'
     },
@@ -253,44 +248,33 @@ function getDemoBooks(query) {
       id: `demo_book_${Date.now()}_2`,
       title: `Publicação sobre ${query} (Simulado)`,
       authors: ['Equipe READ+'],
-      abstract: 'O READ+ está pronto para buscar dados reais assim que as APIs estiverem disponíveis. Esta é uma demonstração da interface e funcionalidades.',
+      abstract: 'O READ+ está pronto para buscar dados reais assim que as APIs estiverem disponíveis.',
       url: '#',
       source: '📖 Modo Demonstração'
     }
   ];
 }
 
-// ==================== MOTOR DE BUSCA — OPENALEX (COM PAGINAÇÃO) ====================
+// ==================== MOTOR DE BUSCA — OPENALEX ====================
 async function fetchOpenAlex(query, type = 'article', page = 1, filters = {}) {
-  const filter = 'open_access.is_oa:true';
   const perPage = 20;
-  const cursor = page === 1 ? '*' : store._openAlexCursor || '*';
-  
-  let url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=${filter}&sort=relevance_score:desc&per-page=${perPage}`;
-  
-  // Adiciona cursor para paginação (OpenAlex)
-  if (page > 1 && store._openAlexCursor) {
+  let url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=open_access.is_oa:true&sort=relevance_score:desc&per-page=${perPage}`;
+
+  if (page > 1 && store._openAlexCursor && store._openAlexCursor !== '*') {
     url += `&cursor=${store._openAlexCursor}`;
   }
-  
-  // Filtros
-  if (filters.year) {
-    url += `&filter=publication_year:${filters.year}`;
-  }
-  if (filters.sort === 'date') {
-    url = url.replace('sort=relevance_score:desc', 'sort=publication_date:desc');
-  } else if (filters.sort === 'citations') {
-    url = url.replace('sort=relevance_score:desc', 'sort=cited_by_count:desc');
-  }
-  
+
+  if (filters.year) url += `&filter=publication_year:${filters.year}`;
+  if (filters.sort === 'date') url = url.replace('sort=relevance_score:desc', 'sort=publication_date:desc');
+  else if (filters.sort === 'citations') url = url.replace('sort=relevance_score:desc', 'sort=cited_by_count:desc');
+
   const cacheKey = `openalex_${query}_${type}_${page}_${JSON.stringify(filters)}`;
 
   try {
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
       const data = JSON.parse(cached);
-      if (Date.now() - data.timestamp < 5 * 60 * 1000) {
-        console.log('[READ+] Usando cache para:', query);
+      if (Date.now() - data.timestamp < 300000) {
         store._openAlexCursor = data.cursor || '*';
         return data.results;
       }
@@ -300,31 +284,19 @@ async function fetchOpenAlex(query, type = 'article', page = 1, filters = {}) {
   try {
     const res = await fetch(url);
     if (!res.ok) {
-      if (res.status === 503) {
-        console.warn('[READ+] OpenAlex indisponível. Usando dados de demonstração.');
-        return getDemoArticles(query, type);
-      }
-      throw new Error(`Erro ${res.status}: ${res.statusText}`);
+      if (res.status === 503) { console.warn('[READ+] OpenAlex indisponível.'); return getDemoArticles(query, type); }
+      throw new Error(`Erro ${res.status}`);
     }
     const data = await res.json();
-    
-    // Salva o cursor para próxima página
     store._openAlexCursor = data.meta?.next_cursor || '*';
 
     const results = (data.results || []).filter(w =>
-      w.open_access?.is_oa &&
-      (w.open_access?.oa_url || w.best_oa_location?.pdf_url)
+      w.open_access?.is_oa && (w.open_access?.oa_url || w.best_oa_location?.pdf_url)
     ).map(w => ({
       id: stableHash(w.id || w.title || Math.random().toString()),
       title: w.title || 'Sem título',
       authors: w.authorships?.map(a => a.author?.display_name).filter(Boolean) || ['Autor não identificado'],
-      abstract: w.abstract ||
-        (w.abstract_inverted_index
-          ? Object.entries(w.abstract_inverted_index)
-              .sort((a, b) => a[1][0] - b[1][0])
-              .map(([word]) => word)
-              .join(' ')
-          : 'Resumo indisponível.'),
+      abstract: w.abstract || (w.abstract_inverted_index ? Object.entries(w.abstract_inverted_index).sort((a, b) => a[1][0] - b[1][0]).map(([word]) => word).join(' ') : 'Resumo indisponível.'),
       url: w.best_oa_location?.pdf_url || w.open_access?.oa_url || w.id,
       source: type === 'research' ? 'Estudo & Pesquisa Livre (PDF)' : 'Artigo Científico Disponível',
       publicationYear: w.publication_year,
@@ -332,56 +304,32 @@ async function fetchOpenAlex(query, type = 'article', page = 1, filters = {}) {
     }));
 
     if (results.length > 0) {
-      try {
-        localStorage.setItem(cacheKey, JSON.stringify({
-          timestamp: Date.now(),
-          results,
-          cursor: store._openAlexCursor
-        }));
-      } catch (_) {}
+      localStorage.setItem(cacheKey, JSON.stringify({ timestamp: Date.now(), results, cursor: store._openAlexCursor }));
       return results;
     }
     return getDemoArticles(query, type);
   } catch (e) {
-    console.error('[READ+] Erro na busca OpenAlex:', e);
+    console.error('[READ+] Erro OpenAlex:', e);
     const cached = localStorage.getItem(cacheKey);
-    if (cached) {
-      const data = JSON.parse(cached);
-      store._openAlexCursor = data.cursor || '*';
-      return data.results;
-    }
+    if (cached) { const data = JSON.parse(cached); store._openAlexCursor = data.cursor || '*'; return data.results; }
     return getDemoArticles(query, type);
   }
 }
 
-// ==================== MOTOR DE BUSCA — GOOGLE BOOKS (COM PAGINAÇÃO) ====================
+// ==================== MOTOR DE BUSCA — GOOGLE BOOKS ====================
 async function fetchBooks(query, page = 1, filters = {}) {
   const API_KEY = 'AIzaSyBGhP_WMwjUKjI7vXP4TcyKHizxFw05lcI';
   const startIndex = (page - 1) * 20;
   let url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20&startIndex=${startIndex}&key=${API_KEY}`;
-  
-  // Filtros
-  if (filters.year) {
-    url += `&printType=books&publishedDate=${filters.year}`;
-  }
-  if (filters.sort === 'date') {
-    url += `&orderBy=newest`;
-  }
+
+  if (filters.year) url += `&printType=books&publishedDate=${filters.year}`;
+  if (filters.sort === 'date') url += `&orderBy=newest`;
 
   try {
     const res = await fetch(url);
     if (!res.ok) {
-      if (res.status === 400) {
-        console.warn('[READ+] Chave do Google Books inválida. Usando dados de demonstração.');
-        return getDemoBooks(query);
-      }
-      if (res.status === 403) {
-        console.warn('[READ+] Quota do Google Books excedida. Usando dados de demonstração.');
-        return getDemoBooks(query);
-      }
-      if (res.status === 503) {
-        console.warn('[READ+] Google Books indisponível. Usando dados de demonstração.');
-        return getDemoBooks(query);
+      if ([400, 403, 503].includes(res.status)) {
+        console.warn('[READ+] Google Books indisponível.'); return getDemoBooks(query);
       }
       throw new Error(`HTTP ${res.status}`);
     }
@@ -399,17 +347,14 @@ async function fetchBooks(query, page = 1, filters = {}) {
     }
     return getDemoBooks(query);
   } catch (error) {
-    console.error('[READ+] Erro no Google Books:', error);
+    console.error('[READ+] Erro Google Books:', error);
     return getDemoBooks(query);
   }
 }
 
 // ==================== EXPORTAÇÃO ====================
 function exportResults(results, format = 'csv') {
-  if (!results || !results.length) {
-    alert('Nenhum resultado para exportar.');
-    return;
-  }
+  if (!results || !results.length) { alert('Nenhum resultado para exportar.'); return; }
 
   if (format === 'csv') {
     const headers = ['Título', 'Autores', 'Resumo', 'Fonte'];
@@ -421,12 +366,11 @@ function exportResults(results, format = 'csv') {
     ]);
     const csv = [headers.join(';'), ...rows.map(row => row.join(';'))].join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
+    a.href = URL.createObjectURL(blob);
     a.download = `readplus-resultados-${Date.now()}.csv`;
     a.click();
-    URL.revokeObjectURL(url);
+    URL.revokeObjectURL(a.href);
   }
 }
 
@@ -438,15 +382,10 @@ function renderItemsGrid(container, items, type, showExport = true) {
     return;
   }
 
-  // Botão de exportação
   if (showExport && items.length > 0) {
     const exportDiv = document.createElement('div');
     exportDiv.style.cssText = 'display:flex; justify-content:flex-end; margin-bottom:12px; gap:8px;';
-    exportDiv.innerHTML = `
-      <button class="export-btn" data-format="csv" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:6px 14px; color:#fff; cursor:pointer; font-size:0.8rem;">
-        📥 Exportar CSV
-      </button>
-    `;
+    exportDiv.innerHTML = `<button class="export-btn" data-format="csv" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:6px 14px; color:#fff; cursor:pointer; font-size:0.8rem;">📥 Exportar CSV</button>`;
     exportDiv.querySelector('.export-btn').addEventListener('click', () => {
       const currentItems = store[type === 'article' ? 'articles' : type === 'book' ? 'books' : 'research'] || [];
       exportResults(currentItems, 'csv');
@@ -471,18 +410,13 @@ function renderItemsGrid(container, items, type, showExport = true) {
             <div class="card-abstract">${escapeHtml(truncateText(item.abstract, 350))}</div>
           </div>
           <div style="display:flex; flex-direction:column; gap:6px; align-items:center; min-width:32px;">
-            <div class="favorite-btn ${isFavorite ? 'active' : ''}" data-id="${escapeHtml(item.id)}" data-type="${escapeHtml(type)}" title="Favorito" style="cursor:pointer; font-size:1.2rem; opacity:${isFavorite ? 1 : 0.3}; transition:all 0.2s;">
-              ⭐
-            </div>
-            <div class="note-btn" data-id="${escapeHtml(item.id)}" data-type="${escapeHtml(type)}" title="Adicionar nota" style="cursor:pointer; font-size:1rem; opacity:0.5; transition:all 0.2s;">
-              📝
-            </div>
+            <div class="favorite-btn ${isFavorite ? 'active' : ''}" data-id="${escapeHtml(item.id)}" data-type="${escapeHtml(type)}" title="Favorito" style="cursor:pointer; font-size:1.2rem; opacity:${isFavorite ? 1 : 0.3}; transition:all 0.2s;">⭐</div>
+            <div class="note-btn" data-id="${escapeHtml(item.id)}" data-type="${escapeHtml(type)}" title="Adicionar nota" style="cursor:pointer; font-size:1rem; opacity:0.5; transition:all 0.2s;">📝</div>
           </div>
         </div>
       </div>
     `;
 
-    // Evento: Marcar como lido
     wrapper.querySelector('.checkbox').addEventListener('click', async (e) => {
       const btn = e.currentTarget;
       const currentlyChecked = btn.classList.contains('checked');
@@ -491,7 +425,6 @@ function renderItemsGrid(container, items, type, showExport = true) {
       btn.textContent = !currentlyChecked ? '✓' : '';
     });
 
-    // Evento: Favoritar
     wrapper.querySelector('.favorite-btn').addEventListener('click', async (e) => {
       const btn = e.currentTarget;
       const currentlyFav = btn.classList.contains('active');
@@ -500,7 +433,6 @@ function renderItemsGrid(container, items, type, showExport = true) {
       btn.style.opacity = !currentlyFav ? '1' : '0.3';
     });
 
-    // Evento: Adicionar nota
     wrapper.querySelector('.note-btn').addEventListener('click', async (e) => {
       const btn = e.currentTarget;
       const currentNote = await getNoteFromDB(item.id, type);
@@ -515,30 +447,13 @@ function renderItemsGrid(container, items, type, showExport = true) {
   });
 }
 
-// ==================== NOTAS ====================
-async function getNoteFromDB(id, type) {
-  if (!store.db) return null;
-  return new Promise((resolve) => {
-    const tx = store.db.transaction(['notes'], 'readonly');
-    const req = tx.objectStore('notes').get(`${type}_${id}`);
-    req.onsuccess = () => resolve(req.result?.note || null);
-    req.onerror = () => resolve(null);
-  });
-}
-
 // ==================== RENDERIZAÇÃO DE FILTROS ====================
 function renderFilters() {
   return `
     <div class="filters-bar" style="display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
       <select id="filterYear" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:8px 12px; color:#fff; font-family:inherit;">
         <option value="">Todos os anos</option>
-        <option value="2026">2026</option>
-        <option value="2025">2025</option>
-        <option value="2024">2024</option>
-        <option value="2023">2023</option>
-        <option value="2022">2022</option>
-        <option value="2021">2021</option>
-        <option value="2020">2020</option>
+        ${Array.from({ length: 20 }, (_, i) => 2026 - i).map(y => `<option value="${y}">${y}</option>`).join('')}
       </select>
       <select id="filterSort" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:8px 12px; color:#fff; font-family:inherit;">
         <option value="relevance">Relevância</option>
@@ -578,12 +493,7 @@ function injectSearchTab(placeholder, searchCallback, storeKey, itemType) {
   function updateProgress(percent) {
     progressContainer.style.display = 'block';
     progressBar.style.width = Math.min(percent, 100) + '%';
-    if (percent >= 100) {
-      setTimeout(() => {
-        progressContainer.style.display = 'none';
-        progressBar.style.width = '0%';
-      }, 500);
-    }
+    if (percent >= 100) setTimeout(() => { progressContainer.style.display = 'none'; progressBar.style.width = '0%'; }, 500);
   }
 
   if (store[storeKey]?.length > 0) {
@@ -607,64 +517,34 @@ function injectSearchTab(placeholder, searchCallback, storeKey, itemType) {
     if (store.pagination.isLoading) return;
     store.pagination.isLoading = true;
     btn.disabled = true;
-
     updateProgress(30);
 
     try {
-      // Pega filtros
       const yearFilter = document.getElementById('filterYear')?.value || '';
       const sortFilter = document.getElementById('filterSort')?.value || 'relevance';
       const filters = { year: yearFilter, sort: sortFilter };
-
       const results = await searchCallback(q, store.pagination.page, filters);
       updateProgress(80);
 
-      if (loadMore && store[storeKey]) {
-        store[storeKey] = [...store[storeKey], ...results];
-      } else {
-        store[storeKey] = results;
-      }
-      
+      if (loadMore && store[storeKey]) store[storeKey] = [...store[storeKey], ...results];
+      else store[storeKey] = results;
+
       renderItemsGrid(grid, store[storeKey], itemType);
       updateProgress(100);
 
-      // Verifica se tem mais resultados
       store.pagination.hasMore = results.length >= 20;
-      
-      // Adiciona botão "Carregar mais"
-      const existingBtn = document.getElementById('loadMoreBtn');
-      if (existingBtn) existingBtn.remove();
-      
+      document.getElementById('loadMoreBtn')?.remove();
+
       if (store.pagination.hasMore) {
         const loadMoreBtn = document.createElement('button');
         loadMoreBtn.id = 'loadMoreBtn';
         loadMoreBtn.textContent = '📥 Carregar mais resultados';
-        loadMoreBtn.style.cssText = `
-          width: 100%;
-          padding: 14px;
-          margin-top: 16px;
-          background: rgba(255,255,255,0.05);
-          border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 6px;
-          color: var(--text-secondary);
-          cursor: pointer;
-          font-family: 'Inter', sans-serif;
-          font-size: 0.85rem;
-          transition: all 0.3s;
-        `;
-        loadMoreBtn.addEventListener('mouseenter', () => {
-          loadMoreBtn.style.background = 'rgba(255,255,255,0.08)';
-        });
-        loadMoreBtn.addEventListener('mouseleave', () => {
-          loadMoreBtn.style.background = 'rgba(255,255,255,0.05)';
-        });
-        loadMoreBtn.addEventListener('click', () => {
-          store.pagination.page++;
-          exec(true);
-        });
+        loadMoreBtn.style.cssText = `width:100%; padding:14px; margin-top:16px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:var(--text-secondary); cursor:pointer; font-family:'Inter',sans-serif; font-size:0.85rem; transition:all 0.3s;`;
+        loadMoreBtn.addEventListener('mouseenter', () => loadMoreBtn.style.background = 'rgba(255,255,255,0.08)');
+        loadMoreBtn.addEventListener('mouseleave', () => loadMoreBtn.style.background = 'rgba(255,255,255,0.05)');
+        loadMoreBtn.addEventListener('click', () => { store.pagination.page++; exec(true); });
         grid.parentNode.appendChild(loadMoreBtn);
       }
-
     } catch (err) {
       grid.innerHTML = '<div class="hint-text">Erro ao buscar. Tente novamente.</div>';
       console.error('[READ+] Erro:', err);
@@ -693,26 +573,16 @@ async function renderSummaryTab() {
   container.innerHTML = '<div class="hint-text">Sincronizando histórico de leituras...</div>';
 
   try {
-    const allLogs = await new Promise((resolve) => {
-      const tx = store.db.transaction(['reading_log'], 'readonly');
-      tx.objectStore('reading_log').getAll().onsuccess = (e) => resolve(e.target.result || []);
-    });
-
-    const allFavorites = await new Promise((resolve) => {
-      const tx = store.db.transaction(['favorites'], 'readonly');
-      tx.objectStore('favorites').getAll().onsuccess = (e) => resolve(e.target.result || []);
-    });
-
-    const allNotes = await new Promise((resolve) => {
-      const tx = store.db.transaction(['notes'], 'readonly');
-      tx.objectStore('notes').getAll().onsuccess = (e) => resolve(e.target.result || []);
-    });
+    const [allLogs, allFavorites, allNotes] = await Promise.all([
+      new Promise((resolve) => { const tx = store.db.transaction(['reading_log'], 'readonly'); tx.objectStore('reading_log').getAll().onsuccess = (e) => resolve(e.target.result || []); }),
+      new Promise((resolve) => { const tx = store.db.transaction(['favorites'], 'readonly'); tx.objectStore('favorites').getAll().onsuccess = (e) => resolve(e.target.result || []); }),
+      new Promise((resolve) => { const tx = store.db.transaction(['notes'], 'readonly'); tx.objectStore('notes').getAll().onsuccess = (e) => resolve(e.target.result || []); })
+    ]);
 
     const totalRead = allLogs.length;
     const totalFav = allFavorites.length;
     const totalNotes = allNotes.filter(n => n.note).length;
 
-    // Gráfico de leituras por mês
     const months = {};
     allLogs.forEach(log => {
       const month = new Date(log.date).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
@@ -721,13 +591,7 @@ async function renderSummaryTab() {
     const maxCount = Math.max(...Object.values(months), 1);
 
     if (!allLogs.length && !allFavorites.length) {
-      container.innerHTML = `
-        <div class="hint-text">
-          Nenhum material foi marcado como lido ainda.<br>
-          Use o checkbox ⬜ nos cards para registrar suas leituras.<br><br>
-          ⭐ Marque como favorito para encontrar facilmente depois.
-        </div>
-      `;
+      container.innerHTML = `<div class="hint-text">Nenhum material foi marcado como lido ainda.<br>Use o checkbox ⬜ nos cards para registrar suas leituras.<br><br>⭐ Marque como favorito para encontrar facilmente depois.</div>`;
       return;
     }
 
@@ -770,4 +634,51 @@ async function renderSummaryTab() {
       </div>
       <div class="summary-section">
         <h3 class="summary-title">Pesquisas Mapeadas (${store.read.research.size})</h3>
-        <div class="results-grid" id="sum
+        <div class="results-grid" id="sum-research"></div>
+      </div>
+    `;
+
+    ['article', 'book', 'research'].forEach(type => {
+      const grid = document.getElementById(`sum-${type}`);
+      const logs = allLogs.filter(l => l.type === type);
+
+      if (!logs.length) {
+        grid.innerHTML = '<div class="hint-text" style="padding:16px; font-size:0.82rem;">Sem registros nesta categoria.</div>';
+        return;
+      }
+
+      logs.forEach(log => {
+        const row = document.createElement('div');
+        row.className = 'virtual-row';
+        const note = allNotes.find(n => n.id === log.id)?.note || '';
+        const isFav = allFavorites.some(f => f.id === log.id);
+        row.innerHTML = `
+          <div class="result-card">
+            <div class="card-content">
+              <span class="card-title" style="font-size:1rem; cursor:default;">${escapeHtml(log.title || 'Material sem identificação')}</span>
+              <div class="card-meta">${isFav ? '⭐ ' : ''}ID: ${escapeHtml(log.id)} &nbsp;·&nbsp; Lido em: ${new Date(log.date).toLocaleDateString('pt-BR')}</div>
+              ${note ? `<div class="card-abstract" style="font-size:0.8rem; color:#7b2cbf; margin-top:4px;">📝 ${escapeHtml(note)}</div>` : ''}
+            </div>
+          </div>
+        `;
+        grid.appendChild(row);
+      });
+    });
+
+  } catch (err) {
+    container.innerHTML = '<div class="hint-text">Erro ao carregar o histórico.</div>';
+    console.error('[READ+] Erro no Resumo:', err);
+  }
+}
+
+// ==================== ROUTER DE ABAS ====================
+const TAB_ROUTES = {
+  articles: () => injectSearchTab('Buscar artigos acadêmicos no OpenAlex...', (q, p, f) => fetchOpenAlex(q, 'article', p, f), 'articles', 'article'),
+  books: () => injectSearchTab('Localizar publicações no Google Books...', fetchBooks, 'books', 'book'),
+  research: () => injectSearchTab('Buscar pesquisas e estudos científicos gratuitos em PDF...', (q, p, f) => fetchOpenAlex(q, 'research', p, f), 'research', 'research'),
+  summary: () => renderSummaryTab()
+};
+
+// ==================== INICIALIZADOR ====================
+function initSystem() {
+  const tabs = document.querySelector
