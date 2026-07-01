@@ -39,7 +39,16 @@ function sanitizeUrl(url) {
   if (t.startsWith('http://') || t.startsWith('https://')) {
     return t;
   }
-  return '#';
+  if (t.includes('arxiv.org/abs/')) {
+    return t.replace('arxiv.org/abs/', 'arxiv.org/pdf/') + '.pdf';
+  }
+  if (t.startsWith('10.') || t.includes('doi.org')) {
+    var doi = t.replace(/^.*doi\.org\//, '').trim();
+    if (doi) {
+      return 'https://doi.org/' + doi;
+    }
+  }
+  return t;
 }
 
 function stableHash(str) {
@@ -60,7 +69,14 @@ function truncateText(text, maxLength) {
 function isPDFUrl(url) {
   if (!url) return false;
   var lower = url.toLowerCase();
-  return lower.endsWith('.pdf') || lower.includes('pdf') || lower.includes('arxiv') || lower.includes('sci-hub');
+  return lower.endsWith('.pdf') || 
+         lower.includes('pdf') || 
+         lower.includes('arxiv.org/pdf') ||
+         lower.includes('sci-hub') ||
+         lower.includes('doi.org') ||
+         lower.includes('openaccess') ||
+         lower.includes('oa_url') ||
+         lower.includes('best_oa_location');
 }
 
 // ==================== INDEXEDDB ====================
@@ -272,7 +288,7 @@ function getDemoBooks(query) {
   ];
 }
 
-// ==================== MOTOR DE BUSCA — ARTIGOS (OpenAlex - apenas artigos) ====================
+// ==================== MOTOR DE BUSCA — ARTIGOS ====================
 async function fetchArticles(query, page, filters) {
   if (page === undefined) page = 1;
   if (filters === undefined) filters = {};
@@ -327,7 +343,7 @@ async function fetchArticles(query, page, filters) {
         title: w.title || 'Sem título',
         authors: (w.authorships || []).map(function(a) { return a.author ? a.author.display_name : null; }).filter(Boolean) || ['Autor não identificado'],
         abstract: w.abstract || (w.abstract_inverted_index ? Object.entries(w.abstract_inverted_index).sort(function(a, b) { return a[1][0] - b[1][0]; }).map(function(entry) { return entry[0]; }).join(' ') : 'Resumo indisponível.'),
-        url: pdfUrl,
+        url: sanitizeUrl(pdfUrl),
         source: '📄 Artigo Científico (PDF)',
         publicationYear: w.publication_year,
         citedByCount: w.cited_by_count,
@@ -354,7 +370,7 @@ async function fetchArticles(query, page, filters) {
   }
 }
 
-// ==================== MOTOR DE BUSCA — PESQUISAS (OpenAlex - apenas pesquisas/estudos) ====================
+// ==================== MOTOR DE BUSCA — PESQUISAS ====================
 async function fetchResearch(query, page, filters) {
   if (page === undefined) page = 1;
   if (filters === undefined) filters = {};
@@ -409,7 +425,7 @@ async function fetchResearch(query, page, filters) {
         title: w.title || 'Sem título',
         authors: (w.authorships || []).map(function(a) { return a.author ? a.author.display_name : null; }).filter(Boolean) || ['Autor não identificado'],
         abstract: w.abstract || (w.abstract_inverted_index ? Object.entries(w.abstract_inverted_index).sort(function(a, b) { return a[1][0] - b[1][0]; }).map(function(entry) { return entry[0]; }).join(' ') : 'Resumo indisponível.'),
-        url: pdfUrl,
+        url: sanitizeUrl(pdfUrl),
         source: '🔬 Pesquisa Científica (PDF)',
         publicationYear: w.publication_year,
         citedByCount: w.cited_by_count,
@@ -436,7 +452,7 @@ async function fetchResearch(query, page, filters) {
   }
 }
 
-// ==================== MOTOR DE BUSCA — LIVROS (Google Books - apenas com PDF) ====================
+// ==================== MOTOR DE BUSCA — LIVROS ====================
 async function fetchBooks(query, page, filters) {
   if (page === undefined) page = 1;
   if (filters === undefined) filters = {};
@@ -482,23 +498,21 @@ async function fetchBooks(query, page, filters) {
           title: info.title || 'Sem título',
           authors: info.authors || ['Autor não informado'],
           abstract: info.description || 'Sinopse indisponível.',
-          url: pdfLink || previewLink || '#',
+          url: sanitizeUrl(pdfLink || previewLink || '#'),
           source: pdfAvailable || epubAvailable ? '📚 PDF Disponível' : '📖 Visualizar',
           publicationYear: info.publishedDate ? info.publishedDate.substring(0, 4) : undefined,
           isPDF: pdfAvailable || epubAvailable || isPDFUrl(previewLink)
         };
       });
 
-      // Filtra para mostrar apenas livros com conteúdo disponível
       var filteredResults = results.filter(function(book) {
-        return book.isPDF && book.url !== '#';
+        return book.isPDF && book.url && book.url !== '#';
       });
 
       if (filteredResults.length > 0) {
         return filteredResults;
       }
       
-      // Fallback: mostra os primeiros 10 mesmo sem PDF
       return results.slice(0, 10);
     }
     return getDemoBooks(query);
@@ -568,13 +582,14 @@ function renderItemsGrid(container, items, type, showExport) {
     var isFavorite = store.favorites[type] && store.favorites[type].has(item.id) || false;
     var isPdf = item.isPDF || false;
     var pdfBadge = isPdf ? ' 📄' : '';
+    var linkUrl = (item.url && item.url !== '#') ? item.url : (item.pdfUrl || '#');
 
     wrapper.innerHTML = 
       '<div class="result-card" style="position:relative;">' +
         '<div style="display:flex; gap:12px; flex:1;">' +
           '<div class="checkbox ' + (isRead ? 'checked' : '') + '" data-id="' + escapeHtml(item.id) + '" data-type="' + escapeHtml(type) + '" title="Marcar como lido">' + (isRead ? '✓' : '') + '</div>' +
           '<div class="card-content" style="flex:1;">' +
-            '<a href="' + sanitizeUrl(item.url) + '" target="_blank" rel="noopener noreferrer" class="card-title" title="Abrir PDF">' + escapeHtml(item.title) + pdfBadge + '</a>' +
+            '<a href="' + linkUrl + '" target="_blank" rel="noopener noreferrer" class="card-title" title="Abrir PDF">' + escapeHtml(item.title) + pdfBadge + '</a>' +
             '<div class="card-meta">' + escapeHtml(item.source) + ' &nbsp;//&nbsp; ' + escapeHtml(item.authors.slice(0, 3).join(', ')) + (item.publicationYear ? ' · ' + item.publicationYear : '') + '</div>' +
             '<div class="card-abstract">' + escapeHtml(truncateText(item.abstract, 350)) + '</div>' +
           '</div>' +
@@ -873,6 +888,26 @@ var TAB_ROUTES = {
   }
 };
 
+// ==================== TEMA (ESCOURO/CLARO) ====================
+function applyTheme(theme) {
+  if (theme === 'light') {
+    document.body.classList.add('light-theme');
+    document.documentElement.style.setProperty('--bg-dark', '#f5f7fa');
+    document.documentElement.style.setProperty('--text-primary', '#1a1a2e');
+    document.documentElement.style.setProperty('--text-secondary', '#4a4a6a');
+    document.documentElement.style.setProperty('--bg-card', 'rgba(255,255,255,0.85)');
+    document.documentElement.style.setProperty('--border-glow', 'rgba(0,0,0,0.08)');
+  } else {
+    document.body.classList.remove('light-theme');
+    document.documentElement.style.setProperty('--bg-dark', '#05070f');
+    document.documentElement.style.setProperty('--text-primary', '#e8edf5');
+    document.documentElement.style.setProperty('--text-secondary', '#6b7a96');
+    document.documentElement.style.setProperty('--bg-card', 'rgba(8,14,28,0.85)');
+    document.documentElement.style.setProperty('--border-glow', 'rgba(0,212,255,0.12)');
+  }
+  localStorage.setItem('read-theme', theme);
+}
+
 // ==================== INICIALIZADOR ====================
 function initSystem() {
   var tabs = document.querySelectorAll('.main-tab');
@@ -898,6 +933,10 @@ function initSystem() {
   });
   handleTabSwitch(tabs[0]);
 
+  // Inicializar tema
+  var savedTheme = localStorage.getItem('read-theme') || 'dark';
+  applyTheme(savedTheme);
+
   openDB().then(function() {
     return loadInitialData();
   }).then(function() {
@@ -920,17 +959,16 @@ function initSystem() {
     }
   });
 
-  // MODO ESCURO/CLARO
+  // BOTÃO DE TEMA (substitui o anterior)
   var themeBtn = document.createElement('button');
   themeBtn.id = 'themeToggle';
-  themeBtn.textContent = '🌓';
+  themeBtn.innerHTML = '🌓';
   themeBtn.style.cssText = 'position:fixed; top:20px; right:20px; z-index:999; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:50%; width:40px; height:40px; cursor:pointer; font-size:1.2rem; transition:all 0.3s;';
   themeBtn.addEventListener('click', function() {
-    document.body.classList.toggle('light-theme');
-    var isDark = !document.body.classList.contains('light-theme');
-    localStorage.setItem('read-theme', isDark ? 'dark' : 'light');
+    var currentTheme = localStorage.getItem('read-theme') || 'dark';
+    var newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    applyTheme(newTheme);
   });
-  if (localStorage.getItem('read-theme') === 'light') document.body.classList.add('light-theme');
   document.body.appendChild(themeBtn);
 }
 
