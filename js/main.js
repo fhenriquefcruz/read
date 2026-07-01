@@ -4,12 +4,24 @@ const store = {
   books: [],
   research: [],
   read: {
-    article:  new Set(),
-    book:     new Set(),
+    article: new Set(),
+    book: new Set(),
+    research: new Set()
+  },
+  favorites: {
+    article: new Set(),
+    book: new Set(),
     research: new Set()
   },
   currentTab: 'articles',
-  db: null
+  db: null,
+  // Paginação
+  pagination: {
+    page: 1,
+    query: '',
+    hasMore: true,
+    isLoading: false
+  }
 };
 
 // ==================== UTILITÁRIOS ====================
@@ -32,7 +44,13 @@ function stableHash(str) {
   return Math.abs(h).toString(36);
 }
 
-// ==================== INDEXEDDB — BOOT RESILIENTE ====================
+function truncateText(text, maxLength = 300) {
+  if (!text) return '';
+  if (text.length <= maxLength) return text;
+  return text.substring(0, maxLength) + '...';
+}
+
+// ==================== INDEXEDDB ====================
 async function openDB() {
   const DB_NAME = 'ReadPlusDB';
   const STORES = [
@@ -40,7 +58,7 @@ async function openDB() {
     'tags', 'favorites', 'reading_log', 'study_log', 'radar',
     'settings', 'zettels', 'backlinks'
   ];
-  const TARGET_VERSION = 12;
+  const TARGET_VERSION = 13;
 
   try {
     const db = await new Promise((resolve, reject) => {
@@ -49,11 +67,20 @@ async function openDB() {
         const db = event.target.result;
         STORES.forEach(storeName => {
           if (!db.objectStoreNames.contains(storeName)) {
-            db.createObjectStore(storeName, {
-              keyPath: storeName === 'settings' ? 'key' : 'id'
-            });
+            const options = storeName === 'settings' ? { keyPath: 'key' } : { keyPath: 'id' };
+            db.createObjectStore(storeName, options);
           }
         });
+        // Criar índices para buscas mais rápidas
+        if (!db.objectStoreNames.contains('reading_log')) {
+          const logStore = db.createObjectStore('reading_log', { keyPath: 'id' });
+          logStore.createIndex('type', 'type', { unique: false });
+          logStore.createIndex('date', 'date', { unique: false });
+        }
+        if (!db.objectStoreNames.contains('notes')) {
+          const notesStore = db.createObjectStore('notes', { keyPath: 'id' });
+          notesStore.createIndex('type', 'type', { unique: false });
+        }
       };
       request.onsuccess = (e) => resolve(e.target.result);
       request.onerror = (e) => reject(e.target.error);
@@ -86,9 +113,8 @@ async function openDB() {
             const db = event.target.result;
             STORES.forEach(storeName => {
               if (!db.objectStoreNames.contains(storeName)) {
-                db.createObjectStore(storeName, {
-                  keyPath: storeName === 'settings' ? 'key' : 'id'
-                });
+                const options = storeName === 'settings' ? { keyPath: 'key' } : { keyPath: 'id' };
+                db.createObjectStore(storeName, options);
               }
             });
           };
@@ -108,18 +134,55 @@ async function markAsReadInDB(id, type, isRead) {
   if (!store.db) return;
   const tx = store.db.transaction(['reading_log'], 'readwrite');
   if (isRead) {
-    tx.objectStore('reading_log').put({ id, type, date: new Date().toISOString() });
+    const log = {
+      id: `${type}_${id}`,
+      type,
+      date: new Date().toISOString()
+    };
+    tx.objectStore('reading_log').put(log);
     store.read[type].add(id);
   } else {
-    tx.objectStore('reading_log').delete(id);
+    tx.objectStore('reading_log').delete(`${type}_${id}`);
     store.read[type].delete(id);
   }
   return new Promise(res => { tx.oncomplete = () => res(); });
 }
 
-async function loadInitialReadingLog() {
+async function toggleFavoriteInDB(id, type, isFavorite) {
   if (!store.db) return;
-  return new Promise((resolve) => {
+  const tx = store.db.transaction(['favorites'], 'readwrite');
+  if (isFavorite) {
+    tx.objectStore('favorites').put({
+      id: `${type}_${id}`,
+      type,
+      date: new Date().toISOString()
+    });
+    store.favorites[type].add(id);
+  } else {
+    tx.objectStore('favorites').delete(`${type}_${id}`);
+    store.favorites[type].delete(id);
+  }
+  return new Promise(res => { tx.oncomplete = () => res(); });
+}
+
+async function saveNoteInDB(id, type, note) {
+  if (!store.db) return;
+  const tx = store.db.transaction(['notes'], 'readwrite');
+  const noteObj = {
+    id: `${type}_${id}`,
+    type,
+    note: note || '',
+    date: new Date().toISOString()
+  };
+  tx.objectStore('notes').put(noteObj);
+  return new Promise(res => { tx.oncomplete = () => res(); });
+}
+
+async function loadInitialData() {
+  if (!store.db) return;
+  
+  // Carrega leituras
+  await new Promise((resolve) => {
     const tx = store.db.transaction(['reading_log'], 'readonly');
     tx.objectStore('reading_log').getAll().onsuccess = (e) => {
       store.read.article.clear();
@@ -127,7 +190,26 @@ async function loadInitialReadingLog() {
       store.read.research.clear();
       const data = e.target.result || [];
       data.forEach(log => {
-        if (store.read[log.type]) store.read[log.type].add(log.id);
+        const type = log.type || 'article';
+        const id = log.id.replace(/^[^_]+_/, '');
+        if (store.read[type]) store.read[type].add(id);
+      });
+      resolve();
+    };
+  });
+
+  // Carrega favoritos
+  await new Promise((resolve) => {
+    const tx = store.db.transaction(['favorites'], 'readonly');
+    tx.objectStore('favorites').getAll().onsuccess = (e) => {
+      store.favorites.article.clear();
+      store.favorites.book.clear();
+      store.favorites.research.clear();
+      const data = e.target.result || [];
+      data.forEach(item => {
+        const type = item.type || 'article';
+        const id = item.id.replace(/^[^_]+_/, '');
+        if (store.favorites[type]) store.favorites[type].add(id);
       });
       resolve();
     };
@@ -178,11 +260,30 @@ function getDemoBooks(query) {
   ];
 }
 
-// ==================== MOTOR DE BUSCA — OPENALEX ====================
-async function fetchOpenAlex(query, type = 'article') {
+// ==================== MOTOR DE BUSCA — OPENALEX (COM PAGINAÇÃO) ====================
+async function fetchOpenAlex(query, type = 'article', page = 1, filters = {}) {
   const filter = 'open_access.is_oa:true';
-  const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=${filter}&sort=relevance_score:desc&per-page=20`;
-  const cacheKey = `openalex_${query}_${type}`;
+  const perPage = 20;
+  const cursor = page === 1 ? '*' : store._openAlexCursor || '*';
+  
+  let url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&filter=${filter}&sort=relevance_score:desc&per-page=${perPage}`;
+  
+  // Adiciona cursor para paginação (OpenAlex)
+  if (page > 1 && store._openAlexCursor) {
+    url += `&cursor=${store._openAlexCursor}`;
+  }
+  
+  // Filtros
+  if (filters.year) {
+    url += `&filter=publication_year:${filters.year}`;
+  }
+  if (filters.sort === 'date') {
+    url = url.replace('sort=relevance_score:desc', 'sort=publication_date:desc');
+  } else if (filters.sort === 'citations') {
+    url = url.replace('sort=relevance_score:desc', 'sort=cited_by_count:desc');
+  }
+  
+  const cacheKey = `openalex_${query}_${type}_${page}_${JSON.stringify(filters)}`;
 
   try {
     const cached = localStorage.getItem(cacheKey);
@@ -190,6 +291,7 @@ async function fetchOpenAlex(query, type = 'article') {
       const data = JSON.parse(cached);
       if (Date.now() - data.timestamp < 5 * 60 * 1000) {
         console.log('[READ+] Usando cache para:', query);
+        store._openAlexCursor = data.cursor || '*';
         return data.results;
       }
     }
@@ -205,6 +307,9 @@ async function fetchOpenAlex(query, type = 'article') {
       throw new Error(`Erro ${res.status}: ${res.statusText}`);
     }
     const data = await res.json();
+    
+    // Salva o cursor para próxima página
+    store._openAlexCursor = data.meta?.next_cursor || '*';
 
     const results = (data.results || []).filter(w =>
       w.open_access?.is_oa &&
@@ -221,14 +326,17 @@ async function fetchOpenAlex(query, type = 'article') {
               .join(' ')
           : 'Resumo indisponível.'),
       url: w.best_oa_location?.pdf_url || w.open_access?.oa_url || w.id,
-      source: type === 'research' ? 'Estudo & Pesquisa Livre (PDF)' : 'Artigo Científico Disponível'
+      source: type === 'research' ? 'Estudo & Pesquisa Livre (PDF)' : 'Artigo Científico Disponível',
+      publicationYear: w.publication_year,
+      citedByCount: w.cited_by_count
     }));
 
     if (results.length > 0) {
       try {
         localStorage.setItem(cacheKey, JSON.stringify({
           timestamp: Date.now(),
-          results
+          results,
+          cursor: store._openAlexCursor
         }));
       } catch (_) {}
       return results;
@@ -239,19 +347,29 @@ async function fetchOpenAlex(query, type = 'article') {
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
       const data = JSON.parse(cached);
+      store._openAlexCursor = data.cursor || '*';
       return data.results;
     }
     return getDemoArticles(query, type);
   }
 }
 
-// ==================== MOTOR DE BUSCA — GOOGLE BOOKS (COM SUA CHAVE) ====================
-async function fetchBooks(query) {
+// ==================== MOTOR DE BUSCA — GOOGLE BOOKS (COM PAGINAÇÃO) ====================
+async function fetchBooks(query, page = 1, filters = {}) {
   const API_KEY = 'AIzaSyBGhP_WMwjUKjI7vXP4TcyKHizxFw05lcI';
-  const directUrl = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20&printType=books&key=${API_KEY}`;
+  const startIndex = (page - 1) * 20;
+  let url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20&startIndex=${startIndex}&key=${API_KEY}`;
+  
+  // Filtros
+  if (filters.year) {
+    url += `&printType=books&publishedDate=${filters.year}`;
+  }
+  if (filters.sort === 'date') {
+    url += `&orderBy=newest`;
+  }
 
   try {
-    const res = await fetch(directUrl);
+    const res = await fetch(url);
     if (!res.ok) {
       if (res.status === 400) {
         console.warn('[READ+] Chave do Google Books inválida. Usando dados de demonstração.');
@@ -275,7 +393,8 @@ async function fetchBooks(query) {
         authors: item.volumeInfo?.authors || ['Autor não informado'],
         abstract: item.volumeInfo?.description || 'Sinopse indisponível.',
         url: item.volumeInfo?.previewLink || item.volumeInfo?.infoLink || '#',
-        source: 'Google Books'
+        source: 'Google Books',
+        publicationYear: item.volumeInfo?.publishedDate?.substring(0, 4)
       }));
     }
     return getDemoBooks(query);
@@ -285,12 +404,54 @@ async function fetchBooks(query) {
   }
 }
 
+// ==================== EXPORTAÇÃO ====================
+function exportResults(results, format = 'csv') {
+  if (!results || !results.length) {
+    alert('Nenhum resultado para exportar.');
+    return;
+  }
+
+  if (format === 'csv') {
+    const headers = ['Título', 'Autores', 'Resumo', 'Fonte'];
+    const rows = results.map(r => [
+      `"${r.title.replace(/"/g, '""')}"`,
+      `"${r.authors.join('; ').replace(/"/g, '""')}"`,
+      `"${truncateText(r.abstract, 500).replace(/"/g, '""')}"`,
+      `"${r.source.replace(/"/g, '""')}"`
+    ]);
+    const csv = [headers.join(';'), ...rows.map(row => row.join(';'))].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `readplus-resultados-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+}
+
 // ==================== RENDERIZAÇÃO DOS CARDS ====================
-function renderItemsGrid(container, items, type) {
+function renderItemsGrid(container, items, type, showExport = true) {
   container.innerHTML = '';
   if (!items.length) {
     container.innerHTML = '<div class="hint-text">Nenhum resultado encontrado. Tente outro termo de busca.</div>';
     return;
+  }
+
+  // Botão de exportação
+  if (showExport && items.length > 0) {
+    const exportDiv = document.createElement('div');
+    exportDiv.style.cssText = 'display:flex; justify-content:flex-end; margin-bottom:12px; gap:8px;';
+    exportDiv.innerHTML = `
+      <button class="export-btn" data-format="csv" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:6px 14px; color:#fff; cursor:pointer; font-size:0.8rem;">
+        📥 Exportar CSV
+      </button>
+    `;
+    exportDiv.querySelector('.export-btn').addEventListener('click', () => {
+      const currentItems = store[type === 'article' ? 'articles' : type === 'book' ? 'books' : 'research'] || [];
+      exportResults(currentItems, 'csv');
+    });
+    container.appendChild(exportDiv);
   }
 
   items.forEach(item => {
@@ -298,18 +459,30 @@ function renderItemsGrid(container, items, type) {
     wrapper.className = 'virtual-row';
 
     const isRead = store.read[type]?.has(item.id) || false;
+    const isFavorite = store.favorites[type]?.has(item.id) || false;
 
     wrapper.innerHTML = `
-      <div class="result-card">
-        <div class="checkbox ${isRead ? 'checked' : ''}" data-id="${escapeHtml(item.id)}" data-type="${escapeHtml(type)}" title="Marcar como lido">${isRead ? '✓' : ''}</div>
-        <div class="card-content">
-          <a href="${sanitizeUrl(item.url)}" target="_blank" rel="noopener noreferrer" class="card-title">${escapeHtml(item.title)}</a>
-          <div class="card-meta">${escapeHtml(item.source)} &nbsp;//&nbsp; ${escapeHtml(item.authors.slice(0, 3).join(', '))}</div>
-          <div class="card-abstract">${escapeHtml(item.abstract)}</div>
+      <div class="result-card" style="position:relative;">
+        <div style="display:flex; gap:12px; flex:1;">
+          <div class="checkbox ${isRead ? 'checked' : ''}" data-id="${escapeHtml(item.id)}" data-type="${escapeHtml(type)}" title="Marcar como lido">${isRead ? '✓' : ''}</div>
+          <div class="card-content" style="flex:1;">
+            <a href="${sanitizeUrl(item.url)}" target="_blank" rel="noopener noreferrer" class="card-title">${escapeHtml(item.title)}</a>
+            <div class="card-meta">${escapeHtml(item.source)} &nbsp;//&nbsp; ${escapeHtml(item.authors.slice(0, 3).join(', '))} ${item.publicationYear ? '· ' + item.publicationYear : ''}</div>
+            <div class="card-abstract">${escapeHtml(truncateText(item.abstract, 350))}</div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px; align-items:center; min-width:32px;">
+            <div class="favorite-btn ${isFavorite ? 'active' : ''}" data-id="${escapeHtml(item.id)}" data-type="${escapeHtml(type)}" title="Favorito" style="cursor:pointer; font-size:1.2rem; opacity:${isFavorite ? 1 : 0.3}; transition:all 0.2s;">
+              ⭐
+            </div>
+            <div class="note-btn" data-id="${escapeHtml(item.id)}" data-type="${escapeHtml(type)}" title="Adicionar nota" style="cursor:pointer; font-size:1rem; opacity:0.5; transition:all 0.2s;">
+              📝
+            </div>
+          </div>
         </div>
       </div>
     `;
 
+    // Evento: Marcar como lido
     wrapper.querySelector('.checkbox').addEventListener('click', async (e) => {
       const btn = e.currentTarget;
       const currentlyChecked = btn.classList.contains('checked');
@@ -318,8 +491,62 @@ function renderItemsGrid(container, items, type) {
       btn.textContent = !currentlyChecked ? '✓' : '';
     });
 
+    // Evento: Favoritar
+    wrapper.querySelector('.favorite-btn').addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      const currentlyFav = btn.classList.contains('active');
+      await toggleFavoriteInDB(item.id, type, !currentlyFav);
+      btn.classList.toggle('active');
+      btn.style.opacity = !currentlyFav ? '1' : '0.3';
+    });
+
+    // Evento: Adicionar nota
+    wrapper.querySelector('.note-btn').addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      const currentNote = await getNoteFromDB(item.id, type);
+      const note = prompt('Adicione uma nota sobre este item:', currentNote || '');
+      if (note !== null) {
+        await saveNoteInDB(item.id, type, note);
+        btn.style.opacity = note ? '1' : '0.5';
+      }
+    });
+
     container.appendChild(wrapper);
   });
+}
+
+// ==================== NOTAS ====================
+async function getNoteFromDB(id, type) {
+  if (!store.db) return null;
+  return new Promise((resolve) => {
+    const tx = store.db.transaction(['notes'], 'readonly');
+    const req = tx.objectStore('notes').get(`${type}_${id}`);
+    req.onsuccess = () => resolve(req.result?.note || null);
+    req.onerror = () => resolve(null);
+  });
+}
+
+// ==================== RENDERIZAÇÃO DE FILTROS ====================
+function renderFilters() {
+  return `
+    <div class="filters-bar" style="display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
+      <select id="filterYear" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:8px 12px; color:#fff; font-family:inherit;">
+        <option value="">Todos os anos</option>
+        <option value="2026">2026</option>
+        <option value="2025">2025</option>
+        <option value="2024">2024</option>
+        <option value="2023">2023</option>
+        <option value="2022">2022</option>
+        <option value="2021">2021</option>
+        <option value="2020">2020</option>
+      </select>
+      <select id="filterSort" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:4px; padding:8px 12px; color:#fff; font-family:inherit;">
+        <option value="relevance">Relevância</option>
+        <option value="date">Data (mais recente)</option>
+        <option value="citations">Citações</option>
+      </select>
+    </div>
+  `;
 }
 
 // ==================== INJEÇÃO DO BUSCADOR ====================
@@ -327,46 +554,130 @@ function injectSearchTab(placeholder, searchCallback, storeKey, itemType) {
   const container = document.getElementById('mainContent');
   if (!container) return;
 
+  store.pagination.page = 1;
+  store.pagination.hasMore = true;
+
   container.innerHTML = `
     <div class="search-area">
       <input type="text" id="searchInputField" class="search-input" placeholder="${placeholder}" aria-label="Campo de busca" autocomplete="off" />
       <button id="searchSubmitBtn" class="search-btn">Buscar</button>
     </div>
+    ${renderFilters()}
+    <div id="progressContainer" style="width:100%; height:3px; background:rgba(255,255,255,0.05); border-radius:2px; margin:8px 0; display:none;">
+      <div id="progressBar" style="width:0%; height:100%; background:linear-gradient(90deg, #00d4ff, #7b2cbf); border-radius:2px; transition:width 0.3s;"></div>
+    </div>
     <div class="results-grid" id="mainResultsGrid"></div>
   `;
 
   const input = document.getElementById('searchInputField');
-  const btn   = document.getElementById('searchSubmitBtn');
-  const grid  = document.getElementById('mainResultsGrid');
+  const btn = document.getElementById('searchSubmitBtn');
+  const grid = document.getElementById('mainResultsGrid');
+  const progressContainer = document.getElementById('progressContainer');
+  const progressBar = document.getElementById('progressBar');
+
+  function updateProgress(percent) {
+    progressContainer.style.display = 'block';
+    progressBar.style.width = Math.min(percent, 100) + '%';
+    if (percent >= 100) {
+      setTimeout(() => {
+        progressContainer.style.display = 'none';
+        progressBar.style.width = '0%';
+      }, 500);
+    }
+  }
 
   if (store[storeKey]?.length > 0) {
     renderItemsGrid(grid, store[storeKey], itemType);
+    store.pagination.hasMore = store[storeKey].length >= 20;
   } else {
     grid.innerHTML = '<div class="hint-text">Digite a palavra-chave para iniciar o escaneamento cognitivo...</div>';
   }
 
-  const exec = async () => {
+  const exec = async (loadMore = false) => {
     const q = input.value.trim();
     if (!q) return;
-    btn.textContent = 'Buscando...';
+    if (!loadMore) {
+      store.pagination.page = 1;
+      store.pagination.query = q;
+      store[storeKey] = [];
+      store.pagination.hasMore = true;
+      grid.innerHTML = '<div class="hint-text">Escaneando repositórios globais...</div>';
+    }
+
+    if (store.pagination.isLoading) return;
+    store.pagination.isLoading = true;
     btn.disabled = true;
-    grid.innerHTML = '<div class="hint-text">Escaneando repositórios globais...</div>';
+
+    updateProgress(30);
 
     try {
-      const results = await searchCallback(q);
-      store[storeKey] = results;
-      renderItemsGrid(grid, results, itemType);
+      // Pega filtros
+      const yearFilter = document.getElementById('filterYear')?.value || '';
+      const sortFilter = document.getElementById('filterSort')?.value || 'relevance';
+      const filters = { year: yearFilter, sort: sortFilter };
+
+      const results = await searchCallback(q, store.pagination.page, filters);
+      updateProgress(80);
+
+      if (loadMore && store[storeKey]) {
+        store[storeKey] = [...store[storeKey], ...results];
+      } else {
+        store[storeKey] = results;
+      }
+      
+      renderItemsGrid(grid, store[storeKey], itemType);
+      updateProgress(100);
+
+      // Verifica se tem mais resultados
+      store.pagination.hasMore = results.length >= 20;
+      
+      // Adiciona botão "Carregar mais"
+      const existingBtn = document.getElementById('loadMoreBtn');
+      if (existingBtn) existingBtn.remove();
+      
+      if (store.pagination.hasMore) {
+        const loadMoreBtn = document.createElement('button');
+        loadMoreBtn.id = 'loadMoreBtn';
+        loadMoreBtn.textContent = '📥 Carregar mais resultados';
+        loadMoreBtn.style.cssText = `
+          width: 100%;
+          padding: 14px;
+          margin-top: 16px;
+          background: rgba(255,255,255,0.05);
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 6px;
+          color: var(--text-secondary);
+          cursor: pointer;
+          font-family: 'Inter', sans-serif;
+          font-size: 0.85rem;
+          transition: all 0.3s;
+        `;
+        loadMoreBtn.addEventListener('mouseenter', () => {
+          loadMoreBtn.style.background = 'rgba(255,255,255,0.08)';
+        });
+        loadMoreBtn.addEventListener('mouseleave', () => {
+          loadMoreBtn.style.background = 'rgba(255,255,255,0.05)';
+        });
+        loadMoreBtn.addEventListener('click', () => {
+          store.pagination.page++;
+          exec(true);
+        });
+        grid.parentNode.appendChild(loadMoreBtn);
+      }
+
     } catch (err) {
       grid.innerHTML = '<div class="hint-text">Erro ao buscar. Tente novamente.</div>';
       console.error('[READ+] Erro:', err);
+      updateProgress(100);
     }
 
     btn.textContent = 'Buscar';
     btn.disabled = false;
+    store.pagination.isLoading = false;
   };
 
-  btn.addEventListener('click', exec);
-  input.addEventListener('keypress', (e) => { if (e.key === 'Enter') exec(); });
+  btn.addEventListener('click', () => exec(false));
+  input.addEventListener('keypress', (e) => { if (e.key === 'Enter') exec(false); });
 }
 
 // ==================== ABA RESUMO ====================
@@ -387,12 +698,68 @@ async function renderSummaryTab() {
       tx.objectStore('reading_log').getAll().onsuccess = (e) => resolve(e.target.result || []);
     });
 
-    if (!allLogs.length) {
-      container.innerHTML = '<div class="hint-text">Nenhum material foi marcado como lido ainda.<br>Use o checkbox nos cards para registrar suas leituras.</div>';
+    const allFavorites = await new Promise((resolve) => {
+      const tx = store.db.transaction(['favorites'], 'readonly');
+      tx.objectStore('favorites').getAll().onsuccess = (e) => resolve(e.target.result || []);
+    });
+
+    const allNotes = await new Promise((resolve) => {
+      const tx = store.db.transaction(['notes'], 'readonly');
+      tx.objectStore('notes').getAll().onsuccess = (e) => resolve(e.target.result || []);
+    });
+
+    const totalRead = allLogs.length;
+    const totalFav = allFavorites.length;
+    const totalNotes = allNotes.filter(n => n.note).length;
+
+    // Gráfico de leituras por mês
+    const months = {};
+    allLogs.forEach(log => {
+      const month = new Date(log.date).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+      months[month] = (months[month] || 0) + 1;
+    });
+    const maxCount = Math.max(...Object.values(months), 1);
+
+    if (!allLogs.length && !allFavorites.length) {
+      container.innerHTML = `
+        <div class="hint-text">
+          Nenhum material foi marcado como lido ainda.<br>
+          Use o checkbox ⬜ nos cards para registrar suas leituras.<br><br>
+          ⭐ Marque como favorito para encontrar facilmente depois.
+        </div>
+      `;
       return;
     }
 
     container.innerHTML = `
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(120px,1fr)); gap:12px; margin-bottom:24px;">
+        <div style="background:rgba(255,255,255,0.03); border-radius:8px; padding:16px; text-align:center; border:1px solid rgba(255,255,255,0.05);">
+          <div style="font-size:1.8rem; font-weight:700; color:#00d4ff;">${totalRead}</div>
+          <div style="font-size:0.75rem; color:var(--text-secondary);">Itens lidos</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.03); border-radius:8px; padding:16px; text-align:center; border:1px solid rgba(255,255,255,0.05);">
+          <div style="font-size:1.8rem; font-weight:700; color:#ffd700;">${totalFav}</div>
+          <div style="font-size:0.75rem; color:var(--text-secondary);">Favoritos</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.03); border-radius:8px; padding:16px; text-align:center; border:1px solid rgba(255,255,255,0.05);">
+          <div style="font-size:1.8rem; font-weight:700; color:#7b2cbf;">${totalNotes}</div>
+          <div style="font-size:0.75rem; color:var(--text-secondary);">Notas</div>
+        </div>
+      </div>
+      <div class="summary-section">
+        <h3 class="summary-title">📊 Leituras por Mês</h3>
+        <div style="margin:12px 0 24px 0;">
+          ${Object.entries(months).map(([month, count]) => `
+            <div style="display:flex; align-items:center; gap:8px; margin:4px 0;">
+              <span style="min-width:90px; font-size:0.75rem; color:var(--text-secondary);">${month}</span>
+              <div style="flex:1; height:20px; background:rgba(255,255,255,0.03); border-radius:4px; overflow:hidden;">
+                <div style="width:${(count / maxCount) * 100}%; height:100%; background:linear-gradient(90deg, #00d4ff, #7b2cbf); border-radius:4px; transition:width 0.5s;"></div>
+              </div>
+              <span style="font-size:0.75rem; min-width:30px; color:var(--text-secondary);">${count}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
       <div class="summary-section">
         <h3 class="summary-title">Artigos Lidos (${store.read.article.size})</h3>
         <div class="results-grid" id="sum-article"></div>
@@ -403,152 +770,4 @@ async function renderSummaryTab() {
       </div>
       <div class="summary-section">
         <h3 class="summary-title">Pesquisas Mapeadas (${store.read.research.size})</h3>
-        <div class="results-grid" id="sum-research"></div>
-      </div>
-    `;
-
-    ['article', 'book', 'research'].forEach(type => {
-      const grid = document.getElementById(`sum-${type}`);
-      const logs = allLogs.filter(l => l.type === type);
-
-      if (!logs.length) {
-        grid.innerHTML = '<div class="hint-text" style="padding:16px; font-size:0.82rem;">Sem registros nesta categoria.</div>';
-        return;
-      }
-
-      logs.forEach(log => {
-        const row = document.createElement('div');
-        row.className = 'virtual-row';
-        row.innerHTML = `
-          <div class="result-card">
-            <div class="card-content">
-              <span class="card-title" style="font-size:1rem; cursor:default;">${escapeHtml(log.title || 'Material sem identificação')}</span>
-              <div class="card-meta">ID: ${escapeHtml(log.id)} &nbsp;·&nbsp; Lido em: ${new Date(log.date).toLocaleDateString('pt-BR')}</div>
-            </div>
-          </div>
-        `;
-        grid.appendChild(row);
-      });
-    });
-
-  } catch (err) {
-    container.innerHTML = '<div class="hint-text">Erro ao carregar o histórico.</div>';
-    console.error('[READ+] Erro no Resumo:', err);
-  }
-}
-
-// ==================== ROUTER DE ABAS ====================
-const TAB_ROUTES = {
-  articles: () => injectSearchTab(
-    'Buscar artigos acadêmicos no OpenAlex...',
-    (q) => fetchOpenAlex(q, 'article'),
-    'articles',
-    'article'
-  ),
-  books: () => injectSearchTab(
-    'Localizar publicações no Google Books...',
-    fetchBooks,
-    'books',
-    'book'
-  ),
-  research: () => injectSearchTab(
-    'Buscar pesquisas e estudos científicos gratuitos em PDF...',
-    (q) => fetchOpenAlex(q, 'research'),
-    'research',
-    'research'
-  ),
-  summary: () => renderSummaryTab()
-};
-
-// ==================== INICIALIZADOR ====================
-function initSystem() {
-  const tabs = document.querySelectorAll('.main-tab');
-
-  if (!tabs.length) {
-    console.error('[READ+] Abas não encontradas no DOM.');
-    return;
-  }
-
-  function handleTabSwitch(activeTab) {
-    tabs.forEach(t => {
-      t.classList.remove('active');
-      t.setAttribute('aria-selected', 'false');
-    });
-    activeTab.classList.add('active');
-    activeTab.setAttribute('aria-selected', 'true');
-    store.currentTab = activeTab.getAttribute('data-main');
-    const route = TAB_ROUTES[store.currentTab];
-    if (route) route();
-  }
-
-  tabs.forEach(tab => tab.addEventListener('click', () => handleTabSwitch(tab)));
-
-  // Renderiza a interface imediatamente
-  handleTabSwitch(tabs[0]);
-
-  // Abre o banco em background
-  openDB()
-    .then(() => loadInitialReadingLog())
-    .then(() => {
-      console.log('[READ+] Banco sincronizado com sucesso.');
-      if (store.currentTab === 'summary') {
-        renderSummaryTab();
-      }
-    })
-    .catch(err => {
-      console.error('[READ+] Banco indisponível (modo offline ou erro):', err);
-    });
-}
-
-// Executa assim que o DOM estiver pronto
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initSystem);
-} else {
-  initSystem();
-}
-
-// ==================== PWA — INSTALAÇÃO ====================
-let deferredPrompt;
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-
-  const installBtn = document.createElement('button');
-  installBtn.id = 'pwa-install-btn';
-  installBtn.textContent = '📲 Instalar App';
-  installBtn.style.cssText = `
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: #00d4ff;
-    color: #05070f;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 40px;
-    font-weight: 700;
-    font-size: 0.9rem;
-    cursor: pointer;
-    z-index: 9999;
-    box-shadow: 0 0 30px rgba(0,212,255,0.4);
-    display: none;
-  `;
-  document.body.appendChild(installBtn);
-
-  installBtn.addEventListener('click', async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const result = await deferredPrompt.userChoice;
-      console.log('[READ+] Instalação:', result.outcome);
-      deferredPrompt = null;
-      installBtn.style.display = 'none';
-    }
-  });
-
-  setTimeout(() => {
-    if (deferredPrompt) installBtn.style.display = 'block';
-  }, 3000);
-});
-
-window.addEventListener('appinstalled', () => {
-  document.getElementById('pwa-install-btn')?.remove();
-});
+        <div class="results-grid" id="sum
