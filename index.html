@@ -280,7 +280,7 @@
             margin: 1.5rem 0;
         }
 
-        /* ========== CARD MELHORADO ========== */
+        /* ========== CARD OTIMIZADO ========== */
         .result-card {
             background: var(--bg-card);
             backdrop-filter: blur(4px);
@@ -317,18 +317,31 @@
         }
         .result-card .card-badge.book { background: rgba(139,92,246,0.15); color: var(--purple); }
         .result-card .card-badge.thesis { background: rgba(251,191,36,0.15); color: #FBBF24; }
+        
         .result-card .card-title {
             font-size: clamp(1.05rem, 2vw, 1.2rem);
             font-weight: 700;
             line-height: 1.3;
             color: var(--text-primary);
             margin-top: 0.5rem;
+            /* Limita título a 2 linhas com ellipsis */
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
+        
+        /* Linha do autor - oculta se for desconhecido ou vazio */
         .result-card .card-authors {
             font-size: 0.85rem;
             color: var(--text-secondary);
             font-weight: 500;
         }
+        .result-card .card-authors.hidden {
+            display: none;
+        }
+        
         .result-card .card-meta {
             display: flex;
             flex-wrap: wrap;
@@ -338,6 +351,8 @@
         }
         .result-card .card-meta .year { color: var(--cyan); font-weight: 600; }
         .result-card .card-meta .citations { color: var(--purple); font-weight: 600; }
+        
+        /* Descrição - oculta se não disponível */
         .result-card .card-description {
             font-size: 0.85rem;
             color: var(--text-secondary);
@@ -348,6 +363,10 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
         }
+        .result-card .card-description.hidden {
+            display: none;
+        }
+        
         .result-card .card-actions {
             display: flex;
             flex-wrap: wrap;
@@ -459,7 +478,7 @@
             color: var(--text-secondary);
         }
 
-        /* ========== ESTADO VAZIO MELHORADO ========== */
+        /* ========== ESTADO VAZIO ========== */
         .empty-state {
             grid-column: 1 / -1;
             text-align: center;
@@ -587,10 +606,11 @@
 
         // ==================== CONFIGURAÇÕES ====================
         const CONFIG = {
-            DEBOUNCE_DELAY: 600, // Aumentado para evitar requisições duplicadas
+            DEBOUNCE_DELAY: 600,
             MAX_RESULTS: 30,
-            TIMEOUT_MS: 10000, // 10 segundos de timeout
-            RETRY_ATTEMPTS: 2
+            TIMEOUT_MS: 10000,
+            RETRY_ATTEMPTS: 2,
+            MAX_TITLE_LENGTH: 80 // Limite de caracteres para títulos longos
         };
 
         // ==================== DOM REFS ====================
@@ -619,13 +639,13 @@
 
         // ==================== SUGESTÕES ====================
         const SUGGESTIONS = {
-            'aprendizado': ['aprendizado de máquina', 'aprendizado profundo', 'aprendizado supervisionado', 'aprendizado não supervisionado'],
-            'rede': ['redes neurais', 'redes convolucionais', 'redes generativas', 'redes neurais profundas'],
-            'filosofia': ['filosofia da ciência', 'filosofia política', 'filosofia moderna', 'filosofia contemporânea'],
-            'inteligência': ['inteligência artificial', 'inteligência emocional', 'inteligência coletiva', 'inteligência computacional'],
-            'dados': ['ciência de dados', 'análise de dados', 'big data', 'mineração de dados'],
-            'algoritmo': ['algoritmos genéticos', 'algoritmos de otimização', 'algoritmos de ordenação', 'algoritmos evolutivos'],
-            'python': ['python para ciência de dados', 'python machine learning', 'programação python', 'python para análise de dados']
+            'aprendizado': ['aprendizado de máquina', 'aprendizado profundo', 'aprendizado supervisionado'],
+            'rede': ['redes neurais', 'redes convolucionais', 'redes generativas'],
+            'filosofia': ['filosofia da ciência', 'filosofia política', 'filosofia moderna'],
+            'inteligência': ['inteligência artificial', 'inteligência emocional', 'inteligência coletiva'],
+            'dados': ['ciência de dados', 'análise de dados', 'big data'],
+            'algoritmo': ['algoritmos genéticos', 'algoritmos de otimização', 'algoritmos de ordenação'],
+            'python': ['python para ciência de dados', 'python machine learning', 'programação python']
         };
 
         function getSuggestions(query) {
@@ -648,12 +668,6 @@
         }
 
         // ==================== FUNÇÕES DE SANITIZAÇÃO ====================
-        /**
-         * Sanitiza texto removendo 'undefined', 'null' e espaços extras
-         * @param {any} text - Texto a ser sanitizado
-         * @param {string} defaultValue - Valor padrão se o texto for inválido
-         * @returns {string} Texto sanitizado
-         */
         function sanitizeText(text, defaultValue = '') {
             if (text === null || text === undefined) return defaultValue;
             const cleaned = String(text)
@@ -665,13 +679,29 @@
         }
 
         /**
-         * Sanitiza um array de autores
-         * @param {Array} authors - Array de objetos de autor
-         * @returns {string} String de autores concatenados
+         * Verifica se o autor é válido ou desconhecido
+         * Retorna true se for desconhecido (para ocultar a linha)
          */
+        function isAuthorUnknown(author) {
+            if (!author) return true;
+            const cleaned = sanitizeText(author);
+            const unknownPatterns = ['autor desconhecido', 'unknown', 'undefined', 'null', ''];
+            return unknownPatterns.some(pattern => cleaned.toLowerCase().includes(pattern));
+        }
+
+        /**
+         * Formata título com limite de caracteres
+         */
+        function formatTitle(title, maxLength = CONFIG.MAX_TITLE_LENGTH) {
+            if (!title) return 'Título não disponível';
+            const cleaned = sanitizeText(title);
+            if (cleaned.length <= maxLength) return cleaned;
+            return cleaned.substring(0, maxLength) + '...';
+        }
+
         function sanitizeAuthors(authors) {
             if (!authors || !Array.isArray(authors) || authors.length === 0) {
-                return 'Autor desconhecido';
+                return null; // Retorna null para ocultar a linha
             }
 
             const formatted = authors
@@ -688,14 +718,9 @@
                 .filter(Boolean)
                 .join(', ');
 
-            return formatted || 'Autor desconhecido';
+            return formatted || null;
         }
 
-        /**
-         * Extrai ano de forma segura
-         * @param {any} date - Data ou ano
-         * @returns {string} Ano formatado
-         */
         function extractYear(date) {
             if (!date) return null;
             if (typeof date === 'number') return date;
@@ -709,21 +734,14 @@
             return null;
         }
 
-        /**
-         * Extrai PDF URL de forma segura
-         * @param {Object} item - Item da API
-         * @returns {string|null} URL do PDF ou null
-         */
         function extractPdfUrl(item) {
             if (!item) return null;
-            // CORE API
             if (item.downloadUrl) return item.downloadUrl;
             if (item.fullTextUrl) return item.fullTextUrl;
             if (item.locations && Array.isArray(item.locations)) {
                 const pdfLoc = item.locations.find(l => l.pdfUrl);
                 if (pdfLoc) return pdfLoc.pdfUrl;
             }
-            // Crossref API
             if (item.link && Array.isArray(item.link)) {
                 const pdfLink = item.link.find(l =>
                     l.contentType === 'application/pdf' ||
@@ -732,16 +750,10 @@
                 );
                 if (pdfLink) return pdfLink.URL;
             }
-            // Fallback
             if (item.URL) return item.URL;
             return null;
         }
 
-        /**
-         * Extrai abstract de forma segura
-         * @param {Object} item - Item da API
-         * @returns {string|null} Abstract ou null
-         */
         function extractAbstract(item) {
             if (!item) return null;
             let abstract = null;
@@ -754,11 +766,6 @@
             return abstract || null;
         }
 
-        /**
-         * Determina o tipo de documento
-         * @param {string} type - Tipo bruto da API
-         * @returns {string} Tipo normalizado
-         */
         function normalizeType(type) {
             if (!type) return 'article';
             const t = type.toLowerCase();
@@ -769,13 +776,6 @@
         }
 
         // ==================== UTILITÁRIOS DE REDE ====================
-        /**
-         * Fetch com timeout e retry
-         * @param {string} url - URL para fetch
-         * @param {Object} options - Opções do fetch
-         * @param {number} attempt - Tentativa atual
-         * @returns {Promise<Response>} Resposta do fetch
-         */
         async function fetchWithTimeout(url, options = {}, attempt = 0) {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), CONFIG.TIMEOUT_MS);
@@ -805,11 +805,6 @@
             }
         }
 
-        /**
-         * Verifica se a resposta é válida
-         * @param {Response} response - Resposta do fetch
-         * @returns {Promise<Object>} Dados parseados
-         */
         async function validateResponse(response) {
             if (!response || !response.ok) {
                 let errorMsg = `Erro HTTP: ${response?.status || 'desconhecido'}`;
@@ -828,11 +823,6 @@
         }
 
         // ==================== API INTEGRATION ====================
-        /**
-         * Busca na API CORE
-         * @param {string} query - Termo de busca
-         * @returns {Promise<Array>} Lista de resultados formatados
-         */
         async function searchCoreAPI(query) {
             const encodedQuery = encodeURIComponent(query);
             const url = `https://api.core.ac.uk/v3/search/works?q=${encodedQuery}&limit=${CONFIG.MAX_RESULTS}`;
@@ -848,39 +838,22 @@
                 return [];
             }
 
-            return data.results.map(item => {
-                // Sanitização robusta de cada campo
-                const title = sanitizeText(item.title, 'Título não disponível');
-                const authors = sanitizeAuthors(item.authors);
-                const year = extractYear(item.publicationDate);
-                const source = sanitizeText(
+            return data.results.map(item => ({
+                title: sanitizeText(item.title, 'Título não disponível'),
+                authors: sanitizeAuthors(item.authors),
+                year: extractYear(item.publicationDate),
+                source: sanitizeText(
                     item.publisher || item.journal?.name || item.venue?.name || 'Fonte não informada'
-                );
-                const citations = item.citationCount || 0;
-                const pdf_url = extractPdfUrl(item);
-                const abstract = extractAbstract(item);
-                const type = normalizeType(item.type);
-
-                return {
-                    title,
-                    authors,
-                    year,
-                    source,
-                    cited_by_count: citations,
-                    pdf_url,
-                    url: item.url || null,
-                    type,
-                    abstract,
-                    description: abstract || 'Descrição não disponível para este documento.'
-                };
-            });
+                ),
+                cited_by_count: item.citationCount || 0,
+                pdf_url: extractPdfUrl(item),
+                url: item.url || null,
+                type: normalizeType(item.type),
+                abstract: extractAbstract(item),
+                description: extractAbstract(item) || null
+            }));
         }
 
-        /**
-         * Busca na API Crossref (fallback)
-         * @param {string} query - Termo de busca
-         * @returns {Promise<Array>} Lista de resultados formatados
-         */
         async function searchCrossrefAPI(query) {
             const encodedQuery = encodeURIComponent(query);
             const url = `https://api.crossref.org/works?query=${encodedQuery}&rows=${CONFIG.MAX_RESULTS}&sort=relevance`;
@@ -896,43 +869,26 @@
                 return [];
             }
 
-            return data.message.items.map(item => {
-                // Sanitização robusta de cada campo
-                const title = sanitizeText(
+            return data.message.items.map(item => ({
+                title: sanitizeText(
                     Array.isArray(item.title) ? item.title[0] : item.title,
                     'Título não disponível'
-                );
-                const authors = sanitizeAuthors(item.author);
-                const year = extractYear(item.issued);
-                const source = sanitizeText(
+                ),
+                authors: sanitizeAuthors(item.author),
+                year: extractYear(item.issued),
+                source: sanitizeText(
                     Array.isArray(item['container-title']) ? item['container-title'][0] :
                     item['container-title'] || item.publisher || 'Fonte não informada'
-                );
-                const citations = item['is-referenced-by-count'] || 0;
-                const pdf_url = extractPdfUrl(item);
-                const abstract = extractAbstract(item);
-                const type = normalizeType(item.type);
-
-                return {
-                    title,
-                    authors,
-                    year,
-                    source,
-                    cited_by_count: citations,
-                    pdf_url,
-                    url: item.URL || null,
-                    type,
-                    abstract,
-                    description: abstract || 'Descrição não disponível para este documento.'
-                };
-            });
+                ),
+                cited_by_count: item['is-referenced-by-count'] || 0,
+                pdf_url: extractPdfUrl(item),
+                url: item.URL || null,
+                type: normalizeType(item.type),
+                abstract: extractAbstract(item),
+                description: extractAbstract(item) || null
+            }));
         }
 
-        /**
-         * Busca principal com fallback
-         * @param {string} query - Termo de busca
-         * @returns {Promise<Array>} Lista de resultados
-         */
         async function searchAll(query) {
             if (!query || query.trim().length < 2) {
                 return [];
@@ -941,14 +897,12 @@
             console.log(`🔍 Iniciando busca para: "${query}"`);
 
             try {
-                // Tenta CORE primeiro
                 const results = await searchCoreAPI(query);
                 if (results && results.length > 0) {
                     console.log(`✅ CORE retornou ${results.length} resultados`);
                     return results;
                 }
 
-                // Fallback para Crossref
                 console.log('⚠️ CORE sem resultados, tentando Crossref...');
                 const fallbackResults = await searchCrossrefAPI(query);
                 if (fallbackResults && fallbackResults.length > 0) {
@@ -962,7 +916,6 @@
             } catch (error) {
                 console.error('❌ Erro na busca principal:', error);
 
-                // Tenta Crossref como último recurso
                 try {
                     console.log('🔄 Tentando Crossref como fallback de emergência...');
                     const emergencyResults = await searchCrossrefAPI(query);
@@ -974,12 +927,11 @@
                     console.error('❌ Fallback de emergência também falhou:', emergencyError);
                 }
 
-                // Se tudo falhar, lança o erro original
                 throw error;
             }
         }
 
-        // ==================== RENDERIZAÇÃO ====================
+        // ==================== RENDERIZAÇÃO OTIMIZADA ====================
         function renderResults(data, query) {
             resultsGrid.innerHTML = '';
             hideSkeleton();
@@ -1034,16 +986,32 @@
                 const hasPdf = item.pdf_url && item.pdf_url !== '#';
                 const link = item.pdf_url || item.url || '#';
 
+                // ---- OTIMIZAÇÕES VISUAIS ----
+                
+                // 1. Título com limite de caracteres
+                const formattedTitle = formatTitle(item.title);
+                
+                // 2. Autor - oculta se for desconhecido
+                const authorText = item.authors || '';
+                const showAuthor = !isAuthorUnknown(authorText);
+                const authorClass = showAuthor ? '' : 'hidden';
+                const displayAuthor = showAuthor ? sanitizeText(authorText) : '';
+                
+                // 3. Descrição - oculta se não disponível
+                const hasDescription = item.description && item.description !== 'Descrição não disponível para este documento.';
+                const descClass = hasDescription ? '' : 'hidden';
+                const displayDescription = hasDescription ? sanitizeText(item.description) : '';
+
                 card.innerHTML = `
                     <span class="card-badge ${typeInfo.class}">${typeInfo.label}</span>
-                    <div class="card-title">${sanitizeText(item.title)}</div>
-                    <div class="card-authors">${sanitizeText(item.authors)}</div>
+                    <div class="card-title">${sanitizeText(formattedTitle)}</div>
+                    <div class="card-authors ${authorClass}">${displayAuthor}</div>
                     <div class="card-meta">
                         <span class="year">📅 ${item.year || 's.d.'}</span>
                         <span class="citations">⭐ ${item.cited_by_count || 0} citações</span>
                         <span>📂 ${sanitizeText(item.source)}</span>
                     </div>
-                    ${item.description ? `<div class="card-description">${sanitizeText(item.description)}</div>` : ''}
+                    ${hasDescription ? `<div class="card-description">${displayDescription}</div>` : ''}
                     <div class="card-actions">
                         <button class="btn-pdf" data-link="${link}">📄 ${hasPdf ? 'Abrir PDF' : 'Ver fonte'}</button>
                         <button class="btn-abstract" data-index="${index}">📝 Resumo</button>
@@ -1052,7 +1020,7 @@
                 `;
                 resultsGrid.appendChild(card);
 
-                // Event listeners com tratamento de erro
+                // Event listeners...
                 card.querySelector('.btn-pdf').addEventListener('click', function(e) {
                     e.stopPropagation();
                     const link = this.dataset.link;
@@ -1089,7 +1057,6 @@
                     }
                 });
 
-                // Clique no card abre o PDF
                 card.addEventListener('click', function() {
                     if (link && link !== '#') {
                         try {
@@ -1104,7 +1071,7 @@
 
         // ==================== CITAÇÕES ====================
         function generateABNTCitation(item) {
-            const authors = sanitizeText(item.authors) || 'Autor desconhecido';
+            const authors = item.authors && !isAuthorUnknown(item.authors) ? sanitizeText(item.authors) : 'Autor desconhecido';
             const year = item.year || 's.d.';
             const title = sanitizeText(item.title) || 'Título não disponível';
             const source = sanitizeText(item.source) || 'Fonte não informada';
@@ -1113,7 +1080,7 @@
         }
 
         function generateAPACitation(item) {
-            const authors = sanitizeText(item.authors) || 'Autor desconhecido';
+            const authors = item.authors && !isAuthorUnknown(item.authors) ? sanitizeText(item.authors) : 'Author unknown';
             const year = item.year || 'n.d.';
             const title = sanitizeText(item.title) || 'Title not available';
             const source = sanitizeText(item.source) || 'Source not informed';
@@ -1150,7 +1117,8 @@
         function openAbstract(item) {
             if (!item) return;
             modalTitle.textContent = sanitizeText(item.title) || 'Título não disponível';
-            modalMeta.textContent = `${sanitizeText(item.authors) || 'Autor desconhecido'} · ${item.year || 's.d.'}`;
+            const authorText = item.authors && !isAuthorUnknown(item.authors) ? sanitizeText(item.authors) : 'Autor desconhecido';
+            modalMeta.textContent = `${authorText} · ${item.year || 's.d.'}`;
             modalAbstract.textContent = item.abstract || 'Resumo não disponível para este documento.';
             modalOverlay.classList.add('show');
         }
@@ -1188,7 +1156,6 @@
 
             let filtered = [...data];
 
-            // Filtro por tipo
             const type = filterType.value;
             if (type !== 'all') {
                 filtered = filtered.filter(item => {
@@ -1200,20 +1167,17 @@
                 });
             }
 
-            // Filtro por ano
             const year = filterYear.value;
             if (year !== 'all') {
                 filtered = filtered.filter(item => String(item.year) === year);
             }
 
-            // Ordenação
             const sort = filterSort.value;
             if (sort === 'recent') {
                 filtered.sort((a, b) => (b.year || 0) - (a.year || 0));
             } else if (sort === 'citations') {
                 filtered.sort((a, b) => (b.cited_by_count || 0) - (a.cited_by_count || 0));
             }
-            // 'relevance' mantém a ordem original
 
             return filtered;
         }
@@ -1222,7 +1186,6 @@
         async function performSearch() {
             const query = searchInput.value.trim();
 
-            // Validação da query
             if (!query) {
                 statusMessage.textContent = 'Digite um termo para buscar.';
                 renderResults([], '');
@@ -1235,13 +1198,11 @@
                 return;
             }
 
-            // Cancela busca anterior se existir
             if (abortController) {
                 abortController.abort();
                 abortController = null;
             }
 
-            // Previne múltiplas buscas simultâneas
             if (isSearching) {
                 console.log('⏳ Busca em andamento, ignorando nova requisição...');
                 return;
@@ -1250,7 +1211,6 @@
             isSearching = true;
             currentQuery = query;
 
-            // Atualiza UI
             searchBtn.classList.add('loading');
             searchBtn.disabled = true;
             statusMessage.textContent = '🔍 Buscando...';
@@ -1258,14 +1218,10 @@
             suggestionsContainer.classList.remove('show');
 
             try {
-                // Realiza a busca
                 const results = await searchAll(query);
                 currentResults = results;
-
-                // Aplica filtros e ordenação
                 const filtered = applyFiltersAndSort(results);
 
-                // Renderiza resultados
                 if (filtered.length === 0) {
                     renderResults([], query);
                 } else {
@@ -1278,7 +1234,6 @@
                 console.error('❌ Erro fatal na busca:', error);
                 statusMessage.textContent = '⚠️ Erro ao buscar. Verifique sua conexão.';
 
-                // Mostra erro amigável
                 resultsGrid.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-icon">⚠️</div>
@@ -1298,18 +1253,15 @@
         }
 
         // ==================== EVENTOS ====================
-        // Debounce para live search
         searchInput.addEventListener('input', function() {
             const query = this.value.trim();
 
-            // Sugestões
             if (query.length >= 2) {
                 showSuggestions(query);
             } else {
                 suggestionsContainer.classList.remove('show');
             }
 
-            // Debounce
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
                 if (query.length >= 2) {
@@ -1321,14 +1273,12 @@
             }, CONFIG.DEBOUNCE_DELAY);
         });
 
-        // Botão de busca
         searchBtn.addEventListener('click', function(e) {
             e.preventDefault();
             clearTimeout(debounceTimer);
             performSearch();
         });
 
-        // Enter
         searchInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -1341,7 +1291,6 @@
             }
         });
 
-        // Sugestões
         function showSuggestions(query) {
             const suggestions = getSuggestions(query);
             if (suggestions.length === 0) {
@@ -1364,7 +1313,6 @@
             });
         }
 
-        // Clique nas sugestões do estado vazio
         document.addEventListener('click', function(e) {
             if (e.target.closest('.suggest-term')) {
                 const term = e.target.dataset.term;
@@ -1376,14 +1324,12 @@
             }
         });
 
-        // Fechar sugestões ao clicar fora
         document.addEventListener('click', function(e) {
             if (!e.target.closest('.search-input-wrap')) {
                 suggestionsContainer.classList.remove('show');
             }
         });
 
-        // Filtros
         filterType.addEventListener('change', () => {
             if (currentResults.length > 0) {
                 const filtered = applyFiltersAndSort(currentResults);
@@ -1414,7 +1360,7 @@
         });
 
         // ==================== INICIALIZAÇÃO ====================
-        console.log('🚀 READ+ Profissional v2.0 iniciado');
+        console.log('🚀 READ+ Profissional v2.1 iniciado');
         console.log('📚 APIs: CORE (principal) + Crossref (fallback)');
         console.log('⚙️ Configurações:', CONFIG);
         statusMessage.textContent = 'Digite um termo para iniciar a busca.';
