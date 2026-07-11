@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>READ+ · Buscador Acadêmico Online</title>
+    <title>READ+ · Buscador Acadêmico</title>
+    <!-- Favicon inline -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
     <style>
         /* ========== RESET E VARIÁVEIS ========== */
         * { margin:0; padding:0; box-sizing:border-box; }
@@ -315,7 +317,7 @@
 
     <!-- FOOTER -->
     <footer class="app-footer">
-        <p>READ+ · Busca em repositórios acadêmicos (OpenAlex)</p>
+        <p>READ+ · Busca em repositórios acadêmicos (CORE + Crossref)</p>
     </footer>
 </div>
 
@@ -331,7 +333,7 @@
         const statusMessage = document.getElementById('statusMessage');
         const themeToggle = document.getElementById('themeToggle');
 
-        // ==================== FUNÇÕES ====================
+        // ==================== FUNÇÕES AUXILIARES ====================
         function escapeHtml(text) {
             if (!text) return '';
             const div = document.createElement('div');
@@ -347,7 +349,7 @@
                     <div class="empty-state">
                         <div class="empty-icon">🔍</div>
                         <p>Nenhum resultado encontrado para "${escapeHtml(query)}"</p>
-                        <p class="empty-suggestion">Tente outras palavras-chave ou verifique a conexão.</p>
+                        <p class="empty-suggestion">Tente outras palavras-chave ou verifique sua conexão.</p>
                     </div>
                 `;
                 statusMessage.textContent = 'Nenhum resultado encontrado.';
@@ -361,49 +363,41 @@
                 card.className = 'result-card';
                 card.style.animationDelay = `${index * 40}ms`;
 
-                // Verifica se tem link para PDF
-                const hasPdf = item.pdf_url || item.link || item.url;
-                const pdfLink = item.pdf_url || item.link || item.url || '#';
+                // Determina o link
+                const link = item.pdf_url || item.url || '#';
 
-                // Abre o link ao clicar no card
                 card.addEventListener('click', function(e) {
                     if (e.target.closest('button')) return;
-                    if (pdfLink && pdfLink !== '#') {
-                        window.open(pdfLink, '_blank');
+                    if (link && link !== '#') {
+                        window.open(link, '_blank');
                     } else {
-                        // Se não tiver PDF, tenta abrir a página do artigo
-                        if (item.url) {
-                            window.open(item.url, '_blank');
-                        } else {
-                            alert('Link não disponível para este item.');
-                        }
+                        alert('Link não disponível para este item.');
                     }
                 });
 
-                // Determina o tipo de material
+                // Tipo de material
                 let type = '📄 Artigo';
                 if (item.type && item.type.toLowerCase().includes('book')) type = '📚 Livro';
                 else if (item.type && item.type.toLowerCase().includes('thesis')) type = '📝 Tese';
-                else if (item.type && item.type.toLowerCase().includes('report')) type = '📊 Relatório';
 
                 card.innerHTML = `
                     <div class="card-title">${escapeHtml(item.title)}</div>
                     <div class="card-meta">
-                        <span>${escapeHtml(item.authors ? item.authors.join(', ') : 'Autor desconhecido')}</span>
+                        <span>${escapeHtml(item.authors || 'Autor desconhecido')}</span>
                         <span class="year">${item.year || '–'}</span>
                         <span class="citations">⭐ ${item.cited_by_count || 0} citações</span>
                     </div>
                     <div class="card-footer">
-                        <span class="source">${escapeHtml(item.source || item.publisher || 'Fonte não informada')}</span>
-                        <span class="pdf-hint">${hasPdf ? '📄 Abrir PDF' : type}</span>
+                        <span class="source">${escapeHtml(item.source || 'Fonte não informada')}</span>
+                        <span class="pdf-hint">${item.pdf_url ? '📄 Abrir PDF' : type}</span>
                     </div>
                 `;
                 resultsGrid.appendChild(card);
             });
         }
 
-        // ==================== BUSCA NA API OPENALEX ====================
-        async function searchOpenAlex(query) {
+        // ==================== BUSCA NA API CORE ====================
+        async function searchCORE(query) {
             if (!query || query.trim() === '') {
                 resultsGrid.innerHTML = `
                     <div class="empty-state">
@@ -416,90 +410,190 @@
                 return;
             }
 
-            // Estado de carregamento
             searchBtn.classList.add('loading');
             searchBtn.disabled = true;
             statusMessage.textContent = 'Buscando...';
 
             try {
-                // URL da API OpenAlex
+                // Usando a API CORE (gratuita, sem chave para busca básica)
                 const encodedQuery = encodeURIComponent(query.trim());
-                const url = `https://api.openalex.org/works?search=${encodedQuery}&per-page=20&sort=relevance`;
+                // CORE API - busca em repositórios acadêmicos
+                const url = `https://api.core.ac.uk/v3/search/works?q=${encodedQuery}&limit=20`;
 
-                console.log('🔎 Buscando:', url);
+                console.log('🔎 Buscando CORE:', url);
 
-                const response = await fetch(url);
+                const response = await fetch(url, {
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
 
                 if (!response.ok) {
                     throw new Error(`Erro HTTP: ${response.status}`);
                 }
 
                 const data = await response.json();
-
-                console.log('📦 Dados recebidos:', data);
+                console.log('📦 Dados CORE recebidos:', data);
 
                 if (!data.results || data.results.length === 0) {
-                    renderResults([], query);
+                    // Tentar fallback para Crossref
+                    console.log('⚠️ Sem resultados no CORE, tentando Crossref...');
+                    await searchCrossref(query);
                     return;
                 }
 
-                // Transformar dados da OpenAlex para nosso formato
-                const formattedResults = data.results.map(item => {
+                const formatted = data.results.map(item => {
                     // Extrair autores
-                    const authors = item.authorships?.map(a => a.author.display_name) || [];
+                    let authors = 'Autor desconhecido';
+                    if (item.authors && item.authors.length > 0) {
+                        authors = item.authors.map(a => a.name).join(', ');
+                    }
+
                     // Extrair ano
-                    const year = item.publication_year || null;
-                    // Extrair fonte (veículo de publicação)
-                    const source = item.primary_location?.source?.display_name ||
-                                  item.host_venue?.display_name ||
-                                  item.publisher ||
-                                  'Fonte não informada';
-                    // Extrair PDF URL
-                    const pdf_url = item.open_access?.oa_url ||
-                                   item.primary_location?.pdf_url ||
-                                   item.locations?.find(l => l.landing_page_url)?.landing_page_url ||
-                                   null;
+                    let year = null;
+                    if (item.publicationDate) {
+                        year = item.publicationDate.substring(0, 4);
+                    }
+
+                    // Extrair fonte
+                    let source = item.publisher || item.journal?.name || 'Fonte não informada';
+
+                    // Verificar se tem PDF
+                    let pdf_url = null;
+                    if (item.downloadUrl) {
+                        pdf_url = item.downloadUrl;
+                    } else if (item.fullTextUrl) {
+                        pdf_url = item.fullTextUrl;
+                    } else if (item.locations && item.locations.length > 0) {
+                        const pdfLoc = item.locations.find(l => l.pdfUrl);
+                        if (pdfLoc) pdf_url = pdfLoc.pdfUrl;
+                    }
 
                     return {
                         title: item.title || 'Título não disponível',
                         authors: authors,
                         year: year,
                         source: source,
-                        cited_by_count: item.cited_by_count || 0,
+                        cited_by_count: item.citationCount || 0,
                         pdf_url: pdf_url,
-                        url: item.id || null,
+                        url: item.url || null,
                         type: item.type || 'article'
                     };
                 });
 
-                renderResults(formattedResults, query);
+                renderResults(formatted, query);
 
             } catch (error) {
-                console.error('❌ Erro na busca:', error);
-                statusMessage.textContent = 'Erro ao buscar. Verifique sua conexão.';
-                resultsGrid.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-icon">⚠️</div>
-                        <p>Erro ao buscar resultados</p>
-                        <p class="empty-suggestion">Verifique sua conexão com a internet.</p>
-                    </div>
-                `;
+                console.error('❌ Erro na busca CORE:', error);
+                // Fallback para Crossref
+                console.log('🔄 Tentando fallback para Crossref...');
+                await searchCrossref(query);
             } finally {
                 searchBtn.classList.remove('loading');
                 searchBtn.disabled = false;
             }
         }
 
+        // ==================== FALLBACK: BUSCA NA CROSSREF ====================
+        async function searchCrossref(query) {
+            try {
+                const encodedQuery = encodeURIComponent(query.trim());
+                const url = `https://api.crossref.org/works?query=${encodedQuery}&rows=20&sort=relevance`;
+
+                console.log('🔎 Buscando Crossref:', url);
+
+                const response = await fetch(url, {
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('📦 Dados Crossref recebidos:', data);
+
+                if (!data.message || !data.message.items || data.message.items.length === 0) {
+                    renderResults([], query);
+                    return;
+                }
+
+                const formatted = data.message.items.map(item => {
+                    // Extrair autores
+                    let authors = 'Autor desconhecido';
+                    if (item.author && item.author.length > 0) {
+                        authors = item.author.map(a => a.given + ' ' + a.family).join(', ');
+                    }
+
+                    // Extrair ano
+                    let year = null;
+                    if (item.issued && item.issued['date-parts'] && item.issued['date-parts'][0]) {
+                        year = item.issued['date-parts'][0][0];
+                    }
+
+                    // Extrair fonte
+                    let source = item['container-title'] || item.publisher || 'Fonte não informada';
+                    if (Array.isArray(source)) source = source[0];
+
+                    // Verificar se tem PDF
+                    let pdf_url = null;
+                    if (item.link && item.link.length > 0) {
+                        const pdfLink = item.link.find(l => l.contentType === 'application/pdf' || l.intendedApplication === 'text-mining');
+                        if (pdfLink) pdf_url = pdfLink.URL;
+                    }
+                    if (!pdf_url && item.URL) {
+                        pdf_url = item.URL;
+                    }
+
+                    return {
+                        title: item.title ? item.title[0] : 'Título não disponível',
+                        authors: authors,
+                        year: year,
+                        source: source,
+                        cited_by_count: item['is-referenced-by-count'] || 0,
+                        pdf_url: pdf_url,
+                        url: item.URL || null,
+                        type: item.type || 'article'
+                    };
+                });
+
+                renderResults(formatted, query);
+
+            } catch (error) {
+                console.error('❌ Erro na busca Crossref:', error);
+                statusMessage.textContent = 'Erro ao buscar. Verifique sua conexão.';
+                resultsGrid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">⚠️</div>
+                        <p>Erro ao buscar resultados</p>
+                        <p class="empty-suggestion">Verifique sua conexão com a internet e tente novamente.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // ==================== FUNÇÃO PRINCIPAL ====================
+        function performSearch() {
+            const query = searchInput.value.trim();
+            if (!query) {
+                statusMessage.textContent = 'Digite um termo para buscar.';
+                return;
+            }
+            searchCORE(query);
+        }
+
         // ==================== EVENTOS ====================
         searchBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            searchOpenAlex(searchInput.value);
+            performSearch();
         });
 
         searchInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                searchOpenAlex(searchInput.value);
+                performSearch();
             }
         });
 
@@ -515,7 +609,10 @@
 
         // ==================== INICIALIZAÇÃO ====================
         console.log('🚀 READ+ Online iniciado!');
-        console.log('📚 Buscando em tempo real via OpenAlex API');
+        console.log('📚 Buscando via CORE API + fallback Crossref');
+
+        // Mensagem inicial
+        statusMessage.textContent = 'Digite um termo e clique em Buscar.';
 
     })();
 </script>
