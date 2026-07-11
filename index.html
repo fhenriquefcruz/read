@@ -1,267 +1,523 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>READ+ Buscador</title>
-  <style>
-    /* Reset básico */
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      background: #0F172A;
-      color: #F1F5F9;
-      font-family: system-ui, sans-serif;
-      padding: 2rem;
-      min-height: 100vh;
-    }
-    .container {
-      max-width: 1400px;
-      margin: 0 auto;
-    }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 2rem;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      padding-bottom: 1rem;
-    }
-    .logo {
-      font-size: 2rem;
-      font-weight: 700;
-      background: linear-gradient(135deg, #06B6D4, #8B5CF6);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .search-box {
-      background: rgba(255,255,255,0.05);
-      backdrop-filter: blur(10px);
-      padding: 1.5rem;
-      border-radius: 20px;
-      margin-bottom: 2rem;
-      border: 1px solid rgba(255,255,255,0.08);
-    }
-    .search-row {
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-    }
-    .search-row input {
-      flex: 1;
-      padding: 0.8rem 1.2rem;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.1);
-      background: rgba(0,0,0,0.3);
-      color: #fff;
-      font-size: 1rem;
-      min-width: 200px;
-      outline: none;
-    }
-    .search-row input:focus {
-      border-color: #06B6D4;
-      box-shadow: 0 0 0 3px rgba(6,182,212,0.3);
-    }
-    .search-row button {
-      padding: 0.8rem 2rem;
-      border: none;
-      border-radius: 12px;
-      background: linear-gradient(135deg, #06B6D4, #0891B2);
-      color: #fff;
-      font-weight: 600;
-      cursor: pointer;
-      transition: transform 0.2s;
-      white-space: nowrap;
-    }
-    .search-row button:hover {
-      transform: scale(1.02);
-    }
-    .status {
-      margin-top: 0.8rem;
-      color: #94A3B8;
-      font-size: 0.9rem;
-      min-height: 1.5rem;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 1.5rem;
-      margin-top: 1.5rem;
-    }
-    .card {
-      background: rgba(15, 23, 42, 0.8);
-      backdrop-filter: blur(4px);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 16px;
-      padding: 1.5rem;
-      transition: all 0.3s;
-      cursor: pointer;
-    }
-    .card:hover {
-      transform: translateY(-6px);
-      border-color: rgba(6,182,212,0.3);
-      box-shadow: 0 12px 30px rgba(0,0,0,0.4);
-    }
-    .card h3 {
-      font-size: 1.1rem;
-      margin-bottom: 0.5rem;
-      color: #fff;
-    }
-    .card .meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem 1rem;
-      font-size: 0.8rem;
-      color: #94A3B8;
-    }
-    .card .meta .ano { color: #06B6D4; }
-    .card .meta .citas { color: #8B5CF6; }
-    .card .footer {
-      margin-top: 0.8rem;
-      padding-top: 0.8rem;
-      border-top: 1px solid rgba(255,255,255,0.05);
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.8rem;
-      color: #64748B;
-    }
-    .card .footer .pdf { color: #06B6D4; font-weight: 500; }
-    .empty {
-      grid-column: 1 / -1;
-      text-align: center;
-      padding: 3rem;
-      color: #64748B;
-    }
-    .empty .icon { font-size: 3rem; display: block; margin-bottom: 0.5rem; }
-    .footer {
-      margin-top: 2rem;
-      text-align: center;
-      color: #475569;
-      font-size: 0.8rem;
-      border-top: 1px solid rgba(255,255,255,0.05);
-      padding-top: 1.5rem;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>READ+ · Buscador Acadêmico Online</title>
+    <style>
+        /* ========== RESET E VARIÁVEIS ========== */
+        * { margin:0; padding:0; box-sizing:border-box; }
+        :root {
+            --bg-deep: #0F172A;
+            --bg-card: rgba(15, 23, 42, 0.85);
+            --bg-glass: rgba(255,255,255,0.04);
+            --border-glass: rgba(255,255,255,0.08);
+            --cyan: #06B6D4;
+            --cyan-glow: rgba(6,182,212,0.35);
+            --purple: #8B5CF6;
+            --text-primary: #F1F5F9;
+            --text-secondary: #94A3B8;
+            --text-muted: #64748B;
+            --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            --radius: 20px;
+            --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        body {
+            background: var(--bg-deep);
+            background-image: radial-gradient(circle at 30% 20%, rgba(6,182,212,0.06) 0%, transparent 50%),
+                              radial-gradient(circle at 70% 80%, rgba(139,92,246,0.05) 0%, transparent 50%);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            min-height: 100vh;
+            padding: 1.5rem 1rem 2rem;
+            line-height: 1.6;
+        }
+        .app-wrapper {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 0.5rem;
+        }
+
+        /* ========== HEADER ========== */
+        .app-header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+        .brand {
+            display: flex;
+            align-items: baseline;
+            gap: 0.25rem;
+        }
+        .brand .logo {
+            font-weight: 700;
+            font-size: clamp(1.4rem, 5vw, 2rem);
+            letter-spacing: -0.03em;
+            background: linear-gradient(135deg, var(--cyan), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .brand .logo-plus {
+            font-weight: 300;
+            font-size: clamp(1.6rem, 5vw, 2.2rem);
+            color: var(--cyan);
+            -webkit-text-fill-color: var(--cyan);
+        }
+        .brand .slogan {
+            font-size: clamp(0.7rem, 1.5vw, 0.9rem);
+            font-weight: 300;
+            color: var(--text-secondary);
+            border-left: 1px solid rgba(255,255,255,0.1);
+            padding-left: 0.75rem;
+            display: none;
+        }
+        @media (min-width: 640px) { .brand .slogan { display: inline-block; } }
+
+        .header-actions .btn-icon {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.06);
+            color: var(--text-secondary);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .header-actions .btn-icon:hover {
+            background: rgba(255,255,255,0.06);
+            border-color: var(--cyan);
+            color: var(--text-primary);
+            box-shadow: 0 0 20px var(--cyan-glow);
+        }
+
+        /* ========== ÁREA DE BUSCA ========== */
+        .search-zone {
+            margin: 2rem 0 1.5rem;
+            background: var(--bg-glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius);
+            padding: clamp(1.2rem, 3vw, 2rem);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+        }
+        .search-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: center;
+        }
+        .search-input-wrap {
+            flex: 1;
+            min-width: 180px;
+        }
+        .search-input-wrap input {
+            width: 100%;
+            padding: clamp(0.7rem, 2vw, 0.9rem) clamp(1rem, 2vw, 1.2rem);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(0,0,0,0.3);
+            color: var(--text-primary);
+            font-size: clamp(0.95rem, 2vw, 1.1rem);
+            font-family: var(--font-sans);
+            transition: var(--transition);
+            outline: none;
+        }
+        .search-input-wrap input::placeholder {
+            color: var(--text-muted);
+            font-weight: 300;
+        }
+        .search-input-wrap input:focus {
+            border-color: var(--cyan);
+            box-shadow: 0 0 0 4px var(--cyan-glow);
+            background: rgba(0,0,0,0.5);
+        }
+        .btn-search {
+            padding: clamp(0.7rem, 2vw, 0.9rem) clamp(1.2rem, 3vw, 2rem);
+            border: none;
+            border-radius: 16px;
+            background: linear-gradient(135deg, var(--cyan), #0891B2);
+            color: #fff;
+            font-weight: 600;
+            font-size: clamp(0.9rem, 2vw, 1rem);
+            font-family: var(--font-sans);
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 4px 20px var(--cyan-glow);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+        }
+        .btn-search:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 6px 30px var(--cyan-glow);
+        }
+        .btn-search:active { transform: scale(0.97); }
+        .btn-search .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        .btn-search.loading .spinner { display: inline-block; }
+        .btn-search.loading .search-label { display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .status-message {
+            margin-top: 0.75rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            min-height: 1.5rem;
+        }
+
+        /* ========== GRID DE RESULTADOS ========== */
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        /* ========== CARD ========== */
+        .result-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            border: 1px solid rgba(255,255,255,0.04);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            cursor: pointer;
+            opacity: 0;
+            animation: fadeIn 0.4s ease forwards;
+        }
+        .result-card:hover {
+            transform: translateY(-6px) scale(1.01);
+            border-color: rgba(6,182,212,0.2);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+        }
+        .result-card .card-title {
+            font-size: clamp(1rem, 2vw, 1.1rem);
+            font-weight: 600;
+            line-height: 1.3;
+            color: var(--text-primary);
+        }
+        .result-card .card-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem 1rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        .result-card .card-meta .year { color: var(--cyan); }
+        .result-card .card-meta .citations { color: var(--purple); }
+        .result-card .card-footer {
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            border-top: 1px solid rgba(255,255,255,0.04);
+            padding-top: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .result-card .card-footer .pdf-hint {
+            color: var(--cyan);
+            font-weight: 500;
+        }
+        .result-card .card-footer .source {
+            color: var(--text-muted);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ========== ESTADO VAZIO ========== */
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-muted);
+        }
+        .empty-state .empty-icon { font-size: 3rem; margin-bottom: 0.5rem; }
+        .empty-state .empty-suggestion {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        /* ========== FOOTER ========== */
+        .app-footer {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255,255,255,0.04);
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        @media (max-width: 480px) {
+            .search-row .btn-search { width: 100%; justify-content: center; }
+        }
+    </style>
 </head>
 <body>
-<div class="container">
+<div class="app-wrapper">
 
-  <header class="header">
-    <div class="logo">READ+</div>
-    <button id="themeToggle" style="background:transparent;border:1px solid rgba(255,255,255,0.1);color:#94A3B8;padding:0.3rem 1rem;border-radius:20px;cursor:pointer;">🌓</button>
-  </header>
+    <!-- HEADER -->
+    <header class="app-header">
+        <div class="brand">
+            <span class="logo">READ<span class="logo-plus">+</span></span>
+            <span class="slogan">Buscador Acadêmico</span>
+        </div>
+        <div class="header-actions">
+            <button class="btn-icon" id="themeToggle" aria-label="Alternar tema">🌓</button>
+        </div>
+    </header>
 
-  <section class="search-box">
-    <div class="search-row">
-      <input type="text" id="searchInput" placeholder="Digite título, autor ou ano…">
-      <button id="searchBtn">🔍 Buscar</button>
+    <!-- BUSCA -->
+    <section class="search-zone">
+        <div class="search-row">
+            <div class="search-input-wrap">
+                <input type="text" id="searchInput" placeholder="Pesquise por tema, autor ou título…" />
+            </div>
+            <button class="btn-search" id="searchBtn">
+                <span class="search-label">🔍 Buscar</span>
+                <span class="spinner"></span>
+            </button>
+        </div>
+        <div class="status-message" id="statusMessage"></div>
+    </section>
+
+    <!-- RESULTADOS -->
+    <div id="resultsGrid" class="results-grid">
+        <div class="empty-state">
+            <div class="empty-icon">🔍</div>
+            <p>Pesquise um tema para encontrar artigos acadêmicos</p>
+            <p class="empty-suggestion">Ex: "aprendizado de máquina", "filosofia", "redes neurais"</p>
+        </div>
     </div>
-    <div class="status" id="statusMessage"></div>
-  </section>
 
-  <div id="resultsGrid" class="grid"></div>
-
-  <footer class="footer">READ+ · Curadoria de conhecimento</footer>
+    <!-- FOOTER -->
+    <footer class="app-footer">
+        <p>READ+ · Busca em repositórios acadêmicos (OpenAlex)</p>
+    </footer>
 </div>
 
+<!-- ========== JAVASCRIPT ========== -->
 <script>
-  (function() {
-    'use strict';
+    (function() {
+        'use strict';
 
-    // ========== DADOS ==========
-    const DATA = [
-      { titulo: "Transformers for NLP", autores: "Vaswani et al.", ano: 2023, fonte: "arXiv", citacoes: 1847, pdf: "https://arxiv.org/pdf/1706.03762.pdf" },
-      { titulo: "Deep Learning for Computer Vision", autores: "Krizhevsky et al.", ano: 2022, fonte: "CVPR", citacoes: 932, pdf: "https://papers.nips.cc/paper/2012/file/c399862d3b9d6b76c8436e924a68c45b-Paper.pdf" },
-      { titulo: "Reinforcement Learning: An Introduction", autores: "Sutton, Barto", ano: 2020, fonte: "MIT Press", citacoes: 5100, pdf: "http://incompleteideas.net/book/RLbook2020.pdf" },
-      { titulo: "BERT: Pre-training of Transformers", autores: "Devlin et al.", ano: 2021, fonte: "NAACL", citacoes: 6021, pdf: "https://arxiv.org/pdf/1810.04805.pdf" },
-      { titulo: "The Elements of Statistical Learning", autores: "Hastie et al.", ano: 2019, fonte: "Springer", citacoes: 12450, pdf: "https://web.stanford.edu/~hastie/ElemStatLearn/printings/ESLII_print12.pdf" },
-      { titulo: "Attention Is All You Need", autores: "Vaswani et al.", ano: 2023, fonte: "NeurIPS", citacoes: 8700, pdf: "https://arxiv.org/pdf/1706.03762.pdf" },
-      { titulo: "Generative Adversarial Networks", autores: "Goodfellow et al.", ano: 2020, fonte: "ArXiv", citacoes: 3500, pdf: "https://arxiv.org/pdf/1406.2661.pdf" },
-      { titulo: "Pattern Recognition and Machine Learning", autores: "Bishop", ano: 2021, fonte: "Springer", citacoes: 2100, pdf: "https://www.microsoft.com/en-us/research/uploads/prod/2006/01/Bishop-Pattern-Recognition-and-Machine-Learning-2006.pdf" }
-    ];
+        // ==================== DOM REFS ====================
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const resultsGrid = document.getElementById('resultsGrid');
+        const statusMessage = document.getElementById('statusMessage');
+        const themeToggle = document.getElementById('themeToggle');
 
-    console.log('📚 Dados carregados:', DATA.length);
+        // ==================== FUNÇÕES ====================
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
 
-    // ========== DOM ==========
-    const input = document.getElementById('searchInput');
-    const btn = document.getElementById('searchBtn');
-    const grid = document.getElementById('resultsGrid');
-    const status = document.getElementById('statusMessage');
+        function renderResults(data, query) {
+            resultsGrid.innerHTML = '';
 
-    // ========== FUNÇÕES ==========
-    function render(items, term) {
-      grid.innerHTML = '';
-      if (!items || items.length === 0) {
-        grid.innerHTML = `<div class="empty"><span class="icon">🔍</span><p>Nenhum material encontrado</p><p style="font-size:0.9rem;color:#94A3B8;">Tente outras palavras-chave.</p></div>`;
-        status.textContent = 'Nenhum resultado encontrado.';
-        return;
-      }
-      status.textContent = `${items.length} resultado${items.length > 1 ? 's' : ''}${term ? ' para "' + term + '"' : ''}.`;
-      items.forEach(item => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-          <h3>${item.titulo}</h3>
-          <div class="meta">
-            <span>${item.autores}</span>
-            <span class="ano">${item.ano}</span>
-            <span class="citas">⭐ ${item.citacoes}</span>
-          </div>
-          <div class="footer">
-            <span>${item.fonte}</span>
-            <span class="pdf">📄 Abrir PDF</span>
-          </div>
-        `;
-        card.addEventListener('click', () => {
-          if (item.pdf) window.open(item.pdf, '_blank');
-          else alert('PDF não disponível.');
+            if (!data || data.length === 0) {
+                resultsGrid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">🔍</div>
+                        <p>Nenhum resultado encontrado para "${escapeHtml(query)}"</p>
+                        <p class="empty-suggestion">Tente outras palavras-chave ou verifique a conexão.</p>
+                    </div>
+                `;
+                statusMessage.textContent = 'Nenhum resultado encontrado.';
+                return;
+            }
+
+            statusMessage.textContent = `${data.length} resultado${data.length > 1 ? 's' : ''} encontrado${data.length > 1 ? 's' : ''} para "${escapeHtml(query)}".`;
+
+            data.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'result-card';
+                card.style.animationDelay = `${index * 40}ms`;
+
+                // Verifica se tem link para PDF
+                const hasPdf = item.pdf_url || item.link || item.url;
+                const pdfLink = item.pdf_url || item.link || item.url || '#';
+
+                // Abre o link ao clicar no card
+                card.addEventListener('click', function(e) {
+                    if (e.target.closest('button')) return;
+                    if (pdfLink && pdfLink !== '#') {
+                        window.open(pdfLink, '_blank');
+                    } else {
+                        // Se não tiver PDF, tenta abrir a página do artigo
+                        if (item.url) {
+                            window.open(item.url, '_blank');
+                        } else {
+                            alert('Link não disponível para este item.');
+                        }
+                    }
+                });
+
+                // Determina o tipo de material
+                let type = '📄 Artigo';
+                if (item.type && item.type.toLowerCase().includes('book')) type = '📚 Livro';
+                else if (item.type && item.type.toLowerCase().includes('thesis')) type = '📝 Tese';
+                else if (item.type && item.type.toLowerCase().includes('report')) type = '📊 Relatório';
+
+                card.innerHTML = `
+                    <div class="card-title">${escapeHtml(item.title)}</div>
+                    <div class="card-meta">
+                        <span>${escapeHtml(item.authors ? item.authors.join(', ') : 'Autor desconhecido')}</span>
+                        <span class="year">${item.year || '–'}</span>
+                        <span class="citations">⭐ ${item.cited_by_count || 0} citações</span>
+                    </div>
+                    <div class="card-footer">
+                        <span class="source">${escapeHtml(item.source || item.publisher || 'Fonte não informada')}</span>
+                        <span class="pdf-hint">${hasPdf ? '📄 Abrir PDF' : type}</span>
+                    </div>
+                `;
+                resultsGrid.appendChild(card);
+            });
+        }
+
+        // ==================== BUSCA NA API OPENALEX ====================
+        async function searchOpenAlex(query) {
+            if (!query || query.trim() === '') {
+                resultsGrid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">🔍</div>
+                        <p>Digite um tema para buscar</p>
+                        <p class="empty-suggestion">Ex: "aprendizado de máquina", "filosofia", "redes neurais"</p>
+                    </div>
+                `;
+                statusMessage.textContent = 'Digite um termo para buscar.';
+                return;
+            }
+
+            // Estado de carregamento
+            searchBtn.classList.add('loading');
+            searchBtn.disabled = true;
+            statusMessage.textContent = 'Buscando...';
+
+            try {
+                // URL da API OpenAlex
+                const encodedQuery = encodeURIComponent(query.trim());
+                const url = `https://api.openalex.org/works?search=${encodedQuery}&per-page=20&sort=relevance`;
+
+                console.log('🔎 Buscando:', url);
+
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                console.log('📦 Dados recebidos:', data);
+
+                if (!data.results || data.results.length === 0) {
+                    renderResults([], query);
+                    return;
+                }
+
+                // Transformar dados da OpenAlex para nosso formato
+                const formattedResults = data.results.map(item => {
+                    // Extrair autores
+                    const authors = item.authorships?.map(a => a.author.display_name) || [];
+                    // Extrair ano
+                    const year = item.publication_year || null;
+                    // Extrair fonte (veículo de publicação)
+                    const source = item.primary_location?.source?.display_name ||
+                                  item.host_venue?.display_name ||
+                                  item.publisher ||
+                                  'Fonte não informada';
+                    // Extrair PDF URL
+                    const pdf_url = item.open_access?.oa_url ||
+                                   item.primary_location?.pdf_url ||
+                                   item.locations?.find(l => l.landing_page_url)?.landing_page_url ||
+                                   null;
+
+                    return {
+                        title: item.title || 'Título não disponível',
+                        authors: authors,
+                        year: year,
+                        source: source,
+                        cited_by_count: item.cited_by_count || 0,
+                        pdf_url: pdf_url,
+                        url: item.id || null,
+                        type: item.type || 'article'
+                    };
+                });
+
+                renderResults(formattedResults, query);
+
+            } catch (error) {
+                console.error('❌ Erro na busca:', error);
+                statusMessage.textContent = 'Erro ao buscar. Verifique sua conexão.';
+                resultsGrid.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">⚠️</div>
+                        <p>Erro ao buscar resultados</p>
+                        <p class="empty-suggestion">Verifique sua conexão com a internet.</p>
+                    </div>
+                `;
+            } finally {
+                searchBtn.classList.remove('loading');
+                searchBtn.disabled = false;
+            }
+        }
+
+        // ==================== EVENTOS ====================
+        searchBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            searchOpenAlex(searchInput.value);
         });
-        grid.appendChild(card);
-      });
-    }
 
-    function search() {
-      const raw = input.value;
-      const query = raw.trim();
-      console.log('🔎 Buscando por:', query);
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                searchOpenAlex(searchInput.value);
+            }
+        });
 
-      if (query === '') {
-        render(DATA, '');
-        status.textContent = `${DATA.length} itens disponíveis.`;
-        return;
-      }
+        // ==================== TEMA ====================
+        themeToggle.addEventListener('click', function() {
+            document.body.classList.toggle('light-theme');
+            const isDark = !document.body.classList.contains('light-theme');
+            document.documentElement.style.setProperty('--bg-deep', isDark ? '#0F172A' : '#F8FAFC');
+            document.documentElement.style.setProperty('--text-primary', isDark ? '#F1F5F9' : '#0F172A');
+            document.documentElement.style.setProperty('--text-secondary', isDark ? '#94A3B8' : '#475569');
+            document.documentElement.style.setProperty('--text-muted', isDark ? '#64748B' : '#94A3B8');
+        });
 
-      const lower = query.toLowerCase();
-      const filtered = DATA.filter(item => {
-        const matchTitle = item.titulo.toLowerCase().includes(lower);
-        const matchAuthor = item.autores.toLowerCase().includes(lower);
-        const matchYear = String(item.ano).includes(lower);
-        return matchTitle || matchAuthor || matchYear;
-      });
+        // ==================== INICIALIZAÇÃO ====================
+        console.log('🚀 READ+ Online iniciado!');
+        console.log('📚 Buscando em tempo real via OpenAlex API');
 
-      console.log('✅ Encontrados:', filtered.length);
-      render(filtered, query);
-    }
-
-    // ========== EVENTOS ==========
-    btn.addEventListener('click', search);
-    input.addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
-
-    // ========== TEMA ==========
-    document.getElementById('themeToggle').addEventListener('click', function() {
-      const isDark = document.body.style.background !== '#F8FAFC';
-      document.body.style.background = isDark ? '#F8FAFC' : '#0F172A';
-      document.body.style.color = isDark ? '#0F172A' : '#F1F5F9';
-      document.querySelectorAll('.card').forEach(c => {
-        c.style.background = isDark ? 'rgba(255,255,255,0.9)' : 'rgba(15,23,42,0.8)';
-        c.style.color = isDark ? '#0F172A' : '#F1F5F9';
-      });
-    });
-
-    // ========== INICIALIZAÇÃO ==========
-    render(DATA, '');
-    status.textContent = `${DATA.length} itens disponíveis.`;
-    console.log('🚀 READ+ pronto!');
-  })();
+    })();
 </script>
 </body>
 </html>
