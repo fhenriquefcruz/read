@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>READ+ · Buscador Acadêmico</title>
+  <!-- Favicon inline (evita erro 404) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
+
   <style>
     /* ========== RESET E VARIÁVEIS ========== */
     * { margin:0; padding:0; box-sizing:border-box; }
@@ -32,7 +35,6 @@
       padding: 1.5rem 1rem 2rem;
       line-height: 1.6;
     }
-    /* Container centralizado com max-width */
     .app-wrapper {
       max-width: 1400px;
       margin: 0 auto;
@@ -312,12 +314,13 @@
   </footer>
 </div>
 
-<!-- ========== JAVASCRIPT (app.js) ========== -->
+<!-- ========== JAVASCRIPT ========== -->
 <script>
   (function() {
     'use strict';
 
-    // -------------------- BASE DE DADOS (JSON local) --------------------
+    // ==================== BASE DE DADOS ====================
+    // Substitua este array pelos seus próprios materiais
     const ACADEMIC_DATA = [
       {
         id: 1,
@@ -393,23 +396,33 @@
       }
     ];
 
-    // -------------------- DOM REFS --------------------
+    console.log('✅ Dados carregados:', ACADEMIC_DATA.length, 'itens');
+
+    // ==================== DOM REFS ====================
     const searchInput = document.getElementById('searchInput');
     const searchBtn = document.getElementById('searchBtn');
     const resultsGrid = document.getElementById('resultsGrid');
     const statusMessage = document.getElementById('statusMessage');
     const themeToggle = document.getElementById('themeToggle');
 
-    // -------------------- AUXILIARES --------------------
+    // Verifica se os elementos existem
+    if (!searchInput || !searchBtn || !resultsGrid) {
+      console.error('❌ Elementos do DOM não encontrados. Verifique os IDs.');
+      return;
+    }
+    console.log('✅ Elementos DOM localizados');
+
+    // ==================== AUXILIARES ====================
     function escapeHtml(text) {
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
     }
 
-    // -------------------- RENDERIZAÇÃO --------------------
+    // ==================== RENDERIZAÇÃO ====================
     function renderCards(data, searchTerm) {
       resultsGrid.innerHTML = '';
+      console.log(`📦 Renderizando ${data.length} cards`);
 
       if (!data || data.length === 0) {
         resultsGrid.innerHTML = `
@@ -431,7 +444,7 @@
         card.className = 'result-card';
         card.style.animationDelay = `${index * 40}ms`;
 
-        // Abrir PDF ao clicar no card
+        // Ao clicar no card, abre o PDF
         card.addEventListener('click', function(e) {
           if (e.target.closest('button')) return;
           if (item.link_pdf) {
@@ -457,11 +470,12 @@
       });
     }
 
-    // -------------------- MOTOR DE BUSCA (FILTER) --------------------
+    // ==================== MOTOR DE BUSCA ====================
     function performSearch() {
-      const query = searchInput.value.trim().toLowerCase();
+      const query = searchInput.value.trim();
+      console.log(`🔎 Buscando por: "${query}"`);
 
-      // Estado de carregamento no botão
+      // Estado de carregamento
       searchBtn.classList.add('loading');
       searchBtn.disabled = true;
 
@@ -471,13 +485,16 @@
 
         if (query === '') {
           filtered = ACADEMIC_DATA;
+          console.log('📋 Busca vazia – exibindo todos os itens');
         } else {
+          const lowerQuery = query.toLowerCase();
           filtered = ACADEMIC_DATA.filter(item => {
-            const titleMatch = item.titulo.toLowerCase().includes(query);
-            const authorMatch = item.autores.toLowerCase().includes(query);
-            const yearMatch = String(item.ano).includes(query);
+            const titleMatch = item.titulo.toLowerCase().includes(lowerQuery);
+            const authorMatch = item.autores.toLowerCase().includes(lowerQuery);
+            const yearMatch = String(item.ano).includes(lowerQuery);
             return titleMatch || authorMatch || yearMatch;
           });
+          console.log(`🎯 Encontrados ${filtered.length} itens`);
         }
 
         renderCards(filtered, query);
@@ -487,32 +504,38 @@
       }, 300);
     }
 
-    // -------------------- INICIALIZAÇÃO --------------------
+    // ==================== EVENTOS ====================
+    searchBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      console.log('🖱️ Clique no botão Buscar');
+      performSearch();
+    });
+
+    searchInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        console.log('⌨️ Enter pressionado');
+        performSearch();
+      }
+    });
+
+    // Alternância de tema (dark/light)
+    themeToggle.addEventListener('click', function() {
+      document.body.classList.toggle('light-theme');
+      const isDark = !document.body.classList.contains('light-theme');
+      document.documentElement.style.setProperty('--bg-deep', isDark ? '#0F172A' : '#F8FAFC');
+      document.documentElement.style.setProperty('--text-primary', isDark ? '#F1F5F9' : '#0F172A');
+      document.documentElement.style.setProperty('--text-secondary', isDark ? '#94A3B8' : '#475569');
+      document.documentElement.style.setProperty('--text-muted', isDark ? '#64748B' : '#94A3B8');
+    });
+
+    // ==================== INICIALIZAÇÃO ====================
     function init() {
+      console.log('🚀 Inicializando READ+');
       renderCards(ACADEMIC_DATA, '');
       statusMessage.textContent = `${ACADEMIC_DATA.length} itens disponíveis.`;
-
-      // Eventos
-      searchBtn.addEventListener('click', performSearch);
-      searchInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          performSearch();
-        }
-      });
-
-      // Toggle tema (simples)
-      themeToggle.addEventListener('click', function() {
-        document.body.classList.toggle('light-theme');
-        const isDark = !document.body.classList.contains('light-theme');
-        document.documentElement.style.setProperty('--bg-deep', isDark ? '#0F172A' : '#F8FAFC');
-        document.documentElement.style.setProperty('--text-primary', isDark ? '#F1F5F9' : '#0F172A');
-        document.documentElement.style.setProperty('--text-secondary', isDark ? '#94A3B8' : '#475569');
-        document.documentElement.style.setProperty('--text-muted', isDark ? '#64748B' : '#94A3B8');
-      });
     }
 
-    // Aguarda DOM carregado
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', init);
     } else {
