@@ -4,182 +4,126 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>READ+ · Cubo de Insights</title>
-
-  <!-- Fontes -->
+  <!-- Fontes e Fuse.js -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..700&family=Roboto+Mono:wght@400;600&display=swap" rel="stylesheet" />
-
-  <!-- Fuse.js para busca semântica -->
   <script src="https://cdn.jsdelivr.net/npm/fuse.js@7.0.0/dist/fuse.min.js"></script>
-
   <style>
     /* ============================================================
-       RESET & VARIÁVEIS
+       CSS – Mobile‑First, Grid Fluido, Dark Mode, Glassmorphism
        ============================================================ */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
+    /* Reset e variáveis */
+    * { margin:0; padding:0; box-sizing:border-box; }
     :root {
       --bg-deep: #0F172A;
       --bg-card: rgba(15, 23, 42, 0.75);
-      --bg-glass: rgba(255, 255, 255, 0.04);
-      --border-glass: rgba(255, 255, 255, 0.08);
-
+      --bg-glass: rgba(255,255,255,0.04);
+      --border-glass: rgba(255,255,255,0.08);
       --cyan: #06B6D4;
-      --cyan-glow: rgba(6, 182, 212, 0.35);
+      --cyan-glow: rgba(6,182,212,0.35);
       --purple: #8B5CF6;
-      --purple-glow: rgba(139, 92, 246, 0.25);
-
       --text-primary: #F1F5F9;
       --text-secondary: #94A3B8;
       --text-muted: #64748B;
-
-      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-sans: 'Inter', sans-serif;
       --font-mono: 'Roboto Mono', monospace;
+      --radius: 20px;
+      --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
-
-    html {
-      scroll-behavior: smooth;
-    }
-
     body {
       background-color: var(--bg-deep);
-      background-image: radial-gradient(circle at 30% 20%, rgba(6, 182, 212, 0.06) 0%, transparent 50%),
-                        radial-gradient(circle at 70% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+      background-image: radial-gradient(circle at 30% 20%, rgba(6,182,212,0.06) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 80%, rgba(139,92,246,0.05) 0%, transparent 50%);
       color: var(--text-primary);
       font-family: var(--font-sans);
       min-height: 100vh;
-      padding: 1.5rem 2rem 3rem;
+      padding: clamp(1rem, 4vw, 2rem);
       line-height: 1.6;
     }
+    .app-wrapper { max-width: 1400px; margin: 0 auto; }
 
-    /* ============================================================
-       LAYOUT GERAL
-       ============================================================ */
-    .app-wrapper {
-      max-width: 1400px;
-      margin: 0 auto;
-    }
-
-    /* ============================================================
-       HEADER – ASSIMÉTRICO
-       ============================================================ */
+    /* ========== HEADER ========== */
     .app-header {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
+      gap: 1rem;
       padding-bottom: 1.5rem;
       border-bottom: 1px solid rgba(255,255,255,0.04);
-      flex-wrap: wrap;
-      gap: 1rem;
     }
-
     .brand {
       display: flex;
       align-items: baseline;
       gap: 0.25rem;
     }
-
     .brand .logo {
-      font-family: var(--font-sans);
       font-weight: 700;
-      font-size: 1.8rem;
+      font-size: clamp(1.4rem, 5vw, 2rem);
       letter-spacing: -0.03em;
       background: linear-gradient(135deg, var(--cyan), var(--purple));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
-
     .brand .logo-plus {
       font-weight: 300;
-      font-size: 2rem;
+      font-size: clamp(1.6rem, 5vw, 2.2rem);
       color: var(--cyan);
       -webkit-text-fill-color: var(--cyan);
     }
-
     .brand .slogan {
-      margin-left: 0.75rem;
-      font-size: 0.8rem;
+      font-size: clamp(0.7rem, 1.5vw, 0.9rem);
       font-weight: 300;
       color: var(--text-secondary);
-      letter-spacing: 0.02em;
       border-left: 1px solid rgba(255,255,255,0.1);
       padding-left: 0.75rem;
       display: none;
     }
-
-    @media (min-width: 640px) {
-      .brand .slogan { display: inline-block; }
-    }
+    @media (min-width: 640px) { .brand .slogan { display: inline-block; } }
 
     .header-actions {
       display: flex;
       align-items: center;
       gap: 0.75rem;
     }
-
-    .header-actions .btn-icon {
-      background: transparent;
-      border: none;
-      color: var(--text-secondary);
-      font-size: 1.3rem;
-      cursor: pointer;
-      padding: 0.3rem 0.5rem;
-      border-radius: 8px;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .header-actions .btn-icon:hover {
-      background: rgba(255,255,255,0.06);
-      color: var(--text-primary);
-    }
-
+    .header-actions .btn-icon,
     .header-actions .btn-download {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 20px;
-      padding: 0.3rem 0.9rem;
-      font-size: 0.85rem;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.06);
       color: var(--text-secondary);
+      padding: 0.3rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: var(--transition);
       display: flex;
       align-items: center;
-      gap: 0.4rem;
-      transition: all 0.25s ease;
-      cursor: pointer;
+      gap: 0.3rem;
       font-family: var(--font-sans);
     }
-
+    .header-actions .btn-icon:hover,
     .header-actions .btn-download:hover {
-      background: rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.06);
       border-color: var(--cyan);
       color: var(--text-primary);
       box-shadow: 0 0 20px var(--cyan-glow);
     }
 
-    /* ============================================================
-       ÁREA DE BUSCA – GLASSMORPHISM
-       ============================================================ */
+    /* ========== ÁREA DE BUSCA (Glassmorphism) ========== */
     .search-zone {
       margin: 2rem 0 1.5rem;
       background: var(--bg-glass);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border: 1px solid var(--border-glass);
-      border-radius: 24px;
-      padding: 2rem 2rem 1.5rem;
+      border-radius: var(--radius);
+      padding: clamp(1.2rem, 3vw, 2rem);
       box-shadow: 0 8px 40px rgba(0,0,0,0.4);
       position: relative;
       overflow: hidden;
     }
-
     .search-zone::before {
       content: '';
       position: absolute;
@@ -190,75 +134,62 @@
       background: radial-gradient(circle, rgba(6,182,212,0.06) 0%, transparent 70%);
       pointer-events: none;
     }
-
     .search-row {
       display: flex;
+      flex-wrap: wrap;
       gap: 0.75rem;
       align-items: center;
-      flex-wrap: wrap;
       position: relative;
       z-index: 1;
     }
-
-    .search-row .search-input-wrap {
+    .search-input-wrap {
       flex: 1;
-      min-width: 200px;
-      position: relative;
+      min-width: 180px;
     }
-
-    .search-row .search-input-wrap input {
+    .search-input-wrap input {
       width: 100%;
-      padding: 0.9rem 1.2rem;
+      padding: clamp(0.7rem, 2vw, 0.9rem) clamp(1rem, 2vw, 1.2rem);
       border-radius: 16px;
       border: 1px solid rgba(255,255,255,0.08);
       background: rgba(0,0,0,0.3);
       color: var(--text-primary);
-      font-size: 1.1rem;
+      font-size: clamp(0.95rem, 2vw, 1.1rem);
       font-family: var(--font-sans);
-      transition: all 0.3s ease;
+      transition: var(--transition);
       outline: none;
     }
-
-    .search-row .search-input-wrap input::placeholder {
+    .search-input-wrap input::placeholder {
       color: var(--text-muted);
       font-weight: 300;
-      letter-spacing: 0.01em;
     }
-
-    .search-row .search-input-wrap input:focus {
+    .search-input-wrap input:focus {
       border-color: var(--cyan);
       box-shadow: 0 0 0 4px var(--cyan-glow);
       background: rgba(0,0,0,0.5);
     }
-
-    .search-row .btn-search {
-      padding: 0.9rem 2rem;
+    .btn-search {
+      padding: clamp(0.7rem, 2vw, 0.9rem) clamp(1.2rem, 3vw, 2rem);
       border: none;
       border-radius: 16px;
       background: linear-gradient(135deg, var(--cyan), #0891B2);
       color: #fff;
       font-weight: 600;
-      font-size: 1rem;
+      font-size: clamp(0.9rem, 2vw, 1rem);
       font-family: var(--font-sans);
       cursor: pointer;
-      transition: all 0.3s ease;
+      transition: var(--transition);
       box-shadow: 0 4px 20px var(--cyan-glow);
       display: flex;
       align-items: center;
       gap: 0.5rem;
       white-space: nowrap;
     }
-
-    .search-row .btn-search:hover {
+    .btn-search:hover {
       transform: translateY(-2px) scale(1.02);
       box-shadow: 0 6px 30px var(--cyan-glow);
     }
-
-    .search-row .btn-search:active {
-      transform: scale(0.97);
-    }
-
-    .search-row .btn-search .spinner {
+    .btn-search:active { transform: scale(0.97); }
+    .btn-search .spinner {
       display: none;
       width: 20px;
       height: 20px;
@@ -267,52 +198,41 @@
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
-
-    .search-row .btn-search.loading .spinner {
-      display: inline-block;
-    }
-    .search-row .btn-search.loading .search-label {
-      display: none;
-    }
-
+    .btn-search.loading .spinner { display: inline-block; }
+    .btn-search.loading .search-label { display: none; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Botão de filtros (engrenagem) */
-    .search-row .btn-filters {
+    .btn-filters {
       background: transparent;
       border: 1px solid rgba(255,255,255,0.08);
       color: var(--text-secondary);
-      width: 48px;
-      height: 48px;
+      width: clamp(44px, 8vw, 52px);
+      height: clamp(44px, 8vw, 52px);
       border-radius: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 1.4rem;
       cursor: pointer;
-      transition: all 0.25s ease;
+      transition: var(--transition);
     }
-
-    .search-row .btn-filters:hover {
+    .btn-filters:hover {
       background: rgba(255,255,255,0.05);
       border-color: var(--purple);
       color: var(--text-primary);
     }
 
-    /* Tags ativas */
     .active-tags {
       display: flex;
       flex-wrap: wrap;
       gap: 0.5rem;
       margin-top: 0.75rem;
-      position: relative;
-      z-index: 1;
       min-height: 2rem;
+      z-index: 1;
     }
-
     .active-tag {
-      background: rgba(6, 182, 212, 0.12);
-      border: 1px solid rgba(6, 182, 212, 0.2);
+      background: rgba(6,182,212,0.12);
+      border: 1px solid rgba(6,182,212,0.2);
       border-radius: 20px;
       padding: 0.2rem 0.8rem;
       font-size: 0.75rem;
@@ -321,9 +241,8 @@
       display: inline-flex;
       align-items: center;
       gap: 0.4rem;
-      transition: all 0.2s ease;
+      transition: var(--transition);
     }
-
     .active-tag .remove-tag {
       cursor: pointer;
       opacity: 0.6;
@@ -333,17 +252,14 @@
     }
     .active-tag .remove-tag:hover { opacity: 1; }
 
-    /* Histórico de pesquisa */
     .history-area {
       margin-top: 0.5rem;
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       gap: 0.5rem;
-      position: relative;
       z-index: 1;
     }
-
     .history-label {
       font-size: 0.7rem;
       text-transform: uppercase;
@@ -351,7 +267,6 @@
       color: var(--text-muted);
       font-weight: 600;
     }
-
     .history-tag {
       background: rgba(255,255,255,0.04);
       border: 1px solid rgba(255,255,255,0.04);
@@ -360,25 +275,24 @@
       font-size: 0.75rem;
       color: var(--text-secondary);
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: var(--transition);
     }
-
     .history-tag:hover {
       background: rgba(255,255,255,0.08);
       border-color: rgba(255,255,255,0.12);
       color: var(--text-primary);
     }
 
-    /* ============================================================
-       PAINEL LATERAL (DRAWER) – FILTROS AVANÇADOS
-       ============================================================ */
+    /* ========== DRAWER (glassmorphism) ========== */
     .filters-drawer {
       position: fixed;
       top: 0;
       right: -380px;
-      width: 360px;
+      width: min(360px, 85vw);
       height: 100%;
-      background: var(--bg-deep);
+      background: rgba(15, 23, 42, 0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border-left: 1px solid rgba(255,255,255,0.06);
       box-shadow: -10px 0 40px rgba(0,0,0,0.6);
       padding: 2rem 1.5rem;
@@ -389,40 +303,30 @@
       gap: 1.5rem;
       overflow-y: auto;
     }
-
-    .filters-drawer.open {
-      right: 0;
-    }
-
+    .filters-drawer.open { right: 0; }
     .filters-drawer .drawer-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-
     .filters-drawer .drawer-header h3 {
       font-weight: 500;
       font-size: 1.2rem;
-      color: var(--text-primary);
     }
-
     .filters-drawer .drawer-close {
       background: transparent;
       border: none;
       color: var(--text-secondary);
       font-size: 1.8rem;
       cursor: pointer;
-      line-height: 1;
       transition: color 0.2s;
     }
     .filters-drawer .drawer-close:hover { color: var(--text-primary); }
-
     .filters-drawer .filter-group {
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
     }
-
     .filters-drawer .filter-group label {
       font-size: 0.75rem;
       text-transform: uppercase;
@@ -430,9 +334,7 @@
       color: var(--text-muted);
       font-weight: 600;
     }
-
-    .filters-drawer .filter-group select,
-    .filters-drawer .filter-group input {
+    .filters-drawer .filter-group select {
       background: rgba(255,255,255,0.04);
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 12px;
@@ -443,11 +345,7 @@
       outline: none;
       transition: border 0.2s;
     }
-    .filters-drawer .filter-group select:focus,
-    .filters-drawer .filter-group input:focus {
-      border-color: var(--cyan);
-    }
-
+    .filters-drawer .filter-group select:focus { border-color: var(--cyan); }
     .filters-drawer .apply-filters {
       margin-top: auto;
       padding: 0.8rem;
@@ -460,30 +358,22 @@
       cursor: pointer;
       transition: background 0.25s;
     }
-    .filters-drawer .apply-filters:hover {
-      background: #7C3AED;
-    }
-
-    /* Overlay do drawer */
+    .filters-drawer .apply-filters:hover { background: #7C3AED; }
     .drawer-overlay {
       position: fixed;
       top: 0; left: 0;
       width: 100%; height: 100%;
       background: rgba(0,0,0,0.5);
       backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.35s ease;
       z-index: 999;
     }
-    .drawer-overlay.open {
-      opacity: 1;
-      pointer-events: auto;
-    }
+    .drawer-overlay.open { opacity: 1; pointer-events: auto; }
 
-    /* ============================================================
-       ABAS
-       ============================================================ */
+    /* ========== ABAS ========== */
     .tabs {
       display: flex;
       gap: 0.25rem;
@@ -491,7 +381,6 @@
       margin: 1.5rem 0 1rem;
       flex-wrap: wrap;
     }
-
     .tab-btn {
       background: transparent;
       border: none;
@@ -502,84 +391,69 @@
       color: var(--text-secondary);
       cursor: pointer;
       border-bottom: 2px solid transparent;
-      transition: all 0.2s ease;
+      transition: var(--transition);
       border-radius: 8px 8px 0 0;
     }
-
-    .tab-btn:hover {
-      color: var(--text-primary);
-      background: rgba(255,255,255,0.02);
-    }
-
-    .tab-btn.active {
-      color: var(--cyan);
-      border-bottom-color: var(--cyan);
-    }
-
-    .tab-content {
-      display: none;
-      animation: fadeUp 0.4s ease;
-    }
-
-    .tab-content.active {
-      display: block;
-    }
-
+    .tab-btn:hover { color: var(--text-primary); background: rgba(255,255,255,0.02); }
+    .tab-btn.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+    .tab-content { display: none; animation: fadeUp 0.4s ease; }
+    .tab-content.active { display: block; }
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(12px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* ============================================================
-       RESULTADOS – CARTÕES ASSIMÉTRICOS
-       ============================================================ */
+    /* ========== RESULTADOS – GRID FLUIDO ========== */
     .results-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      grid-template-columns: 1fr;                /* mobile first */
       gap: 1.5rem;
       margin: 1.5rem 0;
     }
+    @media (min-width: 600px) {
+      .results-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (min-width: 960px) {
+      .results-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (min-width: 1280px) {
+      .results-grid { grid-template-columns: repeat(4, 1fr); }
+    }
 
+    /* Cartão */
     .result-card {
       background: var(--bg-card);
       backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
       border: 1px solid rgba(255,255,255,0.04);
-      border-radius: 20px;
+      border-radius: var(--radius);
       padding: 1.5rem;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
+      transition: var(--transition);
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
       box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      opacity: 0; /* animação de entrada */
+      animation: fadeUp 0.4s ease forwards;
     }
-
     .result-card:hover {
       transform: translateY(-6px) scale(1.01);
-      border-color: rgba(6, 182, 212, 0.2);
+      border-color: rgba(6,182,212,0.2);
       box-shadow: 0 12px 40px rgba(0,0,0,0.4);
     }
-
     .result-card .card-header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
     }
-
-    .result-card .card-icon {
-      font-size: 1.6rem;
-      opacity: 0.6;
-    }
-
+    .result-card .card-icon { font-size: 1.6rem; opacity: 0.6; }
     .result-card .card-title {
-      font-size: 1.1rem;
+      font-size: clamp(1rem, 2vw, 1.1rem);
       font-weight: 600;
       line-height: 1.3;
-      color: var(--text-primary);
-      margin-right: 0.5rem;
       flex: 1;
+      margin-right: 0.5rem;
     }
-
     .result-card .card-meta {
       display: flex;
       flex-wrap: wrap;
@@ -588,22 +462,14 @@
       color: var(--text-secondary);
       font-family: var(--font-mono);
     }
-
-    .result-card .card-meta .year {
-      color: var(--cyan);
-    }
-
-    .result-card .card-meta .citations {
-      color: var(--purple);
-    }
-
+    .result-card .card-meta .year { color: var(--cyan); }
+    .result-card .card-meta .citations { color: var(--purple); }
     .result-card .card-actions {
       display: flex;
+      flex-wrap: wrap;
       gap: 0.3rem;
       margin-top: 0.5rem;
-      flex-wrap: wrap;
     }
-
     .result-card .card-actions button {
       background: transparent;
       border: 1px solid rgba(255,255,255,0.06);
@@ -612,19 +478,17 @@
       border-radius: 12px;
       font-size: 0.7rem;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: var(--transition);
       display: inline-flex;
       align-items: center;
       gap: 0.3rem;
       font-family: var(--font-sans);
     }
-
     .result-card .card-actions button:hover {
       background: rgba(255,255,255,0.06);
       border-color: rgba(255,255,255,0.12);
       color: var(--text-primary);
     }
-
     .result-card .card-actions .btn-summary {
       color: var(--purple);
       border-color: rgba(139,92,246,0.15);
@@ -634,24 +498,24 @@
       border-color: var(--purple);
     }
 
-    /* ============================================================
-       SKELETON LOADER
-       ============================================================ */
+    /* ========== SKELETON LOADER (CSS puro) ========== */
     .skeleton-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      grid-template-columns: 1fr;
       gap: 1.5rem;
       margin: 1.5rem 0;
     }
+    @media (min-width: 600px) { .skeleton-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 960px) { .skeleton-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (min-width: 1280px) { .skeleton-grid { grid-template-columns: repeat(4, 1fr); } }
 
     .skeleton-card {
       background: var(--bg-card);
-      border-radius: 20px;
+      border-radius: var(--radius);
       padding: 1.5rem;
       border: 1px solid rgba(255,255,255,0.04);
       animation: pulse 1.5s ease-in-out infinite;
     }
-
     .skeleton-card .skeleton-line {
       height: 12px;
       background: rgba(255,255,255,0.06);
@@ -662,34 +526,32 @@
     .skeleton-card .skeleton-line.medium { width: 70%; }
     .skeleton-card .skeleton-line.long { width: 90%; }
     .skeleton-card .skeleton-line:last-child { margin-bottom: 0; }
-
     @keyframes pulse {
       0%, 100% { opacity: 0.5; }
       50% { opacity: 1; }
     }
 
-    /* ============================================================
-       ABA "RESUMO" – PAINEL DE INTELIGÊNCIA
-       ============================================================ */
+    /* ========== RESUMO (painel de inteligência) ========== */
     .summary-panel {
       display: grid;
-      grid-template-columns: 1fr 1.5fr;
+      grid-template-columns: 1fr;
       gap: 2rem;
       background: var(--bg-card);
       backdrop-filter: blur(4px);
       border: 1px solid rgba(255,255,255,0.04);
-      border-radius: 24px;
-      padding: 2rem;
+      border-radius: var(--radius);
+      padding: clamp(1.2rem, 3vw, 2rem);
       margin-top: 1rem;
     }
-
+    @media (min-width: 768px) {
+      .summary-panel { grid-template-columns: 1fr 1.5fr; }
+    }
     .summary-panel .metadata {
       display: flex;
       flex-direction: column;
       gap: 1rem;
     }
-
-    .summary-panel .metadata .cover-placeholder {
+    .summary-panel .cover-placeholder {
       width: 100%;
       aspect-ratio: 3/4;
       background: rgba(255,255,255,0.03);
@@ -701,33 +563,24 @@
       font-size: 3rem;
       color: var(--text-muted);
     }
-
-    .summary-panel .metadata .title {
-      font-size: 1.4rem;
+    .summary-panel .title {
+      font-size: clamp(1.2rem, 3vw, 1.6rem);
       font-weight: 600;
     }
-    .summary-panel .metadata .authors {
-      color: var(--text-secondary);
-      font-size: 0.95rem;
-    }
-    .summary-panel .metadata .detail {
-      color: var(--text-muted);
-      font-size: 0.85rem;
-    }
+    .summary-panel .authors { color: var(--text-secondary); }
+    .summary-panel .detail { color: var(--text-muted); font-size: 0.85rem; }
 
     .summary-panel .insights {
       display: flex;
       flex-direction: column;
       gap: 1.5rem;
     }
-
-    .summary-panel .insights .nuggets {
+    .summary-panel .nuggets {
       display: flex;
       flex-direction: column;
       gap: 0.75rem;
     }
-
-    .summary-panel .insights .nugget {
+    .summary-panel .nugget {
       background: rgba(139,92,246,0.06);
       border-left: 3px solid var(--purple);
       padding: 0.6rem 1rem;
@@ -735,20 +588,13 @@
       font-size: 0.9rem;
       color: var(--text-secondary);
     }
-
-    .summary-panel .insights .nugget strong {
-      color: var(--text-primary);
-    }
-
-    /* Nuvem de palavras (canvas) */
+    .summary-panel .nugget strong { color: var(--text-primary); }
     .wordcloud-container {
-      margin-top: 0.5rem;
       background: rgba(255,255,255,0.02);
       border-radius: 16px;
       padding: 0.5rem;
       border: 1px solid rgba(255,255,255,0.04);
     }
-
     #wordcloudCanvas {
       width: 100%;
       height: auto;
@@ -757,47 +603,40 @@
       border-radius: 12px;
     }
 
-    /* ============================================================
-       RESPONSIVIDADE
-       ============================================================ */
-    @media (max-width: 768px) {
-      body { padding: 1rem; }
-      .search-zone { padding: 1.2rem; }
-      .search-row .btn-search { padding: 0.7rem 1.2rem; }
-      .filters-drawer { width: 300px; right: -320px; }
-      .summary-panel {
-        grid-template-columns: 1fr;
-        padding: 1.2rem;
-      }
-      .result-card .card-title { font-size: 1rem; }
-      .brand .logo { font-size: 1.4rem; }
+    /* ========== ESTADO VAZIO ========== */
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--text-muted);
+    }
+    .empty-state .empty-icon { font-size: 3rem; margin-bottom: 0.5rem; }
+    .empty-state .empty-suggestion {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      margin-top: 0.5rem;
     }
 
-    /* ============================================================
-       UTILITÁRIOS
-       ============================================================ */
+    /* ========== UTILITÁRIOS ========== */
     .hidden { display: none !important; }
-    .mt-2 { margin-top: 1rem; }
   </style>
 </head>
 <body>
 <div class="app-wrapper">
 
-  <!-- ========== HEADER ========== -->
+  <!-- HEADER -->
   <header class="app-header">
     <div class="brand">
       <span class="logo">READ<span class="logo-plus">+</span></span>
       <span class="slogan">Cubo de Insights</span>
     </div>
     <div class="header-actions">
-      <button class="btn-icon" id="themeToggle" aria-label="Alternar tema" title="Alternar tema">🌓</button>
-      <button class="btn-download" id="installBtn">
-        <span>⬇</span> Instalar
-      </button>
+      <button class="btn-icon" id="themeToggle" aria-label="Alternar tema">🌓</button>
+      <button class="btn-download" id="installBtn">⬇ Instalar</button>
     </div>
   </header>
 
-  <!-- ========== ÁREA DE BUSCA ========== -->
+  <!-- BUSCA -->
   <section class="search-zone">
     <div class="search-row">
       <div class="search-input-wrap">
@@ -807,55 +646,42 @@
         <span class="search-label">🔍 Buscar</span>
         <span class="spinner"></span>
       </button>
-      <button class="btn-filters" id="filtersToggle" aria-label="Filtros avançados">
-        ⚙
-      </button>
+      <button class="btn-filters" id="filtersToggle" aria-label="Filtros avançados">⚙</button>
     </div>
-
-    <!-- Tags ativas -->
     <div class="active-tags" id="activeTags"></div>
-
-    <!-- Histórico de pesquisa -->
-    <div class="history-area" id="historyArea">
+    <div class="history-area">
       <span class="history-label">Últimas</span>
       <div id="historyContainer" style="display:flex;flex-wrap:wrap;gap:0.4rem;"></div>
     </div>
   </section>
 
-  <!-- ========== ABAS ========== -->
+  <!-- ABAS -->
   <div class="tabs" id="tabContainer">
     <button class="tab-btn active" data-tab="artigos">📄 Artigos</button>
     <button class="tab-btn" data-tab="livros">📚 Livros</button>
     <button class="tab-btn" data-tab="resumo">🧠 Resumo</button>
   </div>
 
-  <!-- ========== CONTEÚDO DAS ABAS ========== -->
+  <!-- CONTEÚDO -->
   <div id="tabContentArtigos" class="tab-content active">
-    <!-- Resultados serão injetados aqui -->
     <div id="resultsContainer" class="results-grid"></div>
     <div id="skeletonContainer" class="skeleton-grid hidden"></div>
   </div>
-
   <div id="tabContentLivros" class="tab-content">
     <div id="resultsContainerLivros" class="results-grid"></div>
     <div id="skeletonContainerLivros" class="skeleton-grid hidden"></div>
   </div>
-
   <div id="tabContentResumo" class="tab-content">
     <div class="summary-panel" id="summaryPanel">
       <div class="metadata">
         <div class="cover-placeholder">📘</div>
         <div class="title">Título do documento</div>
-        <div class="authors">Autores: Nome, Sobrenome</div>
-        <div class="detail">Ano: 2024 · Fonte: Nature</div>
-        <div class="detail">Citações: 42</div>
+        <div class="authors">Autores: —</div>
+        <div class="detail">Ano: — · Fonte: —</div>
+        <div class="detail">Citações: —</div>
       </div>
       <div class="insights">
-        <div class="nuggets" id="nuggetsContainer">
-          <div class="nugget"><strong>⚡ Insight 1</strong> – Este é um ponto chave extraído do resumo.</div>
-          <div class="nugget"><strong>⚡ Insight 2</strong> – Outro trecho relevante para o usuário.</div>
-          <div class="nugget"><strong>⚡ Insight 3</strong> – Terceiro ponto de destaque.</div>
-        </div>
+        <div class="nuggets" id="nuggetsContainer"></div>
         <div class="wordcloud-container">
           <canvas id="wordcloudCanvas" width="600" height="300"></canvas>
         </div>
@@ -863,7 +689,7 @@
     </div>
   </div>
 
-  <!-- ========== DRAWER DE FILTROS ========== -->
+  <!-- DRAWER -->
   <div class="drawer-overlay" id="drawerOverlay"></div>
   <aside class="filters-drawer" id="filtersDrawer">
     <div class="drawer-header">
@@ -892,17 +718,17 @@
     </div>
     <button class="apply-filters" id="applyFilters">Aplicar Filtros</button>
   </aside>
-
 </div>
 
 <!-- ============================================================
-     JAVASCRIPT
+     JAVASCRIPT – Gerenciamento de Estado, Busca Fuzzy,
+     Renderização Dinâmica, Skeleton, Assincronicidade
      ============================================================ -->
 <script>
   (function() {
     'use strict';
 
-    // ---------- DADOS MOCK (para demonstração) ----------
+    // -------------------- DADOS (JSON local) --------------------
     const MOCK_DATA = [
       { id: 1, title: 'Transformers for Natural Language Processing', authors: 'Vaswani et al.', year: 2023, citations: 1847, source: 'arXiv', type: 'artigo', abstract: 'Apresenta a arquitetura Transformer e suas aplicações em PNL.' },
       { id: 2, title: 'Deep Learning for Computer Vision', authors: 'Krizhevsky, Sutskever, Hinton', year: 2022, citations: 932, source: 'CVPR', type: 'artigo', abstract: 'Redes neurais profundas para classificação de imagens.' },
@@ -914,13 +740,14 @@
       { id: 8, title: 'Pattern Recognition and Machine Learning', authors: 'Bishop', year: 2021, citations: 2100, source: 'Springer', type: 'livro', abstract: 'Reconhecimento de padrões e aprendizado de máquina.' },
     ];
 
-    // ---------- ESTADO ----------
+    // -------------------- ESTADO GLOBAL --------------------
     let currentResults = [];
     let currentTab = 'artigos';
     let fuseIndex = null;
-    let searchHistory = [];
+    let activeYear = '';
+    let activeSort = 'relevance';
 
-    // ---------- DOM refs ----------
+    // -------------------- DOM REFS --------------------
     const searchInput = document.getElementById('searchInput');
     const searchBtn = document.getElementById('searchBtn');
     const filtersToggle = document.getElementById('filtersToggle');
@@ -934,31 +761,20 @@
     const historyContainer = document.getElementById('historyContainer');
     const tabContainer = document.getElementById('tabContainer');
     const resultsContainer = document.getElementById('resultsContainer');
-    const skeletonContainer = document.getElementById('skeletonContainer');
     const resultsContainerLivros = document.getElementById('resultsContainerLivros');
+    const skeletonContainer = document.getElementById('skeletonContainer');
     const skeletonContainerLivros = document.getElementById('skeletonContainerLivros');
     const summaryPanel = document.getElementById('summaryPanel');
     const nuggetsContainer = document.getElementById('nuggetsContainer');
 
-    // ---------- HELPERS ----------
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
-
-    // ---------- HISTÓRICO (localStorage) ----------
+    // -------------------- HISTÓRICO (localStorage) --------------------
     const HISTORY_KEY = 'readplus_search_history';
     function loadHistory() {
-      try {
-        const data = localStorage.getItem(HISTORY_KEY);
-        return data ? JSON.parse(data) : [];
-      } catch { return []; }
+      try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch { return []; }
     }
     function saveHistoryItem(term) {
-      if (!term || term.trim() === '') return;
-      let hist = loadHistory();
-      hist = hist.filter(item => item.toLowerCase() !== term.toLowerCase());
+      if (!term || !term.trim()) return;
+      let hist = loadHistory().filter(item => item.toLowerCase() !== term.toLowerCase());
       hist.unshift(term.trim());
       if (hist.length > 5) hist = hist.slice(0, 5);
       localStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
@@ -967,7 +783,7 @@
     function renderHistory() {
       const history = loadHistory();
       historyContainer.innerHTML = '';
-      if (history.length === 0) {
+      if (!history.length) {
         historyContainer.innerHTML = '<span style="color:var(--text-muted);font-size:0.75rem;">Nenhuma busca recente</span>';
         return;
       }
@@ -984,16 +800,13 @@
       });
     }
 
-    // ---------- FILTROS / TAGS ----------
-    let activeYear = '';
-    let activeSort = 'relevance';
-
+    // -------------------- FILTROS / TAGS --------------------
     function renderActiveTags() {
       activeTags.innerHTML = '';
       const tags = [];
       if (activeYear) tags.push({ label: `${activeYear} ✕`, key: 'year' });
       if (activeSort !== 'relevance') tags.push({ label: `${activeSort} ✕`, key: 'sort' });
-      if (tags.length === 0) {
+      if (!tags.length) {
         activeTags.innerHTML = '<span style="color:var(--text-muted);font-size:0.75rem;">Nenhum filtro aplicado</span>';
         return;
       }
@@ -1012,14 +825,12 @@
       });
     }
 
-    // ---------- SKELETON ----------
+    // -------------------- SKELETON LOADER --------------------
     function showSkeleton(containerId) {
       const container = document.getElementById(containerId);
       const resultsId = containerId === 'skeletonContainer' ? 'resultsContainer' : 'resultsContainerLivros';
-      const resultsEl = document.getElementById(resultsId);
+      document.getElementById(resultsId).classList.add('hidden');
       container.classList.remove('hidden');
-      resultsEl.classList.add('hidden');
-      // preencher com 6 itens
       container.innerHTML = '';
       for (let i = 0; i < 6; i++) {
         const card = document.createElement('div');
@@ -1033,35 +844,32 @@
         container.appendChild(card);
       }
     }
-
     function hideSkeleton(containerId) {
       const container = document.getElementById(containerId);
       const resultsId = containerId === 'skeletonContainer' ? 'resultsContainer' : 'resultsContainerLivros';
-      const resultsEl = document.getElementById(resultsId);
       container.classList.add('hidden');
-      resultsEl.classList.remove('hidden');
+      document.getElementById(resultsId).classList.remove('hidden');
     }
 
-    // ---------- RENDERIZAR RESULTADOS (com fade-in escalonado) ----------
+    // -------------------- RENDERIZAÇÃO DINÂMICA --------------------
     function renderResults(results, containerId) {
       const container = document.getElementById(containerId);
       container.innerHTML = '';
       if (!results || results.length === 0) {
-        container.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:3rem 0;">Nenhum resultado encontrado.</div>`;
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">🔍</div>
+            <p>Nenhum resultado encontrado</p>
+            <p class="empty-suggestion">Tente buscar por outro termo ou ajuste os filtros.</p>
+          </div>
+        `;
         return;
       }
       results.forEach((item, index) => {
         const card = document.createElement('div');
         card.className = 'result-card';
         card.style.animationDelay = `${index * 50}ms`;
-        card.style.opacity = '0';
-        card.style.animation = 'fadeUp 0.4s ease forwards';
-        card.style.animationDelay = `${index * 50}ms`;
-
         const icon = item.type === 'livro' ? '📚' : '📄';
-        const year = item.year || '–';
-        const citations = item.citations || 0;
-
         card.innerHTML = `
           <div class="card-header">
             <span class="card-title">${escapeHtml(item.title)}</span>
@@ -1069,8 +877,8 @@
           </div>
           <div class="card-meta">
             <span>${escapeHtml(item.authors || 'Autor desconhecido')}</span>
-            <span class="year">${year}</span>
-            <span class="citations">⭐ ${citations} citações</span>
+            <span class="year">${item.year || '–'}</span>
+            <span class="citations">⭐ ${item.citations || 0} citações</span>
           </div>
           <div class="card-actions">
             <button class="btn-summary" data-id="${item.id}">👁️ Visualizar Resumo</button>
@@ -1081,9 +889,7 @@
         container.appendChild(card);
 
         // Eventos dos botões
-        card.querySelector('.btn-summary')?.addEventListener('click', () => {
-          openSummary(item);
-        });
+        card.querySelector('.btn-summary')?.addEventListener('click', () => openSummary(item));
         card.querySelectorAll('button:not(.btn-summary)').forEach(btn => {
           btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -1092,52 +898,49 @@
               alert(`📌 "${item.title}" salvo na biblioteca (simulado).`);
             } else if (action.includes('Copiar')) {
               const ref = `${item.authors || 'Autor'}. "${item.title}". ${item.year}.`;
-              navigator.clipboard?.writeText(ref).then(() => {
-                alert('Referência copiada!');
-              }).catch(() => {
-                prompt('Copie a referência:', ref);
-              });
+              navigator.clipboard?.writeText(ref).then(() => alert('Referência copiada!'))
+                .catch(() => prompt('Copie a referência:', ref));
             }
           });
         });
       });
     }
 
-    // ---------- ABRIR RESUMO (aba "Resumo") ----------
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // -------------------- RESUMO (nuvem de palavras) --------------------
     function openSummary(item) {
-      // Mudar para aba Resumo
+      // Trocar para aba Resumo
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.querySelector('[data-tab="resumo"]')?.classList.add('active');
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
       document.getElementById('tabContentResumo').classList.add('active');
       currentTab = 'resumo';
 
-      // Preencher painel
       const panel = summaryPanel;
       panel.querySelector('.cover-placeholder').textContent = item.type === 'livro' ? '📚' : '📄';
       panel.querySelector('.title').textContent = item.title;
       panel.querySelector('.authors').textContent = `Autores: ${item.authors || 'Desconhecido'}`;
-      panel.querySelector('.detail').textContent = `Ano: ${item.year || '–'} · Fonte: ${item.source || '—'}`;
+      panel.querySelectorAll('.detail')[0].textContent = `Ano: ${item.year || '–'} · Fonte: ${item.source || '—'}`;
       panel.querySelectorAll('.detail')[1].textContent = `Citações: ${item.citations || 0}`;
 
-      // Nuggets (simulados)
       nuggetsContainer.innerHTML = `
         <div class="nugget"><strong>⚡ Insight 1</strong> – Este documento apresenta uma abordagem inovadora para o problema.</div>
         <div class="nugget"><strong>⚡ Insight 2</strong> – Os autores propõem um novo método baseado em ${item.type === 'artigo' ? 'redes neurais' : 'análise estatística'}.</div>
         <div class="nugget"><strong>⚡ Insight 3</strong> – Os resultados experimentais mostram melhora significativa.</div>
       `;
-
-      // Nuvem de palavras (gerar a partir do abstract ou título)
       generateWordcloud(item.title + ' ' + (item.abstract || ''));
     }
 
-    // ---------- NUVEM DE PALAVRAS (canvas) ----------
     function generateWordcloud(text) {
       const canvas = document.getElementById('wordcloudCanvas');
       const ctx = canvas.getContext('2d');
       const w = canvas.width, h = canvas.height;
       ctx.clearRect(0, 0, w, h);
-
       if (!text) {
         ctx.fillStyle = '#64748B';
         ctx.font = '16px Inter';
@@ -1145,43 +948,30 @@
         ctx.fillText('Sem dados para nuvem', w/2, h/2);
         return;
       }
-
-      // Contagem simples de palavras
       const words = text.toLowerCase().replace(/[^a-záéíóúãõ ]/g, '').split(/\s+/).filter(w => w.length > 3);
       const freq = {};
       words.forEach(w => { freq[w] = (freq[w] || 0) + 1; });
-
       const entries = Object.entries(freq).sort((a,b) => b[1] - a[1]).slice(0, 30);
-      if (entries.length === 0) {
+      if (!entries.length) {
         ctx.fillStyle = '#64748B';
         ctx.font = '16px Inter';
         ctx.textAlign = 'center';
         ctx.fillText('Nenhuma palavra relevante', w/2, h/2);
         return;
       }
-
       const maxCount = entries[0][1];
       const colors = ['#06B6D4', '#8B5CF6', '#F1F5F9', '#94A3B8', '#E2E8F0'];
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-
-      // Posicionamento aleatório
-      const usedPositions = [];
+      const used = [];
       entries.forEach(([word, count]) => {
         const size = 12 + (count / maxCount) * 32;
-        let x, y, attempts = 0;
-        let placed = false;
+        let x, y, attempts = 0, placed = false;
         while (!placed && attempts < 40) {
           x = 30 + Math.random() * (w - 60);
           y = 30 + Math.random() * (h - 60);
-          const overlap = usedPositions.some(([px, py, ps]) => {
-            const dx = Math.abs(x - px), dy = Math.abs(y - py);
-            return dx < size && dy < size * 0.6;
-          });
-          if (!overlap) {
-            placed = true;
-            usedPositions.push([x, y, size]);
-          }
+          const overlap = used.some(([px, py, ps]) => Math.abs(x - px) < size && Math.abs(y - py) < size * 0.6);
+          if (!overlap) { placed = true; used.push([x, y, size]); }
           attempts++;
         }
         if (placed) {
@@ -1194,7 +984,7 @@
       });
     }
 
-    // ---------- BUSCA (com Fuse.js) ----------
+    // -------------------- BUSCA FUZZY (Fuse.js) --------------------
     function buildFuseIndex(data) {
       const options = {
         keys: [
@@ -1216,65 +1006,47 @@
       return result.map(item => item.item);
     }
 
-    // ---------- PERFORM SEARCH (assíncrono) ----------
+    // -------------------- PERFORM SEARCH (ASSÍNCRONO) --------------------
     async function performSearch(query) {
       const q = (query || searchInput.value).trim();
       if (!q) return;
 
-      // Salvar histórico
       saveHistoryItem(q);
-
-      // Ativar estado de loading no botão
       searchBtn.classList.add('loading');
 
-      // Mostrar skeleton na aba atual
       const skeletonId = currentTab === 'artigos' ? 'skeletonContainer' : 'skeletonContainerLivros';
       showSkeleton(skeletonId);
 
-      // Simular delay de rede
-      await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 600));
+      // Simula requisição assíncrona (evita travamento da UI)
+      await new Promise(resolve => setTimeout(resolve, 600 + Math.random() * 400));
 
-      // Filtrar dados mock (simulação)
-      let results = MOCK_DATA.filter(item => {
-        const matchTitle = item.title.toLowerCase().includes(q.toLowerCase());
-        const matchAuthor = item.authors.toLowerCase().includes(q.toLowerCase());
-        const matchAbstract = item.abstract?.toLowerCase().includes(q.toLowerCase()) || false;
-        return matchTitle || matchAuthor || matchAbstract;
-      });
+      // Filtragem base
+      let results = MOCK_DATA.filter(item =>
+        item.title.toLowerCase().includes(q.toLowerCase()) ||
+        item.authors.toLowerCase().includes(q.toLowerCase()) ||
+        (item.abstract && item.abstract.toLowerCase().includes(q.toLowerCase()))
+      );
 
       // Aplicar filtros
-      if (activeYear) {
-        results = results.filter(item => String(item.year) === activeYear);
-      }
-      // Ordenação
-      if (activeSort === 'date') {
-        results.sort((a,b) => (b.year || 0) - (a.year || 0));
-      } else if (activeSort === 'citations') {
-        results.sort((a,b) => (b.citations || 0) - (a.citations || 0));
-      } else {
-        // relevância -> usar pontuação do Fuse se disponível
-        // já está ordenado pela busca semântica
-      }
+      if (activeYear) results = results.filter(item => String(item.year) === activeYear);
+      if (activeSort === 'date') results.sort((a,b) => (b.year || 0) - (a.year || 0));
+      else if (activeSort === 'citations') results.sort((a,b) => (b.citations || 0) - (a.citations || 0));
 
       // Busca semântica (reordena)
-      if (fuseIndex) {
+      if (fuseIndex && q) {
         const semanticOrder = semanticSearch(q, results);
-        if (semanticOrder.length > 0) results = semanticOrder;
+        if (semanticOrder.length) results = semanticOrder;
       }
 
-      // Atualizar resultados
       currentResults = results;
-
-      // Renderizar na aba atual
       const containerId = currentTab === 'artigos' ? 'resultsContainer' : 'resultsContainerLivros';
       renderResults(results, containerId);
 
-      // Esconder skeleton
       hideSkeleton(skeletonId);
       searchBtn.classList.remove('loading');
     }
 
-    // ---------- TROCAR ABA ----------
+    // -------------------- TROCAR ABA --------------------
     function switchTab(tab) {
       currentTab = tab;
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -1282,21 +1054,17 @@
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
       document.getElementById(`tabContent${tab.charAt(0).toUpperCase() + tab.slice(1)}`).classList.add('active');
 
-      // Se houver resultados, renderizar na nova aba
-      if (currentResults.length > 0) {
-        const containerId = tab === 'artigos' ? 'resultsContainer' : 'resultsContainerLivros';
+      const containerId = tab === 'artigos' ? 'resultsContainer' : 'resultsContainerLivros';
+      if (currentResults.length) {
         renderResults(currentResults, containerId);
-        // Esconder skeletons
         hideSkeleton('skeletonContainer');
         hideSkeleton('skeletonContainerLivros');
       } else {
-        // Limpar containers
-        document.getElementById('resultsContainer').innerHTML = '';
-        document.getElementById('resultsContainerLivros').innerHTML = '';
+        document.getElementById(containerId).innerHTML = '';
       }
     }
 
-    // ---------- DRAWER ----------
+    // -------------------- DRAWER --------------------
     function openDrawer() {
       filtersDrawer.classList.add('open');
       drawerOverlay.classList.add('open');
@@ -1306,10 +1074,9 @@
       drawerOverlay.classList.remove('open');
     }
 
-    // ---------- EVENT LISTENERS ----------
+    // -------------------- EVENT LISTENERS --------------------
     searchBtn.addEventListener('click', () => performSearch());
-    searchInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') performSearch(); });
-
+    searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') performSearch(); });
     filtersToggle.addEventListener('click', openDrawer);
     drawerClose.addEventListener('click', closeDrawer);
     drawerOverlay.addEventListener('click', closeDrawer);
@@ -1322,58 +1089,38 @@
       performSearch(searchInput.value);
     });
 
-    // Abas
-    tabContainer.addEventListener('click', (e) => {
+    tabContainer.addEventListener('click', e => {
       const btn = e.target.closest('.tab-btn');
-      if (!btn) return;
-      const tab = btn.dataset.tab;
-      if (tab === currentTab) return;
-      switchTab(tab);
+      if (!btn || btn.dataset.tab === currentTab) return;
+      switchTab(btn.dataset.tab);
     });
 
-    // Tema (toggle simples)
     document.getElementById('themeToggle').addEventListener('click', function() {
       document.body.classList.toggle('light-theme');
-      // Não implementamos tema claro, mas podemos alternar cores
-      // Por simplicidade, apenas alternamos um atributo para demonstrar
       const isDark = !document.body.classList.contains('light-theme');
       document.documentElement.style.setProperty('--bg-deep', isDark ? '#0F172A' : '#F8FAFC');
       document.documentElement.style.setProperty('--text-primary', isDark ? '#F1F5F9' : '#0F172A');
       document.documentElement.style.setProperty('--text-secondary', isDark ? '#94A3B8' : '#475569');
       document.documentElement.style.setProperty('--text-muted', isDark ? '#64748B' : '#94A3B8');
-      // simplificado
     });
 
-    // Instalar (PWA simulado)
     document.getElementById('installBtn').addEventListener('click', () => {
       alert('📲 Instalação do READ+ (simulada). Em produção, use um service worker.');
     });
 
-    // ---------- INICIALIZAÇÃO ----------
+    // -------------------- INICIALIZAÇÃO --------------------
     function init() {
-      // Carregar histórico
       renderHistory();
-
-      // Construir índice Fuse com todos os dados
       buildFuseIndex(MOCK_DATA);
-
-      // Pré-carregar resultados iniciais (exibir todos)
       currentResults = MOCK_DATA;
       renderResults(MOCK_DATA, 'resultsContainer');
       renderResults(MOCK_DATA, 'resultsContainerLivros');
       hideSkeleton('skeletonContainer');
       hideSkeleton('skeletonContainerLivros');
-
-      // Gerar nuvem de palavras inicial com base no primeiro item
-      if (MOCK_DATA.length > 0) {
-        generateWordcloud(MOCK_DATA[0].title + ' ' + MOCK_DATA[0].abstract);
-      }
-
       renderActiveTags();
+      if (MOCK_DATA.length) generateWordcloud(MOCK_DATA[0].title + ' ' + MOCK_DATA[0].abstract);
     }
-
     init();
-
   })();
 </script>
 </body>
