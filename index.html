@@ -1,547 +1,266 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>READ+ · Buscador Acadêmico</title>
-  <!-- Favicon inline (evita erro 404) -->
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📚</text></svg>">
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>READ+ Buscador</title>
   <style>
-    /* ========== RESET E VARIÁVEIS ========== */
-    * { margin:0; padding:0; box-sizing:border-box; }
-    :root {
-      --bg-deep: #0F172A;
-      --bg-card: rgba(15, 23, 42, 0.75);
-      --bg-glass: rgba(255,255,255,0.04);
-      --border-glass: rgba(255,255,255,0.08);
-      --cyan: #06B6D4;
-      --cyan-glow: rgba(6,182,212,0.35);
-      --purple: #8B5CF6;
-      --text-primary: #F1F5F9;
-      --text-secondary: #94A3B8;
-      --text-muted: #64748B;
-      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      --radius: 20px;
-      --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    }
+    /* Reset básico */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      background: var(--bg-deep);
-      background-image: radial-gradient(circle at 30% 20%, rgba(6,182,212,0.06) 0%, transparent 50%),
-                        radial-gradient(circle at 70% 80%, rgba(139,92,246,0.05) 0%, transparent 50%);
-      color: var(--text-primary);
-      font-family: var(--font-sans);
+      background: #0F172A;
+      color: #F1F5F9;
+      font-family: system-ui, sans-serif;
+      padding: 2rem;
       min-height: 100vh;
-      padding: 1.5rem 1rem 2rem;
-      line-height: 1.6;
     }
-    .app-wrapper {
+    .container {
       max-width: 1400px;
       margin: 0 auto;
-      padding: 0 0.5rem;
     }
-
-    /* ========== HEADER ========== */
-    .app-header {
+    .header {
       display: flex;
-      flex-wrap: wrap;
-      align-items: center;
       justify-content: space-between;
-      gap: 1rem;
-      padding-bottom: 1.5rem;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
+      align-items: center;
+      margin-bottom: 2rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding-bottom: 1rem;
     }
-    .brand {
-      display: flex;
-      align-items: baseline;
-      gap: 0.25rem;
-    }
-    .brand .logo {
+    .logo {
+      font-size: 2rem;
       font-weight: 700;
-      font-size: clamp(1.4rem, 5vw, 2rem);
-      letter-spacing: -0.03em;
-      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      background: linear-gradient(135deg, #06B6D4, #8B5CF6);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      background-clip: text;
     }
-    .brand .logo-plus {
-      font-weight: 300;
-      font-size: clamp(1.6rem, 5vw, 2.2rem);
-      color: var(--cyan);
-      -webkit-text-fill-color: var(--cyan);
-    }
-    .brand .slogan {
-      font-size: clamp(0.7rem, 1.5vw, 0.9rem);
-      font-weight: 300;
-      color: var(--text-secondary);
-      border-left: 1px solid rgba(255,255,255,0.1);
-      padding-left: 0.75rem;
-      display: none;
-    }
-    @media (min-width: 640px) { .brand .slogan { display: inline-block; } }
-
-    .header-actions .btn-icon {
-      background: transparent;
-      border: 1px solid rgba(255,255,255,0.06);
-      color: var(--text-secondary);
-      padding: 0.3rem 0.8rem;
+    .search-box {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(10px);
+      padding: 1.5rem;
       border-radius: 20px;
-      font-size: 0.9rem;
-      cursor: pointer;
-      transition: var(--transition);
-    }
-    .header-actions .btn-icon:hover {
-      background: rgba(255,255,255,0.06);
-      border-color: var(--cyan);
-      color: var(--text-primary);
-      box-shadow: 0 0 20px var(--cyan-glow);
-    }
-
-    /* ========== ÁREA DE BUSCA ========== */
-    .search-zone {
-      margin: 2rem 0 1.5rem;
-      background: var(--bg-glass);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid var(--border-glass);
-      border-radius: var(--radius);
-      padding: clamp(1.2rem, 3vw, 2rem);
-      box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+      margin-bottom: 2rem;
+      border: 1px solid rgba(255,255,255,0.08);
     }
     .search-row {
       display: flex;
+      gap: 0.5rem;
       flex-wrap: wrap;
-      gap: 0.75rem;
-      align-items: center;
     }
-    .search-input-wrap {
+    .search-row input {
       flex: 1;
-      min-width: 180px;
-    }
-    .search-input-wrap input {
-      width: 100%;
-      padding: clamp(0.7rem, 2vw, 0.9rem) clamp(1rem, 2vw, 1.2rem);
-      border-radius: 16px;
-      border: 1px solid rgba(255,255,255,0.08);
+      padding: 0.8rem 1.2rem;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.1);
       background: rgba(0,0,0,0.3);
-      color: var(--text-primary);
-      font-size: clamp(0.95rem, 2vw, 1.1rem);
-      font-family: var(--font-sans);
-      transition: var(--transition);
+      color: #fff;
+      font-size: 1rem;
+      min-width: 200px;
       outline: none;
     }
-    .search-input-wrap input::placeholder {
-      color: var(--text-muted);
-      font-weight: 300;
+    .search-row input:focus {
+      border-color: #06B6D4;
+      box-shadow: 0 0 0 3px rgba(6,182,212,0.3);
     }
-    .search-input-wrap input:focus {
-      border-color: var(--cyan);
-      box-shadow: 0 0 0 4px var(--cyan-glow);
-      background: rgba(0,0,0,0.5);
-    }
-    .btn-search {
-      padding: clamp(0.7rem, 2vw, 0.9rem) clamp(1.2rem, 3vw, 2rem);
+    .search-row button {
+      padding: 0.8rem 2rem;
       border: none;
-      border-radius: 16px;
-      background: linear-gradient(135deg, var(--cyan), #0891B2);
+      border-radius: 12px;
+      background: linear-gradient(135deg, #06B6D4, #0891B2);
       color: #fff;
       font-weight: 600;
-      font-size: clamp(0.9rem, 2vw, 1rem);
-      font-family: var(--font-sans);
       cursor: pointer;
-      transition: var(--transition);
-      box-shadow: 0 4px 20px var(--cyan-glow);
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
+      transition: transform 0.2s;
       white-space: nowrap;
     }
-    .btn-search:hover {
-      transform: translateY(-2px) scale(1.02);
-      box-shadow: 0 6px 30px var(--cyan-glow);
+    .search-row button:hover {
+      transform: scale(1.02);
     }
-    .btn-search:active { transform: scale(0.97); }
-    .btn-search .spinner {
-      display: none;
-      width: 20px;
-      height: 20px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    .btn-search.loading .spinner { display: inline-block; }
-    .btn-search.loading .search-label { display: none; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .status-message {
-      margin-top: 0.75rem;
+    .status {
+      margin-top: 0.8rem;
+      color: #94A3B8;
       font-size: 0.9rem;
-      color: var(--text-secondary);
       min-height: 1.5rem;
     }
-
-    /* ========== GRID DE RESULTADOS ========== */
-    .results-grid {
+    .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 1.5rem;
-      margin: 1.5rem 0;
+      margin-top: 1.5rem;
     }
-
-    /* ========== CARD ========== */
-    .result-card {
-      background: var(--bg-card);
+    .card {
+      background: rgba(15, 23, 42, 0.8);
       backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
-      border: 1px solid rgba(255,255,255,0.04);
-      border-radius: var(--radius);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px;
       padding: 1.5rem;
-      transition: var(--transition);
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      transition: all 0.3s;
       cursor: pointer;
-      opacity: 0;
-      animation: fadeIn 0.4s ease forwards;
     }
-    .result-card:hover {
-      transform: translateY(-6px) scale(1.01);
-      border-color: rgba(6,182,212,0.2);
-      box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+    .card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(6,182,212,0.3);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.4);
     }
-    .result-card .card-title {
-      font-size: clamp(1rem, 2vw, 1.1rem);
-      font-weight: 600;
-      line-height: 1.3;
-      color: var(--text-primary);
+    .card h3 {
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+      color: #fff;
     }
-    .result-card .card-meta {
+    .card .meta {
       display: flex;
       flex-wrap: wrap;
       gap: 0.5rem 1rem;
-      font-size: 0.75rem;
-      color: var(--text-secondary);
+      font-size: 0.8rem;
+      color: #94A3B8;
     }
-    .result-card .card-meta .year { color: var(--cyan); }
-    .result-card .card-meta .citations { color: var(--purple); }
-    .result-card .card-footer {
-      margin-top: 0.5rem;
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      border-top: 1px solid rgba(255,255,255,0.04);
-      padding-top: 0.5rem;
+    .card .meta .ano { color: #06B6D4; }
+    .card .meta .citas { color: #8B5CF6; }
+    .card .footer {
+      margin-top: 0.8rem;
+      padding-top: 0.8rem;
+      border-top: 1px solid rgba(255,255,255,0.05);
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      font-size: 0.8rem;
+      color: #64748B;
     }
-    .result-card .card-footer .pdf-hint {
-      color: var(--cyan);
-      font-weight: 500;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ========== ESTADO VAZIO ========== */
-    .empty-state {
+    .card .footer .pdf { color: #06B6D4; font-weight: 500; }
+    .empty {
       grid-column: 1 / -1;
       text-align: center;
-      padding: 3rem 1rem;
-      color: var(--text-muted);
+      padding: 3rem;
+      color: #64748B;
     }
-    .empty-state .empty-icon { font-size: 3rem; margin-bottom: 0.5rem; }
-    .empty-state .empty-suggestion {
-      font-size: 0.9rem;
-      color: var(--text-secondary);
-      margin-top: 0.5rem;
-    }
-
-    /* ========== FOOTER ========== */
-    .app-footer {
+    .empty .icon { font-size: 3rem; display: block; margin-bottom: 0.5rem; }
+    .footer {
       margin-top: 2rem;
-      padding-top: 1.5rem;
-      border-top: 1px solid rgba(255,255,255,0.04);
       text-align: center;
+      color: #475569;
       font-size: 0.8rem;
-      color: var(--text-muted);
-    }
-
-    /* ========== RESPONSIVIDADE EXTRA ========== */
-    @media (max-width: 480px) {
-      .search-row .btn-search { width: 100%; justify-content: center; }
+      border-top: 1px solid rgba(255,255,255,0.05);
+      padding-top: 1.5rem;
     }
   </style>
 </head>
 <body>
-<div class="app-wrapper">
+<div class="container">
 
-  <!-- HEADER -->
-  <header class="app-header">
-    <div class="brand">
-      <span class="logo">READ<span class="logo-plus">+</span></span>
-      <span class="slogan">Cubo de Insights</span>
-    </div>
-    <div class="header-actions">
-      <button class="btn-icon" id="themeToggle" aria-label="Alternar tema">🌓</button>
-    </div>
+  <header class="header">
+    <div class="logo">READ+</div>
+    <button id="themeToggle" style="background:transparent;border:1px solid rgba(255,255,255,0.1);color:#94A3B8;padding:0.3rem 1rem;border-radius:20px;cursor:pointer;">🌓</button>
   </header>
 
-  <!-- BUSCA -->
-  <section class="search-zone">
+  <section class="search-box">
     <div class="search-row">
-      <div class="search-input-wrap">
-        <input type="text" id="searchInput" placeholder="Pesquise por título, autor ou ano…" />
-      </div>
-      <button class="btn-search" id="searchBtn">
-        <span class="search-label">🔍 Buscar</span>
-        <span class="spinner"></span>
-      </button>
+      <input type="text" id="searchInput" placeholder="Digite título, autor ou ano…">
+      <button id="searchBtn">🔍 Buscar</button>
     </div>
-    <div class="status-message" id="statusMessage"></div>
+    <div class="status" id="statusMessage"></div>
   </section>
 
-  <!-- RESULTADOS -->
-  <div id="resultsGrid" class="results-grid"></div>
+  <div id="resultsGrid" class="grid"></div>
 
-  <!-- FOOTER -->
-  <footer class="app-footer">
-    <p>READ+ · Curadoria de conhecimento acadêmico</p>
-  </footer>
+  <footer class="footer">READ+ · Curadoria de conhecimento</footer>
 </div>
 
-<!-- ========== JAVASCRIPT ========== -->
 <script>
   (function() {
     'use strict';
 
-    // ==================== BASE DE DADOS ====================
-    // Substitua este array pelos seus próprios materiais
-    const ACADEMIC_DATA = [
-      {
-        id: 1,
-        titulo: "Transformers for Natural Language Processing",
-        autores: "Vaswani et al.",
-        ano: 2023,
-        fonte: "arXiv",
-        citacoes: 1847,
-        link_pdf: "https://arxiv.org/pdf/1706.03762.pdf"
-      },
-      {
-        id: 2,
-        titulo: "Deep Learning for Computer Vision",
-        autores: "Krizhevsky, Sutskever, Hinton",
-        ano: 2022,
-        fonte: "CVPR",
-        citacoes: 932,
-        link_pdf: "https://papers.nips.cc/paper/2012/file/c399862d3b9d6b76c8436e924a68c45b-Paper.pdf"
-      },
-      {
-        id: 3,
-        titulo: "Reinforcement Learning: An Introduction",
-        autores: "Sutton, Barto",
-        ano: 2020,
-        fonte: "MIT Press",
-        citacoes: 5100,
-        link_pdf: "http://incompleteideas.net/book/RLbook2020.pdf"
-      },
-      {
-        id: 4,
-        titulo: "BERT: Pre-training of Deep Bidirectional Transformers",
-        autores: "Devlin et al.",
-        ano: 2021,
-        fonte: "NAACL",
-        citacoes: 6021,
-        link_pdf: "https://arxiv.org/pdf/1810.04805.pdf"
-      },
-      {
-        id: 5,
-        titulo: "The Elements of Statistical Learning",
-        autores: "Hastie, Tibshirani, Friedman",
-        ano: 2019,
-        fonte: "Springer",
-        citacoes: 12450,
-        link_pdf: "https://web.stanford.edu/~hastie/ElemStatLearn/printings/ESLII_print12.pdf"
-      },
-      {
-        id: 6,
-        titulo: "Attention Is All You Need",
-        autores: "Vaswani et al.",
-        ano: 2023,
-        fonte: "NeurIPS",
-        citacoes: 8700,
-        link_pdf: "https://arxiv.org/pdf/1706.03762.pdf"
-      },
-      {
-        id: 7,
-        titulo: "Generative Adversarial Networks",
-        autores: "Goodfellow et al.",
-        ano: 2020,
-        fonte: "ArXiv",
-        citacoes: 3500,
-        link_pdf: "https://arxiv.org/pdf/1406.2661.pdf"
-      },
-      {
-        id: 8,
-        titulo: "Pattern Recognition and Machine Learning",
-        autores: "Bishop",
-        ano: 2021,
-        fonte: "Springer",
-        citacoes: 2100,
-        link_pdf: "https://www.microsoft.com/en-us/research/uploads/prod/2006/01/Bishop-Pattern-Recognition-and-Machine-Learning-2006.pdf"
-      }
+    // ========== DADOS ==========
+    const DATA = [
+      { titulo: "Transformers for NLP", autores: "Vaswani et al.", ano: 2023, fonte: "arXiv", citacoes: 1847, pdf: "https://arxiv.org/pdf/1706.03762.pdf" },
+      { titulo: "Deep Learning for Computer Vision", autores: "Krizhevsky et al.", ano: 2022, fonte: "CVPR", citacoes: 932, pdf: "https://papers.nips.cc/paper/2012/file/c399862d3b9d6b76c8436e924a68c45b-Paper.pdf" },
+      { titulo: "Reinforcement Learning: An Introduction", autores: "Sutton, Barto", ano: 2020, fonte: "MIT Press", citacoes: 5100, pdf: "http://incompleteideas.net/book/RLbook2020.pdf" },
+      { titulo: "BERT: Pre-training of Transformers", autores: "Devlin et al.", ano: 2021, fonte: "NAACL", citacoes: 6021, pdf: "https://arxiv.org/pdf/1810.04805.pdf" },
+      { titulo: "The Elements of Statistical Learning", autores: "Hastie et al.", ano: 2019, fonte: "Springer", citacoes: 12450, pdf: "https://web.stanford.edu/~hastie/ElemStatLearn/printings/ESLII_print12.pdf" },
+      { titulo: "Attention Is All You Need", autores: "Vaswani et al.", ano: 2023, fonte: "NeurIPS", citacoes: 8700, pdf: "https://arxiv.org/pdf/1706.03762.pdf" },
+      { titulo: "Generative Adversarial Networks", autores: "Goodfellow et al.", ano: 2020, fonte: "ArXiv", citacoes: 3500, pdf: "https://arxiv.org/pdf/1406.2661.pdf" },
+      { titulo: "Pattern Recognition and Machine Learning", autores: "Bishop", ano: 2021, fonte: "Springer", citacoes: 2100, pdf: "https://www.microsoft.com/en-us/research/uploads/prod/2006/01/Bishop-Pattern-Recognition-and-Machine-Learning-2006.pdf" }
     ];
 
-    console.log('✅ Dados carregados:', ACADEMIC_DATA.length, 'itens');
+    console.log('📚 Dados carregados:', DATA.length);
 
-    // ==================== DOM REFS ====================
-    const searchInput = document.getElementById('searchInput');
-    const searchBtn = document.getElementById('searchBtn');
-    const resultsGrid = document.getElementById('resultsGrid');
-    const statusMessage = document.getElementById('statusMessage');
-    const themeToggle = document.getElementById('themeToggle');
+    // ========== DOM ==========
+    const input = document.getElementById('searchInput');
+    const btn = document.getElementById('searchBtn');
+    const grid = document.getElementById('resultsGrid');
+    const status = document.getElementById('statusMessage');
 
-    // Verifica se os elementos existem
-    if (!searchInput || !searchBtn || !resultsGrid) {
-      console.error('❌ Elementos do DOM não encontrados. Verifique os IDs.');
-      return;
-    }
-    console.log('✅ Elementos DOM localizados');
-
-    // ==================== AUXILIARES ====================
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
-
-    // ==================== RENDERIZAÇÃO ====================
-    function renderCards(data, searchTerm) {
-      resultsGrid.innerHTML = '';
-      console.log(`📦 Renderizando ${data.length} cards`);
-
-      if (!data || data.length === 0) {
-        resultsGrid.innerHTML = `
-          <div class="empty-state">
-            <div class="empty-icon">🔍</div>
-            <p>Nenhum material encontrado</p>
-            <p class="empty-suggestion">Tente outras palavras‑chave ou ajuste os filtros.</p>
-          </div>
-        `;
-        statusMessage.textContent = 'Nenhum resultado encontrado.';
+    // ========== FUNÇÕES ==========
+    function render(items, term) {
+      grid.innerHTML = '';
+      if (!items || items.length === 0) {
+        grid.innerHTML = `<div class="empty"><span class="icon">🔍</span><p>Nenhum material encontrado</p><p style="font-size:0.9rem;color:#94A3B8;">Tente outras palavras-chave.</p></div>`;
+        status.textContent = 'Nenhum resultado encontrado.';
         return;
       }
-
-      const term = searchTerm ? ` para "${escapeHtml(searchTerm)}"` : '';
-      statusMessage.textContent = `${data.length} resultado${data.length > 1 ? 's' : ''} encontrado${data.length > 1 ? 's' : ''}${term}.`;
-
-      data.forEach((item, index) => {
+      status.textContent = `${items.length} resultado${items.length > 1 ? 's' : ''}${term ? ' para "' + term + '"' : ''}.`;
+      items.forEach(item => {
         const card = document.createElement('div');
-        card.className = 'result-card';
-        card.style.animationDelay = `${index * 40}ms`;
-
-        // Ao clicar no card, abre o PDF
-        card.addEventListener('click', function(e) {
-          if (e.target.closest('button')) return;
-          if (item.link_pdf) {
-            window.open(item.link_pdf, '_blank');
-          } else {
-            alert('PDF não disponível para este item.');
-          }
-        });
-
+        card.className = 'card';
         card.innerHTML = `
-          <div class="card-title">${escapeHtml(item.titulo)}</div>
-          <div class="card-meta">
-            <span>${escapeHtml(item.autores || 'Autor desconhecido')}</span>
-            <span class="year">${item.ano || '–'}</span>
-            <span class="citations">⭐ ${item.citacoes || 0} citações</span>
+          <h3>${item.titulo}</h3>
+          <div class="meta">
+            <span>${item.autores}</span>
+            <span class="ano">${item.ano}</span>
+            <span class="citas">⭐ ${item.citacoes}</span>
           </div>
-          <div class="card-footer">
-            <span>${escapeHtml(item.fonte || 'Fonte não informada')}</span>
-            <span class="pdf-hint">📄 Abrir PDF</span>
+          <div class="footer">
+            <span>${item.fonte}</span>
+            <span class="pdf">📄 Abrir PDF</span>
           </div>
         `;
-        resultsGrid.appendChild(card);
+        card.addEventListener('click', () => {
+          if (item.pdf) window.open(item.pdf, '_blank');
+          else alert('PDF não disponível.');
+        });
+        grid.appendChild(card);
       });
     }
 
-    // ==================== MOTOR DE BUSCA ====================
-    function performSearch() {
-      const query = searchInput.value.trim();
-      console.log(`🔎 Buscando por: "${query}"`);
+    function search() {
+      const raw = input.value;
+      const query = raw.trim();
+      console.log('🔎 Buscando por:', query);
 
-      // Estado de carregamento
-      searchBtn.classList.add('loading');
-      searchBtn.disabled = true;
-
-      // Simula um pequeno delay para feedback visual (300ms)
-      setTimeout(() => {
-        let filtered = [];
-
-        if (query === '') {
-          filtered = ACADEMIC_DATA;
-          console.log('📋 Busca vazia – exibindo todos os itens');
-        } else {
-          const lowerQuery = query.toLowerCase();
-          filtered = ACADEMIC_DATA.filter(item => {
-            const titleMatch = item.titulo.toLowerCase().includes(lowerQuery);
-            const authorMatch = item.autores.toLowerCase().includes(lowerQuery);
-            const yearMatch = String(item.ano).includes(lowerQuery);
-            return titleMatch || authorMatch || yearMatch;
-          });
-          console.log(`🎯 Encontrados ${filtered.length} itens`);
-        }
-
-        renderCards(filtered, query);
-
-        searchBtn.classList.remove('loading');
-        searchBtn.disabled = false;
-      }, 300);
-    }
-
-    // ==================== EVENTOS ====================
-    searchBtn.addEventListener('click', function(e) {
-      e.preventDefault();
-      console.log('🖱️ Clique no botão Buscar');
-      performSearch();
-    });
-
-    searchInput.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        console.log('⌨️ Enter pressionado');
-        performSearch();
+      if (query === '') {
+        render(DATA, '');
+        status.textContent = `${DATA.length} itens disponíveis.`;
+        return;
       }
-    });
 
-    // Alternância de tema (dark/light)
-    themeToggle.addEventListener('click', function() {
-      document.body.classList.toggle('light-theme');
-      const isDark = !document.body.classList.contains('light-theme');
-      document.documentElement.style.setProperty('--bg-deep', isDark ? '#0F172A' : '#F8FAFC');
-      document.documentElement.style.setProperty('--text-primary', isDark ? '#F1F5F9' : '#0F172A');
-      document.documentElement.style.setProperty('--text-secondary', isDark ? '#94A3B8' : '#475569');
-      document.documentElement.style.setProperty('--text-muted', isDark ? '#64748B' : '#94A3B8');
-    });
+      const lower = query.toLowerCase();
+      const filtered = DATA.filter(item => {
+        const matchTitle = item.titulo.toLowerCase().includes(lower);
+        const matchAuthor = item.autores.toLowerCase().includes(lower);
+        const matchYear = String(item.ano).includes(lower);
+        return matchTitle || matchAuthor || matchYear;
+      });
 
-    // ==================== INICIALIZAÇÃO ====================
-    function init() {
-      console.log('🚀 Inicializando READ+');
-      renderCards(ACADEMIC_DATA, '');
-      statusMessage.textContent = `${ACADEMIC_DATA.length} itens disponíveis.`;
+      console.log('✅ Encontrados:', filtered.length);
+      render(filtered, query);
     }
 
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', init);
-    } else {
-      init();
-    }
+    // ========== EVENTOS ==========
+    btn.addEventListener('click', search);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
 
+    // ========== TEMA ==========
+    document.getElementById('themeToggle').addEventListener('click', function() {
+      const isDark = document.body.style.background !== '#F8FAFC';
+      document.body.style.background = isDark ? '#F8FAFC' : '#0F172A';
+      document.body.style.color = isDark ? '#0F172A' : '#F1F5F9';
+      document.querySelectorAll('.card').forEach(c => {
+        c.style.background = isDark ? 'rgba(255,255,255,0.9)' : 'rgba(15,23,42,0.8)';
+        c.style.color = isDark ? '#0F172A' : '#F1F5F9';
+      });
+    });
+
+    // ========== INICIALIZAÇÃO ==========
+    render(DATA, '');
+    status.textContent = `${DATA.length} itens disponíveis.`;
+    console.log('🚀 READ+ pronto!');
   })();
 </script>
 </body>
