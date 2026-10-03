@@ -34,14 +34,20 @@ function normalizeDoi(value: unknown): string | undefined {
 
 function stripTags(value: unknown): string | undefined {
   const text = safeString(value);
-  return text?.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  return text
+    ?.replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function reconstructAbstract(index: unknown): string | undefined {
-  if (!index || typeof index !== 'object' || Array.isArray(index)) return undefined;
+  if (!index || typeof index !== 'object' || Array.isArray(index))
+    return undefined;
   const positions: Array<[number, string]> = [];
 
-  for (const [word, rawPositions] of Object.entries(index as Record<string, unknown>)) {
+  for (const [word, rawPositions] of Object.entries(
+    index as Record<string, unknown>,
+  )) {
     if (!Array.isArray(rawPositions)) continue;
     for (const position of rawPositions) {
       if (typeof position === 'number') positions.push([position, word]);
@@ -49,17 +55,31 @@ function reconstructAbstract(index: unknown): string | undefined {
   }
 
   if (!positions.length) return undefined;
-  return positions.sort((a, b) => a[0] - b[0]).map((entry) => entry[1]).join(' ');
+  return positions
+    .sort((a, b) => a[0] - b[0])
+    .map((entry) => entry[1])
+    .join(' ');
 }
 
-function canonicalId(work: Pick<AcademicWork, 'doi' | 'title' | 'authors' | 'year'>): string {
+function canonicalId(
+  work: Pick<AcademicWork, 'doi' | 'title' | 'authors' | 'year'>,
+): string {
   if (work.doi) return `doi:${work.doi}`;
   const firstAuthor = work.authors[0]?.name ?? '';
-  return `meta:${[work.title, firstAuthor, work.year ?? ''].join('|').toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+  return `meta:${[work.title, firstAuthor, work.year ?? '']
+    .join('|')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')}`;
 }
 
-function mergeWorks(primary: AcademicWork, secondary: AcademicWork): AcademicWork {
-  const providers = new Set<ProviderName>([...primary.sourceProviders, ...secondary.sourceProviders]);
+function mergeWorks(
+  primary: AcademicWork,
+  secondary: AcademicWork,
+): AcademicWork {
+  const providers = new Set<ProviderName>([
+    ...primary.sourceProviders,
+    ...secondary.sourceProviders,
+  ]);
   return {
     ...secondary,
     ...primary,
@@ -71,7 +91,10 @@ function mergeWorks(primary: AcademicWork, secondary: AcademicWork): AcademicWor
     publisher: primary.publisher ?? secondary.publisher,
     language: primary.language ?? secondary.language,
     citationCount: Math.max(primary.citationCount, secondary.citationCount),
-    concepts: [...new Set([...primary.concepts, ...secondary.concepts])].slice(0, 8),
+    concepts: [...new Set([...primary.concepts, ...secondary.concepts])].slice(
+      0,
+      8,
+    ),
     isOpenAccess: primary.isOpenAccess ?? secondary.isOpenAccess,
     oaStatus: primary.oaStatus ?? secondary.oaStatus,
     officialUrl: primary.officialUrl ?? secondary.officialUrl,
@@ -92,7 +115,10 @@ function dedupe(works: AcademicWork[]): AcademicWork[] {
   return [...map.values()];
 }
 
-async function fetchJson(url: string, signal?: AbortSignal): Promise<JsonObject> {
+async function fetchJson(
+  url: string,
+  signal?: AbortSignal,
+): Promise<JsonObject> {
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
@@ -119,9 +145,12 @@ async function fetchJson(url: string, signal?: AbortSignal): Promise<JsonObject>
       lastError = new Error(`HTTP ${response.status}`);
     } catch (error) {
       lastError = error instanceof Error ? error : new Error('Falha de rede.');
-      if (controller.signal.aborted && signal?.aborted) throw new DOMException('Abortado', 'AbortError');
+      if (controller.signal.aborted && signal?.aborted)
+        throw new DOMException('Abortado', 'AbortError');
       if (attempt < MAX_ATTEMPTS - 1) {
-        await new Promise((resolve) => window.setTimeout(resolve, 400 * 2 ** attempt));
+        await new Promise((resolve) =>
+          window.setTimeout(resolve, 400 * 2 ** attempt),
+        );
       }
     } finally {
       window.clearTimeout(timeout);
@@ -146,7 +175,10 @@ function openAlexFilters(parsed: ParsedQuery): string[] {
   return filters;
 }
 
-async function searchOpenAlex(parsed: ParsedQuery, signal?: AbortSignal): Promise<AcademicWork[]> {
+async function searchOpenAlex(
+  parsed: ParsedQuery,
+  signal?: AbortSignal,
+): Promise<AcademicWork[]> {
   const params = new URLSearchParams();
   params.set('search', parsed.freeText || parsed.raw);
   params.set('per_page', '35');
@@ -158,7 +190,10 @@ async function searchOpenAlex(parsed: ParsedQuery, signal?: AbortSignal): Promis
   const filters = openAlexFilters(parsed);
   if (filters.length) params.set('filter', filters.join(','));
 
-  const data = await fetchJson(`https://api.openalex.org/works?${params.toString()}`, signal);
+  const data = await fetchJson(
+    `https://api.openalex.org/works?${params.toString()}`,
+    signal,
+  );
   const results = Array.isArray(data.results) ? data.results : [];
 
   return results.map((raw) => {
@@ -168,14 +203,18 @@ async function searchOpenAlex(parsed: ParsedQuery, signal?: AbortSignal): Promis
       .map((entry) => {
         const authorship = entry as JsonObject;
         const author = (authorship.author ?? {}) as JsonObject;
-        const institutions = Array.isArray(authorship.institutions) ? authorship.institutions : [];
+        const institutions = Array.isArray(authorship.institutions)
+          ? authorship.institutions
+          : [];
         const name = safeString(author.display_name);
         if (!name) return null;
         return {
           name,
           orcid: safeString(author.orcid),
           institutions: institutions
-            .map((institution) => safeString((institution as JsonObject).display_name))
+            .map((institution) =>
+              safeString((institution as JsonObject).display_name),
+            )
             .filter((value): value is string => Boolean(value)),
         };
       })
@@ -187,28 +226,43 @@ async function searchOpenAlex(parsed: ParsedQuery, signal?: AbortSignal): Promis
     const source = (primaryLocation.source ?? {}) as JsonObject;
     const topics = Array.isArray(item.topics) ? item.topics : [];
     const doi = normalizeDoi(item.doi);
-    const id = safeString(item.id) ?? canonicalId({ doi, title: safeString(item.title) ?? 'Sem título', authors, year: undefined });
+    const id =
+      safeString(item.id) ??
+      canonicalId({
+        doi,
+        title: safeString(item.title) ?? 'Sem título',
+        authors,
+        year: undefined,
+      });
 
     return {
       id,
       title: safeString(item.title) ?? 'Sem título',
       authors,
-      year: typeof item.publication_year === 'number' ? item.publication_year : undefined,
+      year:
+        typeof item.publication_year === 'number'
+          ? item.publication_year
+          : undefined,
       abstract: reconstructAbstract(item.abstract_inverted_index),
       doi,
       type: safeString(item.type) ?? 'article',
       venue: safeString(source.display_name),
       publisher: safeString(source.host_organization_name),
       language: safeString(item.language),
-      citationCount: typeof item.cited_by_count === 'number' ? item.cited_by_count : 0,
+      citationCount:
+        typeof item.cited_by_count === 'number' ? item.cited_by_count : 0,
       concepts: topics
         .map((topic) => safeString((topic as JsonObject).display_name))
         .filter((value): value is string => Boolean(value))
         .slice(0, 6),
-      isOpenAccess: typeof openAccess.is_oa === 'boolean' ? openAccess.is_oa : null,
+      isOpenAccess:
+        typeof openAccess.is_oa === 'boolean' ? openAccess.is_oa : null,
       oaStatus: safeString(openAccess.oa_status),
       officialUrl: safeExternalUrl(
-        doi ? `https://doi.org/${doi}` : safeString(primaryLocation.landing_page_url) ?? safeString(item.id),
+        doi
+          ? `https://doi.org/${doi}`
+          : (safeString(primaryLocation.landing_page_url) ??
+              safeString(item.id)),
       ),
       pdfUrl: safeExternalUrl(safeString(bestOa.pdf_url)),
       license: safeString(bestOa.license),
@@ -223,21 +277,31 @@ function crossrefFilters(parsed: ParsedQuery): string[] {
   const { yearFrom, yearTo, type } = parsed.filters;
   if (yearFrom) filters.push(`from-pub-date:${yearFrom}-01-01`);
   if (yearTo) filters.push(`until-pub-date:${yearTo}-12-31`);
-  if (type) filters.push(`type:${type === 'article' ? 'journal-article' : type}`);
+  if (type)
+    filters.push(`type:${type === 'article' ? 'journal-article' : type}`);
   return filters;
 }
 
-async function searchCrossref(parsed: ParsedQuery, signal?: AbortSignal): Promise<AcademicWork[]> {
+async function searchCrossref(
+  parsed: ParsedQuery,
+  signal?: AbortSignal,
+): Promise<AcademicWork[]> {
   const params = new URLSearchParams();
   params.set('query.bibliographic', parsed.freeText || parsed.raw);
   if (parsed.filters.author) params.set('query.author', parsed.filters.author);
   params.set('rows', '25');
-  params.set('sort', parsed.filters.sort === 'recent' ? 'published' : 'relevance');
+  params.set(
+    'sort',
+    parsed.filters.sort === 'recent' ? 'published' : 'relevance',
+  );
   params.set('order', 'desc');
   const filters = crossrefFilters(parsed);
   if (filters.length) params.set('filter', filters.join(','));
 
-  const data = await fetchJson(`https://api.crossref.org/works?${params.toString()}`, signal);
+  const data = await fetchJson(
+    `https://api.crossref.org/works?${params.toString()}`,
+    signal,
+  );
   const message = (data.message ?? {}) as JsonObject;
   const items = Array.isArray(message.items) ? message.items : [];
 
@@ -246,8 +310,13 @@ async function searchCrossref(parsed: ParsedQuery, signal?: AbortSignal): Promis
     const authorRows = Array.isArray(item.author) ? item.author : [];
     const authors: WorkAuthor[] = authorRows.map((rawAuthor) => {
       const author = rawAuthor as JsonObject;
-      const name = [safeString(author.given), safeString(author.family)].filter(Boolean).join(' ') || 'Autor não identificado';
-      const affiliations = Array.isArray(author.affiliation) ? author.affiliation : [];
+      const name =
+        [safeString(author.given), safeString(author.family)]
+          .filter(Boolean)
+          .join(' ') || 'Autor não identificado';
+      const affiliations = Array.isArray(author.affiliation)
+        ? author.affiliation
+        : [];
       return {
         name,
         orcid: safeString(author.ORCID),
@@ -258,7 +327,9 @@ async function searchCrossref(parsed: ParsedQuery, signal?: AbortSignal): Promis
     });
 
     const titles = Array.isArray(item.title) ? item.title : [];
-    const containers = Array.isArray(item['container-title']) ? item['container-title'] : [];
+    const containers = Array.isArray(item['container-title'])
+      ? item['container-title']
+      : [];
     const dates = (item.published ?? item.issued ?? {}) as JsonObject;
     const parts = Array.isArray(dates['date-parts']) ? dates['date-parts'] : [];
     const firstPart = Array.isArray(parts[0]) ? parts[0] : [];
@@ -284,10 +355,15 @@ async function searchCrossref(parsed: ParsedQuery, signal?: AbortSignal): Promis
       venue: safeString(containers[0]),
       publisher: safeString(item.publisher),
       language: safeString(item.language),
-      citationCount: typeof item['is-referenced-by-count'] === 'number' ? item['is-referenced-by-count'] : 0,
+      citationCount:
+        typeof item['is-referenced-by-count'] === 'number'
+          ? item['is-referenced-by-count']
+          : 0,
       concepts: [],
       isOpenAccess: null,
-      officialUrl: safeExternalUrl(doi ? `https://doi.org/${doi}` : safeString(item.URL)),
+      officialUrl: safeExternalUrl(
+        doi ? `https://doi.org/${doi}` : safeString(item.URL),
+      ),
       pdfUrl: safeExternalUrl(pdf ? safeString(pdf.URL) : undefined),
       license: firstLicense ? safeString(firstLicense.URL) : undefined,
       providerIds: { Crossref: doi ?? safeString(item.URL) ?? title },
@@ -346,27 +422,43 @@ export async function searchAcademic(
 
   const openAlexLatency = Math.round(performance.now() - started);
   if (openAlexResult.status === 'fulfilled') {
-    providers.push({ provider: 'OpenAlex', ok: true, count: openAlexResult.value.length, latencyMs: openAlexLatency });
+    providers.push({
+      provider: 'OpenAlex',
+      ok: true,
+      count: openAlexResult.value.length,
+      latencyMs: openAlexLatency,
+    });
   } else {
     providers.push({
       provider: 'OpenAlex',
       ok: false,
       count: 0,
       latencyMs: openAlexLatency,
-      message: openAlexResult.reason instanceof Error ? openAlexResult.reason.message : 'Fonte indisponível',
+      message:
+        openAlexResult.reason instanceof Error
+          ? openAlexResult.reason.message
+          : 'Fonte indisponível',
     });
   }
 
   const crossrefLatency = Math.round(performance.now() - started);
   if (crossrefResult.status === 'fulfilled') {
-    providers.push({ provider: 'Crossref', ok: true, count: crossrefResult.value.length, latencyMs: crossrefLatency });
+    providers.push({
+      provider: 'Crossref',
+      ok: true,
+      count: crossrefResult.value.length,
+      latencyMs: crossrefLatency,
+    });
   } else {
     providers.push({
       provider: 'Crossref',
       ok: false,
       count: 0,
       latencyMs: crossrefLatency,
-      message: crossrefResult.reason instanceof Error ? crossrefResult.reason.message : 'Fonte indisponível',
+      message:
+        crossrefResult.reason instanceof Error
+          ? crossrefResult.reason.message
+          : 'Fonte indisponível',
     });
   }
 
@@ -375,12 +467,24 @@ export async function searchAcademic(
     ...(crossrefResult.status === 'fulfilled' ? crossrefResult.value : []),
   ];
 
-  const filtered = dedupe(allWorks).filter((work) => matchesClientFilters(work, parsed.filters));
-  const works = sortWorks(filtered, parsed.freeText || parsed.raw, parsed.filters);
+  const filtered = dedupe(allWorks).filter((work) =>
+    matchesClientFilters(work, parsed.filters),
+  );
+  const works = sortWorks(
+    filtered,
+    parsed.freeText || parsed.raw,
+    parsed.filters,
+  );
   const response: SearchResponse = { works, providers, fromCache: false };
 
   try {
-    localStorage.setItem(key, JSON.stringify({ timestamp: Date.now(), response } satisfies CachedSearch));
+    localStorage.setItem(
+      key,
+      JSON.stringify({
+        timestamp: Date.now(),
+        response,
+      } satisfies CachedSearch),
+    );
   } catch {
     // Ignora quota/privacidade do storage.
   }

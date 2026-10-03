@@ -9,7 +9,9 @@ interface WorkspaceViewProps {
 }
 
 function createId() {
-  return typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `workspace-${Date.now()}`;
+  return typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `workspace-${Date.now()}`;
 }
 
 export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
@@ -20,7 +22,9 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
 
   useEffect(() => {
     void workspaceStore.list().then((items) => {
-      const ordered = items.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+      const ordered = items.sort((a, b) =>
+        b.updatedAt.localeCompare(a.updatedAt),
+      );
       setWorkspaces(ordered);
       setActiveId(ordered[0]?.id);
     });
@@ -28,7 +32,10 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
 
   const active = workspaces.find((workspace) => workspace.id === activeId);
   const selectedWorks = useMemo(
-    () => (active ? library.filter((entry) => active.workIds.includes(entry.id)) : []),
+    () =>
+      active
+        ? library.filter((entry) => active.workIds.includes(entry.id))
+        : [],
     [active, library],
   );
 
@@ -73,7 +80,10 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
         <div>
           <span className="eyebrow">Research workspace</span>
           <h1>Pesquisas que preservam raciocínio.</h1>
-          <p>Cada investigação reúne pergunta, corpus selecionado e contexto para você continuar depois.</p>
+          <p>
+            Cada investigação reúne pergunta, corpus selecionado e contexto para
+            você continuar depois.
+          </p>
         </div>
       </header>
 
@@ -82,19 +92,34 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
           <form className="workspace-create" onSubmit={createWorkspace}>
             <label>
               Nome da pesquisa
-              <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="IA na administração pública" />
+              <input
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder="IA na administração pública"
+              />
             </label>
             <label>
               Pergunta central
-              <textarea value={question} onChange={(event) => setQuestion(event.target.value)} rows={3} placeholder="O que quero compreender ou demonstrar?" />
+              <textarea
+                value={question}
+                onChange={(event) => setQuestion(event.target.value)}
+                rows={3}
+                placeholder="O que quero compreender ou demonstrar?"
+              />
             </label>
-            <button className="primary-button" type="submit"><Icon name="plus" /> Nova pesquisa</button>
+            <button className="primary-button" type="submit">
+              <Icon name="plus" /> Nova pesquisa
+            </button>
           </form>
 
           <div className="workspace-items">
             {workspaces.map((workspace) => (
               <button
-                className={workspace.id === activeId ? 'workspace-item workspace-item--active' : 'workspace-item'}
+                className={
+                  workspace.id === activeId
+                    ? 'workspace-item workspace-item--active'
+                    : 'workspace-item'
+                }
                 type="button"
                 key={workspace.id}
                 onClick={() => setActiveId(workspace.id)}
@@ -111,7 +136,10 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
             <div className="empty-panel">
               <Icon name="workspace" />
               <h2>Crie sua primeira investigação.</h2>
-              <p>Depois, conecte trabalhos salvos da biblioteca ao contexto da pesquisa.</p>
+              <p>
+                Depois, conecte trabalhos salvos da biblioteca ao contexto da
+                pesquisa.
+              </p>
             </div>
           ) : (
             <>
@@ -127,13 +155,23 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
                   <span>{selectedWorks.length} trabalhos</span>
                 </div>
                 {selectedWorks.length === 0 ? (
-                  <p className="muted">Selecione itens da biblioteca abaixo para começar a formar seu corpus.</p>
+                  <p className="muted">
+                    Selecione itens da biblioteca abaixo para começar a formar
+                    seu corpus.
+                  </p>
                 ) : (
                   <div className="compact-list">
                     {selectedWorks.map((entry) => (
-                      <button type="button" key={entry.id} onClick={() => onSelect(entry.work)}>
+                      <button
+                        type="button"
+                        key={entry.id}
+                        onClick={() => onSelect(entry.work)}
+                      >
                         <span>{entry.work.title}</span>
-                        <small>{entry.work.year ?? 's.d.'} · {entry.work.citationCount} citações</small>
+                        <small>
+                          {entry.work.year ?? 's.d.'} ·{' '}
+                          {entry.work.citationCount} citações
+                        </small>
                       </button>
                     ))}
                   </div>
@@ -155,7 +193,10 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
                       />
                       <span>
                         <strong>{entry.work.title}</strong>
-                        <small>{entry.work.authors[0]?.name ?? 'Autoria não informada'}</small>
+                        <small>
+                          {entry.work.authors[0]?.name ??
+                            'Autoria não informada'}
+                        </small>
                       </span>
                     </label>
                   ))}

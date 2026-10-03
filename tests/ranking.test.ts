@@ -23,7 +23,8 @@ describe('rankWork', () => {
       work({
         id: 'relevant',
         title: 'Machine learning in public administration',
-        abstract: 'Machine learning can support public administration decision making.',
+        abstract:
+          'Machine learning can support public administration decision making.',
         concepts: ['Machine learning', 'Public administration'],
         citationCount: 90,
         year: 2024,
@@ -45,20 +46,36 @@ describe('rankWork', () => {
       'machine learning public administration',
     );
 
-    expect(relevant.rankScore).toBeGreaterThan(popularButIrrelevant.rankScore ?? 0);
+    expect(relevant.rankScore).toBeGreaterThan(
+      popularButIrrelevant.rankScore ?? 0,
+    );
     expect(relevant.rankReasons).toContain('forte correspondência no título');
   });
 });
 
 describe('sortWorks', () => {
-  const older = work({ id: 'older', title: 'Topic A', year: 2018, citationCount: 500 });
-  const newer = work({ id: 'newer', title: 'Topic B', year: 2026, citationCount: 20 });
+  const older = work({
+    id: 'older',
+    title: 'Topic A',
+    year: 2018,
+    citationCount: 500,
+  });
+  const newer = work({
+    id: 'newer',
+    title: 'Topic B',
+    year: 2026,
+    citationCount: 20,
+  });
 
   it('ordena por recência quando solicitado', () => {
-    expect(sortWorks([older, newer], 'topic', { sort: 'recent' })[0]?.id).toBe('newer');
+    expect(sortWorks([older, newer], 'topic', { sort: 'recent' })[0]?.id).toBe(
+      'newer',
+    );
   });
 
   it('ordena por citações quando solicitado', () => {
-    expect(sortWorks([older, newer], 'topic', { sort: 'citations' })[0]?.id).toBe('older');
+    expect(
+      sortWorks([older, newer], 'topic', { sort: 'citations' })[0]?.id,
+    ).toBe('older');
   });
 });

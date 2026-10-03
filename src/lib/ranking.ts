@@ -29,7 +29,9 @@ export function rankWork(work: AcademicWork, query: string): AcademicWork {
   const abstractMatch = overlapScore(work.abstract ?? '', queryTokens);
   const conceptMatch = overlapScore(work.concepts.join(' '), queryTokens);
 
-  const age = work.year ? Math.max(1, new Date().getFullYear() - work.year + 1) : 10;
+  const age = work.year
+    ? Math.max(1, new Date().getFullYear() - work.year + 1)
+    : 10;
   const citationsPerYear = work.citationCount / age;
   const citationScore = Math.min(1, Math.log10(citationsPerYear + 1) / 3);
 
@@ -41,9 +43,12 @@ export function rankWork(work: AcademicWork, query: string): AcademicWork {
     Boolean(work.year),
     work.concepts.length > 0,
   ];
-  const completeness = completenessFields.filter(Boolean).length / completenessFields.length;
+  const completeness =
+    completenessFields.filter(Boolean).length / completenessFields.length;
 
-  const recency = work.year ? Math.max(0, 1 - (new Date().getFullYear() - work.year) / 12) : 0;
+  const recency = work.year
+    ? Math.max(0, 1 - (new Date().getFullYear() - work.year) / 12)
+    : 0;
   const oa = work.isOpenAccess ? 1 : 0;
 
   const score =
@@ -58,11 +63,16 @@ export function rankWork(work: AcademicWork, query: string): AcademicWork {
   const reasons: string[] = [];
   if (titleMatch >= 0.5) reasons.push('forte correspondência no título');
   if (abstractMatch >= 0.4) reasons.push('tema presente no resumo');
-  if (citationScore >= 0.55) reasons.push('impacto de citações ajustado pela idade');
+  if (citationScore >= 0.55)
+    reasons.push('impacto de citações ajustado pela idade');
   if (work.isOpenAccess) reasons.push('acesso aberto disponível');
   if (completeness >= 0.8) reasons.push('metadados completos');
 
-  return { ...work, rankScore: Number(score.toFixed(2)), rankReasons: reasons.slice(0, 3) };
+  return {
+    ...work,
+    rankScore: Number(score.toFixed(2)),
+    rankReasons: reasons.slice(0, 3),
+  };
 }
 
 export function sortWorks(
@@ -73,11 +83,19 @@ export function sortWorks(
   const ranked = works.map((work) => rankWork(work, query));
 
   if (filters.sort === 'recent') {
-    return ranked.sort((a, b) => (b.year ?? 0) - (a.year ?? 0) || (b.rankScore ?? 0) - (a.rankScore ?? 0));
+    return ranked.sort(
+      (a, b) =>
+        (b.year ?? 0) - (a.year ?? 0) ||
+        (b.rankScore ?? 0) - (a.rankScore ?? 0),
+    );
   }
 
   if (filters.sort === 'citations') {
-    return ranked.sort((a, b) => b.citationCount - a.citationCount || (b.rankScore ?? 0) - (a.rankScore ?? 0));
+    return ranked.sort(
+      (a, b) =>
+        b.citationCount - a.citationCount ||
+        (b.rankScore ?? 0) - (a.rankScore ?? 0),
+    );
   }
 
   return ranked.sort((a, b) => (b.rankScore ?? 0) - (a.rankScore ?? 0));

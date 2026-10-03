@@ -22,7 +22,11 @@ test('app shell permanece disponível offline sem simular busca online', async (
   await page.getByLabel('Pesquisar literatura acadêmica').fill('offline query');
   await page.getByRole('button', { name: 'Pesquisar' }).click();
 
-  await expect(page.getByText('OpenAlex: indisponível')).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByText('Crossref: indisponível')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText('OpenAlex: indisponível')).toBeVisible({
+    timeout: 10_000,
+  });
+  await expect(page.getByText('Crossref: indisponível')).toBeVisible({
+    timeout: 10_000,
+  });
   await expect(page.locator('.work-row')).toHaveCount(0);
 });

@@ -14,7 +14,9 @@ export const OPENALEX_WORK = {
         display_name: 'Ana Silva',
         orcid: 'https://orcid.org/0000-0000-0000-0001',
       },
-      institutions: [{ display_name: 'Universidade Federal de Mato Grosso do Sul' }],
+      institutions: [
+        { display_name: 'Universidade Federal de Mato Grosso do Sul' },
+      ],
     },
   ],
   abstract_inverted_index: {
@@ -41,7 +43,10 @@ export const OPENALEX_WORK = {
     is_oa: true,
     oa_status: 'gold',
   },
-  topics: [{ display_name: 'Public Administration' }, { display_name: 'Machine Learning' }],
+  topics: [
+    { display_name: 'Public Administration' },
+    { display_name: 'Machine Learning' },
+  ],
 };
 
 export const CROSSREF_WORK = {
@@ -55,7 +60,12 @@ export const CROSSREF_WORK = {
   language: 'en',
   'is-referenced-by-count': 40,
   URL: 'https://doi.org/10.1000/readplus.2025.1',
-  link: [{ URL: 'https://example.org/readplus-paper.pdf', 'content-type': 'application/pdf' }],
+  link: [
+    {
+      URL: 'https://example.org/readplus-paper.pdf',
+      'content-type': 'application/pdf',
+    },
+  ],
 };
 
 export async function mockAcademicApis(

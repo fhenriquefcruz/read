@@ -21,7 +21,9 @@ const navigation: Array<{ id: View; label: string; icon: IconName }> = [
 function initialTheme(): Theme {
   const stored = localStorage.getItem('readplus:theme');
   if (stored === 'light' || stored === 'dark') return stored;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  return window.matchMedia('(prefers-color-scheme: dark)').matches
+    ? 'dark'
+    : 'light';
 }
 
 export default function App() {
@@ -36,7 +38,13 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
-    void libraryStore.list().then((items) => setLibrary(items.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))));
+    void libraryStore
+      .list()
+      .then((items) =>
+        setLibrary(
+          items.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+        ),
+      );
   }, []);
 
   useEffect(() => {
@@ -44,12 +52,23 @@ export default function App() {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
         setView('discover');
-        window.setTimeout(() => document.getElementById('global-search')?.focus(), 0);
+        window.setTimeout(
+          () => document.getElementById('global-search')?.focus(),
+          0,
+        );
       }
-      if (event.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes((event.target as HTMLElement)?.tagName)) {
+      if (
+        event.key === '/' &&
+        !['INPUT', 'TEXTAREA', 'SELECT'].includes(
+          (event.target as HTMLElement)?.tagName,
+        )
+      ) {
         event.preventDefault();
         setView('discover');
-        window.setTimeout(() => document.getElementById('global-search')?.focus(), 0);
+        window.setTimeout(
+          () => document.getElementById('global-search')?.focus(),
+          0,
+        );
       }
       if (event.key === 'Escape' && selectedWork) setSelectedWork(null);
     }
@@ -58,7 +77,10 @@ export default function App() {
     return () => window.removeEventListener('keydown', shortcuts);
   }, [selectedWork]);
 
-  const savedIds = useMemo(() => new Set(library.map((entry) => entry.id)), [library]);
+  const savedIds = useMemo(
+    () => new Set(library.map((entry) => entry.id)),
+    [library],
+  );
 
   async function saveWork(work: AcademicWork) {
     if (savedIds.has(work.id)) return;
@@ -93,7 +115,12 @@ export default function App() {
   return (
     <div className="app-shell">
       <aside className="app-sidebar">
-        <button className="brand" type="button" onClick={() => setView('discover')} aria-label="Ir para descoberta">
+        <button
+          className="brand"
+          type="button"
+          onClick={() => setView('discover')}
+          aria-label="Ir para descoberta"
+        >
           <span className="brand-mark">R+</span>
           <span className="brand-copy">
             <strong>READ+</strong>
@@ -106,23 +133,33 @@ export default function App() {
             <button
               type="button"
               key={item.id}
-              className={view === item.id ? 'nav-item nav-item--active' : 'nav-item'}
+              className={
+                view === item.id ? 'nav-item nav-item--active' : 'nav-item'
+              }
               onClick={() => setView(item.id)}
               aria-current={view === item.id ? 'page' : undefined}
             >
               <Icon name={item.icon} />
               <span>{item.label}</span>
-              {item.id === 'library' && library.length > 0 && <span className="nav-count">{library.length}</span>}
+              {item.id === 'library' && library.length > 0 && (
+                <span className="nav-count">{library.length}</span>
+              )}
             </button>
           ))}
         </nav>
 
         <div className="sidebar-footer">
-          <div className="shortcut-hint"><kbd>⌘/Ctrl</kbd><kbd>K</kbd><span>Buscar</span></div>
+          <div className="shortcut-hint">
+            <kbd>⌘/Ctrl</kbd>
+            <kbd>K</kbd>
+            <span>Buscar</span>
+          </div>
           <button
             className="theme-button"
             type="button"
-            onClick={() => setTheme((current) => (current === 'light' ? 'dark' : 'light'))}
+            onClick={() =>
+              setTheme((current) => (current === 'light' ? 'dark' : 'light'))
+            }
           >
             <Icon name={theme === 'light' ? 'moon' : 'sun'} />
             {theme === 'light' ? 'Modo escuro' : 'Modo claro'}
@@ -131,15 +168,35 @@ export default function App() {
       </aside>
 
       <div className="app-content">
-        {view === 'discover' && <DiscoverView savedIds={savedIds} onSelect={setSelectedWork} onSave={saveWork} />}
-        {view === 'library' && <LibraryView entries={library} onUpdate={updateEntry} onRemove={removeEntry} onSelect={setSelectedWork} />}
-        {view === 'workspaces' && <WorkspaceView library={library} onSelect={setSelectedWork} />}
+        {view === 'discover' && (
+          <DiscoverView
+            savedIds={savedIds}
+            onSelect={setSelectedWork}
+            onSave={saveWork}
+          />
+        )}
+        {view === 'library' && (
+          <LibraryView
+            entries={library}
+            onUpdate={updateEntry}
+            onRemove={removeEntry}
+            onSelect={setSelectedWork}
+          />
+        )}
+        {view === 'workspaces' && (
+          <WorkspaceView library={library} onSelect={setSelectedWork} />
+        )}
         {view === 'knowledge' && <KnowledgeView library={library} />}
       </div>
 
       {selectedWork && (
         <>
-          <button className="detail-backdrop" type="button" aria-label="Fechar painel de detalhes" onClick={() => setSelectedWork(null)} />
+          <button
+            className="detail-backdrop"
+            type="button"
+            aria-label="Fechar painel de detalhes"
+            onClick={() => setSelectedWork(null)}
+          />
           <WorkDetail
             work={selectedWork}
             saved={savedIds.has(selectedWork.id)}

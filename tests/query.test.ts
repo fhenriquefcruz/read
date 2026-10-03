@@ -20,7 +20,9 @@ describe('parseSearchQuery', () => {
   });
 
   it('aceita ano único e preserva filtro visual explícito', () => {
-    const parsed = parseSearchQuery('governança year:2024', { sort: 'citations' });
+    const parsed = parseSearchQuery('governança year:2024', {
+      sort: 'citations',
+    });
     expect(parsed.freeText).toBe('governança');
     expect(parsed.filters.yearFrom).toBe(2024);
     expect(parsed.filters.yearTo).toBe(2024);
@@ -52,6 +54,8 @@ describe('matchesClientFilters', () => {
   });
 
   it('remove trabalho incompatível sem inventar substituto', () => {
-    expect(matchesClientFilters(work, { language: 'en', sort: 'relevance' })).toBe(false);
+    expect(
+      matchesClientFilters(work, { language: 'en', sort: 'relevance' }),
+    ).toBe(false);
   });
 });

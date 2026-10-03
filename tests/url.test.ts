@@ -13,8 +13,12 @@ describe('safeExternalUrl', () => {
 
   it('rejeita protocolos executáveis, URLs inválidas e credenciais embutidas', () => {
     expect(safeExternalUrl('javascript:alert(1)')).toBeUndefined();
-    expect(safeExternalUrl('data:text/html,<script>alert(1)</script>')).toBeUndefined();
-    expect(safeExternalUrl('https://user:pass@example.org/private')).toBeUndefined();
+    expect(
+      safeExternalUrl('data:text/html,<script>alert(1)</script>'),
+    ).toBeUndefined();
+    expect(
+      safeExternalUrl('https://user:pass@example.org/private'),
+    ).toBeUndefined();
     expect(safeExternalUrl('not a url')).toBeUndefined();
     expect(safeExternalUrl(undefined)).toBeUndefined();
   });

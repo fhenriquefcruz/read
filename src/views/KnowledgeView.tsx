@@ -8,7 +8,9 @@ interface KnowledgeViewProps {
 }
 
 function createId() {
-  return typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : `note-${Date.now()}`;
+  return typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `note-${Date.now()}`;
 }
 
 function linksFrom(content: string): string[] {
@@ -26,7 +28,9 @@ export function KnowledgeView({ library }: KnowledgeViewProps) {
 
   useEffect(() => {
     void noteStore.list().then((items) => {
-      const ordered = items.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+      const ordered = items.sort((a, b) =>
+        b.updatedAt.localeCompare(a.updatedAt),
+      );
       setNotes(ordered);
       setActiveId(ordered[0]?.id);
     });
@@ -37,12 +41,16 @@ export function KnowledgeView({ library }: KnowledgeViewProps) {
   const backlinks = useMemo(() => {
     if (!active) return [];
     return notes.filter((note) =>
-      linksFrom(note.content).some((link) => link.toLowerCase() === active.title.toLowerCase()),
+      linksFrom(note.content).some(
+        (link) => link.toLowerCase() === active.title.toLowerCase(),
+      ),
     );
   }, [active, notes]);
 
   const graph = useMemo(() => {
-    const titleMap = new Map(notes.map((note) => [note.title.toLowerCase(), note]));
+    const titleMap = new Map(
+      notes.map((note) => [note.title.toLowerCase(), note]),
+    );
     const nodes = notes.map((note, index) => {
       const angle = notes.length ? (index / notes.length) * Math.PI * 2 : 0;
       return {
@@ -93,7 +101,10 @@ export function KnowledgeView({ library }: KnowledgeViewProps) {
         <div>
           <span className="eyebrow">Knowledge system</span>
           <h1>Ideias que se conectam.</h1>
-          <p>Notas atômicas com links internos e backlinks derivados do conteúdo — o grafo nasce das relações reais.</p>
+          <p>
+            Notas atômicas com links internos e backlinks derivados do conteúdo
+            — o grafo nasce das relações reais.
+          </p>
         </div>
         <div className="section-count">{notes.length} notas</div>
       </header>
@@ -103,7 +114,11 @@ export function KnowledgeView({ library }: KnowledgeViewProps) {
           <form onSubmit={createNote}>
             <label>
               Título da nota
-              <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Ex.: Governança algorítmica exige accountability" />
+              <input
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder="Ex.: Governança algorítmica exige accountability"
+              />
             </label>
             <label>
               Conteúdo
@@ -116,14 +131,21 @@ export function KnowledgeView({ library }: KnowledgeViewProps) {
             </label>
             <label>
               Trabalho de origem
-              <select value={workId} onChange={(event) => setWorkId(event.target.value)}>
+              <select
+                value={workId}
+                onChange={(event) => setWorkId(event.target.value)}
+              >
                 <option value="">Sem vínculo direto</option>
                 {library.map((entry) => (
-                  <option value={entry.id} key={entry.id}>{entry.work.title}</option>
+                  <option value={entry.id} key={entry.id}>
+                    {entry.work.title}
+                  </option>
                 ))}
               </select>
             </label>
-            <button className="primary-button" type="submit"><Icon name="plus" /> Criar nota atômica</button>
+            <button className="primary-button" type="submit">
+              <Icon name="plus" /> Criar nota atômica
+            </button>
           </form>
 
           <div className="note-list">
@@ -131,11 +153,18 @@ export function KnowledgeView({ library }: KnowledgeViewProps) {
               <button
                 type="button"
                 key={note.id}
-                className={activeId === note.id ? 'note-item note-item--active' : 'note-item'}
+                className={
+                  activeId === note.id
+                    ? 'note-item note-item--active'
+                    : 'note-item'
+                }
                 onClick={() => setActiveId(note.id)}
               >
                 <strong>{note.title}</strong>
-                <span>{linksFrom(note.content).length} links · {note.workIds.length} fontes</span>
+                <span>
+                  {linksFrom(note.content).length} links · {note.workIds.length}{' '}
+                  fontes
+                </span>
               </button>
             ))}
           </div>
@@ -150,20 +179,49 @@ export function KnowledgeView({ library }: KnowledgeViewProps) {
             {notes.length === 0 ? (
               <div className="empty-panel empty-panel--compact">
                 <Icon name="network" />
-                <p>Crie notas e conecte-as com <code>[[links internos]]</code>.</p>
+                <p>
+                  Crie notas e conecte-as com <code>[[links internos]]</code>.
+                </p>
               </div>
             ) : (
-              <svg className="knowledge-graph" viewBox="0 0 320 300" role="img" aria-label="Grafo das conexões entre notas">
+              <svg
+                className="knowledge-graph"
+                viewBox="0 0 320 300"
+                role="img"
+                aria-label="Grafo das conexões entre notas"
+              >
                 {graph.edges.map((edge) => {
                   const from = graph.nodeMap.get(edge.from);
                   const to = graph.nodeMap.get(edge.to);
                   if (!from || !to) return null;
-                  return <line key={`${edge.from}-${edge.to}`} x1={from.x} y1={from.y} x2={to.x} y2={to.y} />;
+                  return (
+                    <line
+                      key={`${edge.from}-${edge.to}`}
+                      x1={from.x}
+                      y1={from.y}
+                      x2={to.x}
+                      y2={to.y}
+                    />
+                  );
                 })}
                 {graph.nodes.map((node) => (
-                  <g key={node.id} onClick={() => setActiveId(node.id)} className={node.id === activeId ? 'graph-node graph-node--active' : 'graph-node'}>
-                    <circle cx={node.x} cy={node.y} r={node.id === activeId ? 9 : 7} />
-                    <text x={node.x} y={node.y + 18} textAnchor="middle">{node.title.slice(0, 24)}</text>
+                  <g
+                    key={node.id}
+                    onClick={() => setActiveId(node.id)}
+                    className={
+                      node.id === activeId
+                        ? 'graph-node graph-node--active'
+                        : 'graph-node'
+                    }
+                  >
+                    <circle
+                      cx={node.x}
+                      cy={node.y}
+                      r={node.id === activeId ? 9 : 7}
+                    />
+                    <text x={node.x} y={node.y + 18} textAnchor="middle">
+                      {node.title.slice(0, 24)}
+                    </text>
                   </g>
                 ))}
               </svg>
@@ -174,7 +232,10 @@ export function KnowledgeView({ library }: KnowledgeViewProps) {
             {!active ? (
               <div className="empty-panel empty-panel--compact">
                 <h2>Selecione uma nota.</h2>
-                <p>Aqui aparecem seu conteúdo, links de saída, backlinks e fontes relacionadas.</p>
+                <p>
+                  Aqui aparecem seu conteúdo, links de saída, backlinks e fontes
+                  relacionadas.
+                </p>
               </div>
             ) : (
               <>
@@ -186,17 +247,36 @@ export function KnowledgeView({ library }: KnowledgeViewProps) {
                   <div>
                     <span className="lens-label">Links de saída</span>
                     <div className="chip-row">
-                      {linksFrom(active.content).length
-                        ? linksFrom(active.content).map((link) => <span className="chip" key={link}>{link}</span>)
-                        : <span className="muted">Nenhum link interno.</span>}
+                      {linksFrom(active.content).length ? (
+                        linksFrom(active.content).map((link) => (
+                          <span className="chip" key={link}>
+                            {link}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="muted">Nenhum link interno.</span>
+                      )}
                     </div>
                   </div>
                   <div>
                     <span className="lens-label">Backlinks</span>
                     <div className="chip-row">
-                      {backlinks.length
-                        ? backlinks.map((note) => <button className="chip chip--button" type="button" key={note.id} onClick={() => setActiveId(note.id)}>{note.title}</button>)
-                        : <span className="muted">Ainda não há notas apontando para esta.</span>}
+                      {backlinks.length ? (
+                        backlinks.map((note) => (
+                          <button
+                            className="chip chip--button"
+                            type="button"
+                            key={note.id}
+                            onClick={() => setActiveId(note.id)}
+                          >
+                            {note.title}
+                          </button>
+                        ))
+                      ) : (
+                        <span className="muted">
+                          Ainda não há notas apontando para esta.
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

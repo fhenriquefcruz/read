@@ -18,7 +18,12 @@ const statuses: Array<{ value: LibraryStatus; label: string }> = [
   { value: 'archived', label: 'Arquivado' },
 ];
 
-export function LibraryView({ entries, onUpdate, onRemove, onSelect }: LibraryViewProps) {
+export function LibraryView({
+  entries,
+  onUpdate,
+  onRemove,
+  onSelect,
+}: LibraryViewProps) {
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<LibraryStatus | 'all'>('all');
 
@@ -48,7 +53,10 @@ export function LibraryView({ entries, onUpdate, onRemove, onSelect }: LibraryVi
         <div>
           <span className="eyebrow">Biblioteca pessoal</span>
           <h1>Seu corpus de trabalho.</h1>
-          <p>Organize o que merece continuar na sua investigação — não apenas favoritos soltos.</p>
+          <p>
+            Organize o que merece continuar na sua investigação — não apenas
+            favoritos soltos.
+          </p>
         </div>
         <div className="section-count">{entries.length} itens</div>
       </header>
@@ -57,13 +65,26 @@ export function LibraryView({ entries, onUpdate, onRemove, onSelect }: LibraryVi
         <label className="library-search">
           <Icon name="search" />
           <span className="sr-only">Buscar na biblioteca</span>
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar título, autor, DOI, tag ou nota" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Buscar título, autor, DOI, tag ou nota"
+          />
         </label>
         <label>
           <span className="sr-only">Filtrar por status</span>
-          <select value={status} onChange={(event) => setStatus(event.target.value as LibraryStatus | 'all')}>
+          <select
+            value={status}
+            onChange={(event) =>
+              setStatus(event.target.value as LibraryStatus | 'all')
+            }
+          >
             <option value="all">Todos os status</option>
-            {statuses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+            {statuses.map((item) => (
+              <option key={item.value} value={item.value}>
+                {item.label}
+              </option>
+            ))}
           </select>
         </label>
       </section>
@@ -72,17 +93,28 @@ export function LibraryView({ entries, onUpdate, onRemove, onSelect }: LibraryVi
         <div className="empty-panel">
           <Icon name="library" />
           <h2>Nenhum item neste recorte.</h2>
-          <p>Salve trabalhos na descoberta ou ajuste os filtros da biblioteca.</p>
+          <p>
+            Salve trabalhos na descoberta ou ajuste os filtros da biblioteca.
+          </p>
         </div>
       ) : (
         <div className="library-table" role="list">
           {filtered.map((entry) => (
             <article className="library-row" key={entry.id} role="listitem">
               <div className="library-row__content">
-                <button className="work-title work-title--compact" type="button" onClick={() => onSelect(entry.work)}>
+                <button
+                  className="work-title work-title--compact"
+                  type="button"
+                  onClick={() => onSelect(entry.work)}
+                >
                   {entry.work.title}
                 </button>
-                <p className="work-authors">{entry.work.authors.slice(0, 3).map((author) => author.name).join(', ') || 'Autoria não informada'}</p>
+                <p className="work-authors">
+                  {entry.work.authors
+                    .slice(0, 3)
+                    .map((author) => author.name)
+                    .join(', ') || 'Autoria não informada'}
+                </p>
                 <div className="work-meta">
                   <span>{entry.work.year ?? 's.d.'}</span>
                   {entry.work.venue && <span>{entry.work.venue}</span>}
@@ -95,7 +127,11 @@ export function LibraryView({ entries, onUpdate, onRemove, onSelect }: LibraryVi
                     rows={2}
                     placeholder="Por que este trabalho importa para você?"
                     onChange={(event) =>
-                      void onUpdate({ ...entry, note: event.target.value, updatedAt: new Date().toISOString() })
+                      void onUpdate({
+                        ...entry,
+                        note: event.target.value,
+                        updatedAt: new Date().toISOString(),
+                      })
                     }
                   />
                 </label>
@@ -114,10 +150,18 @@ export function LibraryView({ entries, onUpdate, onRemove, onSelect }: LibraryVi
                       })
                     }
                   >
-                    {statuses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                    {statuses.map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
                   </select>
                 </label>
-                <button className="text-button text-button--danger" type="button" onClick={() => void onRemove(entry.id)}>
+                <button
+                  className="text-button text-button--danger"
+                  type="button"
+                  onClick={() => void onRemove(entry.id)}
+                >
                   Remover
                 </button>
               </div>

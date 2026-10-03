@@ -1,10 +1,23 @@
 import type { KnowledgeNote, LibraryEntry, Workspace } from '../types';
 
-type StoreName = 'library' | 'workspaces' | 'notes' | 'settings' | 'searchHistory' | 'metadataCache';
+type StoreName =
+  | 'library'
+  | 'workspaces'
+  | 'notes'
+  | 'settings'
+  | 'searchHistory'
+  | 'metadataCache';
 
 const DB_NAME = 'readplus';
 const DB_VERSION = 1;
-const STORES: StoreName[] = ['library', 'workspaces', 'notes', 'settings', 'searchHistory', 'metadataCache'];
+const STORES: StoreName[] = [
+  'library',
+  'workspaces',
+  'notes',
+  'settings',
+  'searchHistory',
+  'metadataCache',
+];
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -24,8 +37,10 @@ function openDatabase(): Promise<IDBDatabase> {
     };
 
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error('Falha ao abrir IndexedDB.'));
-    request.onblocked = () => reject(new Error('Atualização do banco bloqueada por outra aba.'));
+    request.onerror = () =>
+      reject(request.error ?? new Error('Falha ao abrir IndexedDB.'));
+    request.onblocked = () =>
+      reject(new Error('Atualização do banco bloqueada por outra aba.'));
   });
 
   return dbPromise;
@@ -37,17 +52,22 @@ export async function getAll<T>(storeName: StoreName): Promise<T[]> {
     const transaction = db.transaction(storeName, 'readonly');
     const request = transaction.objectStore(storeName).getAll();
     request.onsuccess = () => resolve((request.result ?? []) as T[]);
-    request.onerror = () => reject(request.error ?? new Error('Falha ao ler dados locais.'));
+    request.onerror = () =>
+      reject(request.error ?? new Error('Falha ao ler dados locais.'));
   });
 }
 
-export async function put<T extends { id: string }>(storeName: StoreName, value: T): Promise<void> {
+export async function put<T extends { id: string }>(
+  storeName: StoreName,
+  value: T,
+): Promise<void> {
   const db = await openDatabase();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(storeName, 'readwrite');
     transaction.objectStore(storeName).put(value);
     transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error ?? new Error('Falha ao salvar dados locais.'));
+    transaction.onerror = () =>
+      reject(transaction.error ?? new Error('Falha ao salvar dados locais.'));
   });
 }
 
@@ -57,7 +77,8 @@ export async function remove(storeName: StoreName, id: string): Promise<void> {
     const transaction = db.transaction(storeName, 'readwrite');
     transaction.objectStore(storeName).delete(id);
     transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error ?? new Error('Falha ao remover dados locais.'));
+    transaction.onerror = () =>
+      reject(transaction.error ?? new Error('Falha ao remover dados locais.'));
   });
 }
 

@@ -114,7 +114,8 @@ describe('searchAcademic integration', () => {
 
   it('não propaga URL executável fornecida por um provedor', async () => {
     const maliciousPayload = structuredClone(openAlexPayload);
-    maliciousPayload.results[0].best_oa_location.pdf_url = 'javascript:alert(1)';
+    maliciousPayload.results[0].best_oa_location.pdf_url =
+      'javascript:alert(1)';
 
     vi.stubGlobal(
       'fetch',
