@@ -738,7 +738,10 @@
     font-size: 0.76rem;
   }
   .library-table {
+    margin: 0;
+    padding: 0;
     border-top: 1px solid var(--line);
+    list-style: none;
   }
   .library-row {
     display: grid;
@@ -963,9 +966,6 @@
     font-size: 0.78rem;
     font-weight: 650;
   }
-  .compact-list button:hover span {
-    color: var(--accent);
-  }
   .compact-list small {
     color: var(--text-faint);
     font-size: 0.66rem;
@@ -998,6 +998,9 @@
   .workspace-picker small {
     color: var(--text-faint);
     font-size: 0.66rem;
+  }
+  .compact-list button:hover span {
+    color: var(--accent);
   }
 
   .knowledge-layout {
