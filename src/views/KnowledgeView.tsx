@@ -205,18 +205,11 @@ export function KnowledgeView({ library }: KnowledgeViewProps) {
                   );
                 })}
                 {graph.nodes.map((node) => (
-                  <g
+                  <a
                     key={node.id}
-                    role="button"
-                    tabIndex={0}
+                    href="#knowledge-note"
                     aria-label={`Abrir nota: ${node.title}`}
                     onClick={() => setActiveId(node.id)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        setActiveId(node.id);
-                      }
-                    }}
                     className={
                       node.id === activeId
                         ? 'graph-node graph-node--active'
@@ -231,13 +224,13 @@ export function KnowledgeView({ library }: KnowledgeViewProps) {
                     <text x={node.x} y={node.y + 18} textAnchor="middle">
                       {node.title.slice(0, 24)}
                     </text>
-                  </g>
+                  </a>
                 ))}
               </svg>
             )}
           </div>
 
-          <div className="note-detail">
+          <div className="note-detail" id="knowledge-note">
             {!active ? (
               <div className="empty-panel empty-panel--compact">
                 <h2>Selecione uma nota.</h2>
