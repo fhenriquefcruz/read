@@ -1,5 +1,4 @@
 import type { AcademicWork } from '../types';
-import { safeExternalUrl } from '../lib/url';
 import { Icon } from './Icons';
 import { ExternalLink } from './ExternalLink';
 
@@ -16,9 +15,6 @@ function authorsLabel(work: AcademicWork): string {
 }
 
 export function WorkDetail({ work, saved, onClose, onSave }: WorkDetailProps) {
-  const officialUrl = safeExternalUrl(work.officialUrl);
-  const pdfUrl = safeExternalUrl(work.pdfUrl);
-
   return (
     <aside className="detail-panel" aria-label="Detalhes do trabalho">
       <div className="detail-panel__top">
