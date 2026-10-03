@@ -93,8 +93,10 @@ describe('server-side intelligence gateway', () => {
   });
 
   it('aceita structured output somente quando permanece grounded', async () => {
-    const fetchMock = vi.fn(async () =>
-      new Response(
+    let capturedBody: BodyInit | null | undefined;
+    const fetchMock: typeof fetch = async (_input, init) => {
+      capturedBody = init?.body;
+      return new Response(
         JSON.stringify({
           output_text: JSON.stringify({
             version: '2',
@@ -110,12 +112,12 @@ describe('server-side intelligence gateway', () => {
           }),
         }),
         { status: 200, headers: { 'Content-Type': 'application/json' } },
-      ),
-    );
+      );
+    };
 
     const response = await handleIntelligenceRequest(request(), {
       env,
-      fetchImpl: fetchMock as unknown as typeof fetch,
+      fetchImpl: fetchMock,
     });
 
     expect(response.status).toBe(200);
@@ -126,7 +128,7 @@ describe('server-side intelligence gateway', () => {
     });
 
     const upstreamBody = JSON.parse(
-      String(fetchMock.mock.calls[0]?.[1]?.body),
+      String(capturedBody),
     ) as Record<string, unknown>;
     expect(upstreamBody.model).toBe('openai/test-model');
     expect(upstreamBody).toHaveProperty('text');
