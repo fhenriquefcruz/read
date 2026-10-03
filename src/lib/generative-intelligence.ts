@@ -24,6 +24,12 @@ export interface IntelligenceGatewayHealth {
   enabled?: boolean;
   configured?: boolean;
   authenticationConfigured?: boolean;
+  operationalControlsReady?: boolean;
+  controls?: {
+    waf: boolean;
+    budget: boolean;
+    observability: boolean;
+  };
   externalProcessingAvailable?: boolean;
 }
 
@@ -92,6 +98,19 @@ export async function checkIntelligenceGatewayHealth(options: {
   const enabled = health.enabled === true;
   const configured = health.configured === true;
   const authenticationConfigured = health.authenticationConfigured === true;
+  const operationalControlsReady =
+    health.operationalControlsReady === true;
+  const controlsRaw =
+    health.controls && typeof health.controls === 'object'
+      ? (health.controls as Record<string, unknown>)
+      : undefined;
+  const controls = controlsRaw
+    ? {
+        waf: controlsRaw.waf === true,
+        budget: controlsRaw.budget === true,
+        observability: controlsRaw.observability === true,
+      }
+    : undefined;
   const externalProcessingAvailable =
     health.externalProcessingAvailable === true;
 
@@ -99,7 +118,9 @@ export async function checkIntelligenceGatewayHealth(options: {
     ? 'ready'
     : !enabled
       ? 'disabled'
-      : !configured || !authenticationConfigured
+      : !configured ||
+          !authenticationConfigured ||
+          !operationalControlsReady
         ? 'incomplete'
         : 'unreachable';
 
@@ -110,6 +131,8 @@ export async function checkIntelligenceGatewayHealth(options: {
     enabled,
     configured,
     authenticationConfigured,
+    operationalControlsReady,
+    controls,
     externalProcessingAvailable,
   };
 }

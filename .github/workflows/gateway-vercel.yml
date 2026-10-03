@@ -1,0 +1,146 @@
+name: Deploy READ+ Intelligence Gateway
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Deployment target
+        required: true
+        default: preview
+        type: choice
+        options:
+          - preview
+          - production
+      expected_project_name:
+        description: Dedicated Vercel project name for READ+
+        required: true
+        default: readplus-intelligence-gateway
+        type: string
+      allow_external_processing:
+        description: Allow deployment only if all AI operational controls are ready
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: readplus-gateway-${{ inputs.target }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Validate and deploy dedicated READ+ gateway
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: readplus-gateway
+    env:
+      VERCEL_TOKEN: ${{ secrets.READPLUS_VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.READPLUS_VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.READPLUS_VERCEL_PROJECT_ID }}
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.READPLUS_VERCEL_AUTOMATION_BYPASS_SECRET }}
+      VERCEL_CLI_VERSION: 59.20.0
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Validate READ+ source
+        run: npm run validate
+
+      - name: Require dedicated READ+ Vercel credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${VERCEL_TOKEN:?Missing READPLUS_VERCEL_TOKEN}"
+          : "${VERCEL_ORG_ID:?Missing READPLUS_VERCEL_ORG_ID}"
+          : "${VERCEL_PROJECT_ID:?Missing READPLUS_VERCEL_PROJECT_ID}"
+
+      - name: Verify Vercel project identity
+        shell: bash
+        env:
+          EXPECTED_PROJECT_NAME: ${{ inputs.expected_project_name }}
+        run: |
+          set -euo pipefail
+          npx --yes "vercel@${VERCEL_CLI_VERSION}" api GET             "/v9/projects/${VERCEL_PROJECT_ID}?teamId=${VERCEL_ORG_ID}"             --token="${VERCEL_TOKEN}" > /tmp/readplus-project.json
+
+          PROJECT_JSON=/tmp/readplus-project.json           EXPECTED_PROJECT_NAME="${EXPECTED_PROJECT_NAME}"           node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const project = JSON.parse(fs.readFileSync(process.env.PROJECT_JSON, 'utf8'));
+          if (project.name !== process.env.EXPECTED_PROJECT_NAME) {
+            console.error(
+              `Expected dedicated READ+ project "${process.env.EXPECTED_PROJECT_NAME}", got "${project.name ?? 'unknown'}".`,
+            );
+            process.exit(1);
+          }
+          console.log(`Verified dedicated READ+ Vercel project: ${project.name}`);
+          NODE
+
+      - name: Pull Vercel project configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          environment="${{ inputs.target == 'production' && 'production' || 'preview' }}"
+          npx --yes "vercel@${VERCEL_CLI_VERSION}" pull             --yes             --environment="${environment}"             --token="${VERCEL_TOKEN}"
+
+          npx --yes "vercel@${VERCEL_CLI_VERSION}" env pull             /tmp/readplus-gateway.env             --environment="${environment}"             --yes             --token="${VERCEL_TOKEN}"
+
+      - name: Enforce gateway readiness policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ inputs.allow_external_processing }}" == "true" ]]; then
+            mode="enable"
+          else
+            mode="disabled"
+          fi
+          npm run gateway:readiness --             --env-file /tmp/readplus-gateway.env             --mode "${mode}"
+
+      - name: Build Vercel artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ inputs.target }}" == "production" ]]; then
+            npx --yes "vercel@${VERCEL_CLI_VERSION}" build               --prod               --token="${VERCEL_TOKEN}"
+          else
+            npx --yes "vercel@${VERCEL_CLI_VERSION}" build               --token="${VERCEL_TOKEN}"
+          fi
+
+      - name: Deploy prebuilt artifact
+        id: deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ inputs.target }}" == "production" ]]; then
+            url="$(npx --yes "vercel@${VERCEL_CLI_VERSION}" deploy               --prebuilt               --prod               --token="${VERCEL_TOKEN}")"
+          else
+            url="$(npx --yes "vercel@${VERCEL_CLI_VERSION}" deploy               --prebuilt               --token="${VERCEL_TOKEN}")"
+          fi
+          echo "url=${url}" >> "${GITHUB_OUTPUT}"
+
+      - name: Smoke dedicated gateway
+        shell: bash
+        env:
+          GATEWAY_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          set -euo pipefail
+          if [[ "${{ inputs.allow_external_processing }}" == "true" ]]; then
+            expected="ready"
+          else
+            expected="disabled"
+          fi
+          npm run gateway:smoke --             --base-url "${GATEWAY_URL}"             --expect "${expected}"
+
+      - name: Remove pulled environment file
+        if: always()
+        shell: bash
+        run: rm -f /tmp/readplus-gateway.env /tmp/readplus-project.json

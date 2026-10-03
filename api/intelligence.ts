@@ -262,6 +262,14 @@ export async function handleIntelligenceRequest(
   if (!config.token || !config.model || !config.clientToken) {
     return jsonResponse(request, config, { error: 'gateway_not_configured' }, 503);
   }
+  if (!config.operationalControlsReady) {
+    return jsonResponse(
+      request,
+      config,
+      { error: 'gateway_controls_incomplete' },
+      503,
+    );
+  }
 
   const authorization = request.headers.get('authorization');
   if (authorization !== `Bearer ${config.clientToken}`) {
