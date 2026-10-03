@@ -202,6 +202,7 @@ export default function App() {
             saved={savedIds.has(selectedWork.id)}
             onClose={() => setSelectedWork(null)}
             onSave={saveWork}
+            onExplore={setSelectedWork}
           />
         </>
       )}
