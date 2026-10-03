@@ -1,5 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const standardUse = {
+  serviceWorkers: 'block' as const,
+};
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -11,8 +15,21 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'mobile', use: { ...devices['iPhone 14'] } },
+    {
+      name: 'chromium',
+      testIgnore: /offline\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], ...standardUse },
+    },
+    {
+      name: 'mobile',
+      testIgnore: /offline\.spec\.ts/,
+      use: { ...devices['Pixel 7'], ...standardUse },
+    },
+    {
+      name: 'offline',
+      testMatch: /offline\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], serviceWorkers: 'allow' },
+    },
   ],
   webServer: {
     command: 'npm run build && npm run preview -- --host 127.0.0.1 --port 4173',
