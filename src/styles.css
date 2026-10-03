@@ -959,12 +959,12 @@
     cursor: pointer;
     text-align: left;
   }
-  .compact-list button:hover span {
-    color: var(--accent);
-  }
   .compact-list span {
     font-size: 0.78rem;
     font-weight: 650;
+  }
+  .compact-list button:hover span {
+    color: var(--accent);
   }
   .compact-list small {
     color: var(--text-faint);
@@ -1373,10 +1373,10 @@
     *,
     *::before,
     *::after {
-      scroll-behavior: auto !important;
-      transition-duration: 0.01ms !important;
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
+      scroll-behavior: auto;
+      transition-duration: 0.01ms;
+      animation-duration: 0.01ms;
+      animation-iteration-count: 1;
     }
   }
 }
