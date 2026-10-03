@@ -171,9 +171,11 @@ test('workspace preserva evidência rastreável e interpretação após reload',
     .fill('Como sistemas de IA apoiam decisões públicas com accountability?');
   await page.getByRole('button', { name: 'Nova pesquisa' }).click();
 
-  const sourceCheckbox = page.getByRole('checkbox', {
-    name: /Machine Learning in Public Administration/,
-  });
+  const sourceCheckbox = page
+    .locator('.workspace-picker')
+    .getByRole('checkbox', {
+      name: /Machine Learning in Public Administration/,
+    });
   await sourceCheckbox.check();
 
   await page
