@@ -199,26 +199,27 @@ async function searchOpenAlex(
   return results.map((raw) => {
     const item = raw as JsonObject;
     const authorships = Array.isArray(item.authorships) ? item.authorships : [];
-    const authors: WorkAuthor[] = authorships
-      .map((entry) => {
-        const authorship = entry as JsonObject;
-        const author = (authorship.author ?? {}) as JsonObject;
-        const institutions = Array.isArray(authorship.institutions)
-          ? authorship.institutions
-          : [];
-        const name = safeString(author.display_name);
-        if (!name) return null;
-        return {
-          name,
-          orcid: safeString(author.orcid),
-          institutions: institutions
-            .map((institution) =>
-              safeString((institution as JsonObject).display_name),
-            )
-            .filter((value): value is string => Boolean(value)),
-        };
-      })
-      .filter((value): value is WorkAuthor => Boolean(value));
+    const authors = authorships.reduce<WorkAuthor[]>((list, entry) => {
+      const authorship = entry as JsonObject;
+      const author = (authorship.author ?? {}) as JsonObject;
+      const institutions = Array.isArray(authorship.institutions)
+        ? authorship.institutions
+        : [];
+      const name = safeString(author.display_name);
+      if (!name) return list;
+
+      const orcid = safeString(author.orcid);
+      list.push({
+        name,
+        ...(orcid ? { orcid } : {}),
+        institutions: institutions
+          .map((institution) =>
+            safeString((institution as JsonObject).display_name),
+          )
+          .filter((value): value is string => Boolean(value)),
+      });
+      return list;
+    }, []);
 
     const bestOa = (item.best_oa_location ?? {}) as JsonObject;
     const openAccess = (item.open_access ?? {}) as JsonObject;
