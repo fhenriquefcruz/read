@@ -398,7 +398,9 @@ test('research intelligence gera grounded brief sem inferência automática', as
     ),
   ).toBeVisible();
   await expect(page.getByText('Inferências automáticas: 0')).toBeVisible();
-  await expect(page.getByText('Gateway seguro necessário')).toBeVisible();
+  await expect(
+    page.getByText('Gateway seguro ainda obrigatório'),
+  ).toBeVisible();
 
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Exportar Markdown' }).click();

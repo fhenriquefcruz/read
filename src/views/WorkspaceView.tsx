@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { validateEvidenceRelations } from '../lib/intelligence';
 import { searchHistoryStore, workspaceStore } from '../lib/storage';
 import type {
@@ -81,6 +81,7 @@ function filterSummary(filters: SearchFilters): string {
 
 export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const workspacesRef = useRef<Workspace[]>([]);
   const [searchHistory, setSearchHistory] = useState<SearchHistoryEntry[]>([]);
   const [activeId, setActiveId] = useState<string>();
   const [title, setTitle] = useState('');
@@ -108,6 +109,7 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
             };
           })
           .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+        workspacesRef.current = normalized;
         setWorkspaces(normalized);
         setActiveId(normalized[0]?.id);
         setSearchHistory(
@@ -140,10 +142,12 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
   }, [evidenceWorkId, selectedWorks]);
 
   async function persist(workspace: Workspace) {
-    setWorkspaces((current) => {
-      const next = current.filter((item) => item.id !== workspace.id);
-      return [workspace, ...next];
-    });
+    const nextWorkspaces = [
+      workspace,
+      ...workspacesRef.current.filter((item) => item.id !== workspace.id),
+    ];
+    workspacesRef.current = nextWorkspaces;
+    setWorkspaces(nextWorkspaces);
     setActiveId(workspace.id);
 
     try {
@@ -165,6 +169,7 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
           };
         })
         .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+      workspacesRef.current = normalized;
       setWorkspaces(normalized);
       setActiveId(normalized[0]?.id);
       throw error;
@@ -227,14 +232,24 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
   }
 
   async function toggleWork(workId: string) {
-    if (!active) return;
-    const hasEvidence = evidence.some((item) => item.workId === workId);
-    if (active.workIds.includes(workId) && hasEvidence) return;
+    const currentActive = workspacesRef.current.find(
+      (workspace) => workspace.id === activeId,
+    );
+    if (!currentActive) return;
 
-    const workIds = active.workIds.includes(workId)
-      ? active.workIds.filter((id) => id !== workId)
-      : [...active.workIds, workId];
-    await persist({ ...active, workIds, updatedAt: new Date().toISOString() });
+    const currentEvidence = currentActive.evidence ?? [];
+    const hasEvidence = currentEvidence.some((item) => item.workId === workId);
+    if (currentActive.workIds.includes(workId) && hasEvidence) return;
+
+    const workIds = currentActive.workIds.includes(workId)
+      ? currentActive.workIds.filter((id) => id !== workId)
+      : [...currentActive.workIds, workId];
+
+    await persist({
+      ...currentActive,
+      workIds,
+      updatedAt: new Date().toISOString(),
+    });
   }
 
   async function addEvidence(event: React.FormEvent) {
