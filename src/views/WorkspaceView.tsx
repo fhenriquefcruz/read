@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { validateEvidenceRelations } from '../lib/intelligence';
 import { searchHistoryStore, workspaceStore } from '../lib/storage';
 import type {
   AcademicWork,
@@ -93,13 +94,19 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
     void Promise.all([workspaceStore.list(), searchHistoryStore.list()]).then(
       ([items, history]) => {
         const normalized = items
-          .map((workspace) => ({
-            ...workspace,
-            evidence: workspace.evidence ?? [],
-            evidenceRelations: workspace.evidenceRelations ?? [],
-            queries: normalizeWorkspaceQueries(workspace.id, workspace.queries),
-            workIds: workspace.workIds ?? [],
-          }))
+          .map((workspace) => {
+            const evidence = workspace.evidence ?? [];
+            return {
+              ...workspace,
+              evidence,
+              evidenceRelations: validateEvidenceRelations(
+                evidence,
+                workspace.evidenceRelations ?? [],
+              ),
+              queries: normalizeWorkspaceQueries(workspace.id, workspace.queries),
+              workIds: workspace.workIds ?? [],
+            };
+          })
           .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
         setWorkspaces(normalized);
         setActiveId(normalized[0]?.id);
@@ -144,13 +151,19 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
     } catch (error) {
       const stored = await workspaceStore.list();
       const normalized = stored
-        .map((item) => ({
-          ...item,
-          evidence: item.evidence ?? [],
-          evidenceRelations: item.evidenceRelations ?? [],
-          queries: normalizeWorkspaceQueries(item.id, item.queries),
-          workIds: item.workIds ?? [],
-        }))
+        .map((item) => {
+          const evidence = item.evidence ?? [];
+          return {
+            ...item,
+            evidence,
+            evidenceRelations: validateEvidenceRelations(
+              evidence,
+              item.evidenceRelations ?? [],
+            ),
+            queries: normalizeWorkspaceQueries(item.id, item.queries),
+            workIds: item.workIds ?? [],
+          };
+        })
         .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
       setWorkspaces(normalized);
       setActiveId(normalized[0]?.id);
@@ -272,6 +285,25 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
     note: string;
   }) {
     if (!active) return;
+    if (
+      input.leftEvidenceId === input.rightEvidenceId ||
+      !evidence.some((item) => item.id === input.leftEvidenceId) ||
+      !evidence.some((item) => item.id === input.rightEvidenceId)
+    ) {
+      return;
+    }
+
+    const pairKey = [input.leftEvidenceId, input.rightEvidenceId]
+      .sort()
+      .join('::');
+    const alreadyExists = (active.evidenceRelations ?? []).some(
+      (relation) =>
+        [relation.leftEvidenceId, relation.rightEvidenceId]
+          .sort()
+          .join('::') === pairKey,
+    );
+    if (alreadyExists) return;
+
     const relation: WorkspaceEvidenceRelation = {
       id: createId('relation'),
       leftEvidenceId: input.leftEvidenceId,
