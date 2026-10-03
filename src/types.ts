@@ -119,6 +119,21 @@ export interface WorkspaceEvidence {
   createdAt: string;
 }
 
+export type EvidenceRelationType =
+  | 'converges'
+  | 'diverges'
+  | 'qualifies'
+  | 'context';
+
+export interface WorkspaceEvidenceRelation {
+  id: string;
+  leftEvidenceId: string;
+  rightEvidenceId: string;
+  type: EvidenceRelationType;
+  note: string;
+  createdAt: string;
+}
+
 export interface Workspace {
   id: string;
   title: string;
@@ -126,6 +141,7 @@ export interface Workspace {
   workIds: string[];
   queries?: WorkspaceQuery[];
   evidence?: WorkspaceEvidence[];
+  evidenceRelations?: WorkspaceEvidenceRelation[];
   createdAt: string;
   updatedAt: string;
 }

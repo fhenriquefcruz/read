@@ -8,6 +8,8 @@ import type {
   SearchFilters,
   Workspace,
   WorkspaceEvidence,
+  WorkspaceEvidenceRelation,
+  EvidenceRelationType,
   WorkspaceQuery,
 } from '../types';
 import { Icon } from '../components/Icons';
@@ -94,6 +96,7 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
           .map((workspace) => ({
             ...workspace,
             evidence: workspace.evidence ?? [],
+            evidenceRelations: workspace.evidenceRelations ?? [],
             queries: normalizeWorkspaceQueries(workspace.id, workspace.queries),
             workIds: workspace.workIds ?? [],
           }))
@@ -144,6 +147,7 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
         .map((item) => ({
           ...item,
           evidence: item.evidence ?? [],
+          evidenceRelations: item.evidenceRelations ?? [],
           queries: normalizeWorkspaceQueries(item.id, item.queries),
           workIds: item.workIds ?? [],
         }))
@@ -165,6 +169,7 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
       workIds: [],
       queries: [],
       evidence: [],
+      evidenceRelations: [],
       createdAt: now,
       updatedAt: now,
     };
@@ -251,6 +256,44 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
     await persist({
       ...active,
       evidence: evidence.filter((item) => item.id !== id),
+      evidenceRelations: (active.evidenceRelations ?? []).filter(
+        (relation) =>
+          relation.leftEvidenceId !== id && relation.rightEvidenceId !== id,
+      ),
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+
+  async function addEvidenceRelation(input: {
+    leftEvidenceId: string;
+    rightEvidenceId: string;
+    type: EvidenceRelationType;
+    note: string;
+  }) {
+    if (!active) return;
+    const relation: WorkspaceEvidenceRelation = {
+      id: createId('relation'),
+      leftEvidenceId: input.leftEvidenceId,
+      rightEvidenceId: input.rightEvidenceId,
+      type: input.type,
+      note: input.note.trim(),
+      createdAt: new Date().toISOString(),
+    };
+    await persist({
+      ...active,
+      evidenceRelations: [...(active.evidenceRelations ?? []), relation],
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+  async function removeEvidenceRelation(id: string) {
+    if (!active) return;
+    await persist({
+      ...active,
+      evidenceRelations: (active.evidenceRelations ?? []).filter(
+        (relation) => relation.id !== id,
+      ),
       updatedAt: new Date().toISOString(),
     });
   }
@@ -568,8 +611,11 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
               <ResearchIntelligence
                 workspace={active}
                 evidence={evidence}
+                relations={active.evidenceRelations ?? []}
                 library={library}
                 onSelect={onSelect}
+                onAddRelation={addEvidenceRelation}
+                onRemoveRelation={removeEvidenceRelation}
               />
 
               <section className="workspace-section">
