@@ -153,3 +153,67 @@ test('detalhe exporta referência em BibTeX', async ({ page }) => {
     'machine-learning-in-public-administration.bib',
   );
 });
+
+
+test('workspace preserva evidência rastreável e interpretação após reload', async ({
+  page,
+}) => {
+  await page
+    .getByLabel('Pesquisar literatura acadêmica')
+    .fill('machine learning public administration');
+  await page.getByRole('button', { name: 'Pesquisar' }).click();
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+
+  await page.getByRole('button', { name: 'Pesquisas' }).click();
+  await page.getByLabel('Nome da pesquisa').fill('IA na administração pública');
+  await page
+    .getByLabel('Pergunta central')
+    .fill('Como sistemas de IA apoiam decisões públicas com accountability?');
+  await page.getByRole('button', { name: 'Nova pesquisa' }).click();
+
+  const sourceCheckbox = page.getByRole('checkbox', {
+    name: /Machine Learning in Public Administration/,
+  });
+  await sourceCheckbox.check();
+
+  await page
+    .getByLabel('Evidência da fonte')
+    .fill('Machine learning supports evidence in public administration.');
+  await page
+    .getByLabel('Sua interpretação')
+    .fill('O ganho depende de governança e rastreabilidade da decisão.');
+  await page.getByRole('button', { name: 'Registrar evidência' }).click();
+
+  await expect(
+    page.getByText(
+      'Machine learning supports evidence in public administration.',
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      'O ganho depende de governança e rastreabilidade da decisão.',
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByText('DOI 10.1000/readplus.2025.1', { exact: true }),
+  ).toBeVisible();
+  await expect(sourceCheckbox).toBeDisabled();
+
+  await page.reload();
+  await page.getByRole('button', { name: 'Pesquisas' }).click();
+
+  await expect(
+    page.getByText(
+      'Machine learning supports evidence in public administration.',
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      'O ganho depende de governança e rastreabilidade da decisão.',
+      { exact: true },
+    ),
+  ).toBeVisible();
+});
