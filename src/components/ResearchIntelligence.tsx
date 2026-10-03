@@ -44,7 +44,7 @@ export function ResearchIntelligence({
   useEffect(() => {
     setSelectedIds(new Set(evidence.map((item) => item.id)));
     setBrief(null);
-  }, [workspace.id, evidence]);
+  }, [evidence]);
 
   const selectedCount = evidence.filter((item) => selectedIds.has(item.id)).length;
   const matrix = useMemo(() => (brief ? evidenceMatrix(brief) : []), [brief]);
