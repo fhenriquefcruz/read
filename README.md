@@ -32,6 +32,15 @@ A rodada **Research Intelligence Grounded (v6)** inicia inteligência sobre o co
 - contrato server-side futuro que rejeita claims sem citations por ID de evidência;
 - processamento externo bloqueado sem consentimento explícito.
 
+A rodada **Research Intelligence Comparative (v7)** aprofunda a análise sem terceirizar julgamento científico:
+
+- pares comparáveis são sugeridos somente entre evidências do mesmo tipo e fontes diferentes;
+- convergência, divergência, qualificação e contexto exigem classificação explícita do pesquisador;
+- relações ficam persistidas com os dois `evidenceIds`;
+- Coverage Diagnostics identifica lacunas estruturais sem produzir uma nota de qualidade científica;
+- relatório de diagnóstico exportável em Markdown;
+- gateway v2 transporta evidências e relações confirmadas e rejeita citations para IDs inexistentes.
+
 Documentação:
 - [Auditoria — Fases 0 e 1](docs/audit-phase-0-1.md)
 - [Arquitetura](docs/architecture.md)
@@ -102,9 +111,12 @@ O frontend continua estático nesta etapa para preservar o GitHub Pages. Integra
 - Grounded Brief local e determinístico;
 - citations clicáveis para retornar ao trabalho de origem;
 - interpretações do usuário preservadas como camada distinta;
-- exportação Markdown;
-- nenhuma inferência científica automática na v1;
-- integração generativa futura condicionada a gateway server-side, consentimento e grounding obrigatório.
+- Comparison Board com classificação humana auditável;
+- relações persistidas como convergência, divergência, qualificação ou contexto;
+- Coverage Diagnostics para lacunas de fonte, método, limitações, comparação e interpretação;
+- exportação Markdown do brief e do diagnóstico;
+- nenhuma inferência científica automática;
+- gateway v2 condicionado a server-side, consentimento e grounding obrigatório.
 
 ### Conhecimento conectado
 - notas atômicas;
@@ -163,7 +175,7 @@ https://fhenriquefcruz.github.io/read/
 - ✅ Fase 7 — biblioteca interoperável v1
 - ✅ Fase 8 — workspace de pesquisa v1
 - 🔄 Fase 9 — Zettelkasten / knowledge graph
-- 🔄 Fase 10 — Research Intelligence grounded v1
+- 🔄 Fase 10 — Research Intelligence grounded/comparative v2
 - ✅ Fase 11 — PWA / offline v1
 - ✅ Fase 12 — segurança baseline
 - ✅ Fase 13 — testes / quality gates
@@ -172,7 +184,7 @@ https://fhenriquefcruz.github.io/read/
 ## Próximas prioridades
 
 1. reexecução de consultas preservadas diretamente a partir do workspace;
-2. comparação semântica de evidências com método auditável;
-3. gateway server-side autenticado, com rate limiting e observabilidade;
-4. síntese generativa opt-in validada contra IDs de evidência;
+2. gateway server-side autenticado, com rate limiting e observabilidade;
+3. síntese generativa opt-in validada contra IDs de evidência e relações confirmadas;
+4. comparação semântica assistida somente como sugestão, nunca como conclusão automática;
 5. importação por ISBN e melhorias adicionais de matching bibliográfico.

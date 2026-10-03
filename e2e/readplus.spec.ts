@@ -410,3 +410,101 @@ test('research intelligence gera grounded brief sem inferência automática', as
     .analyze();
   expect(results.violations).toEqual([]);
 });
+
+
+test('research intelligence v7 persiste divergência confirmada e diagnóstico de cobertura', async ({
+  page,
+}) => {
+  await page
+    .getByLabel('Pesquisar literatura acadêmica')
+    .fill('machine learning public administration');
+  await page.getByRole('button', { name: 'Pesquisar' }).click();
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+
+  await page.getByRole('button', { name: 'Biblioteca' }).click();
+  await page.getByText('Importar referências').click();
+  await page.getByLabel('Conteúdo bibliográfico').fill(`TY  - JOUR
+TI  - Contrasting Governance Study
+AU  - Bruno Analista
+PY  - 2024
+DO  - 10.1000/contrasting-governance
+JO  - Governance Evidence Review
+ER  -
+`);
+  await page.getByRole('button', { name: 'Importar conteúdo' }).click();
+  await expect(
+    page.getByRole('button', { name: 'Contrasting Governance Study' }),
+  ).toBeVisible();
+
+  await page.getByRole('button', { name: 'Pesquisas' }).click();
+  await page.getByLabel('Nome da pesquisa').fill('Comparação auditável');
+  await page
+    .getByLabel('Pergunta central')
+    .fill('As evidências apontam na mesma direção?');
+  await page.getByRole('button', { name: 'Nova pesquisa' }).click();
+
+  const picker = page.locator('.workspace-picker');
+  await picker
+    .getByRole('checkbox', { name: /Machine Learning in Public Administration/ })
+    .check();
+  await picker
+    .getByRole('checkbox', { name: /Contrasting Governance Study/ })
+    .check();
+
+  const source = page.getByLabel('Fonte', { exact: true });
+  await source.selectOption({ label: 'Machine Learning in Public Administration' });
+  await page
+    .getByLabel('Evidência da fonte')
+    .fill('The system increased decision traceability.');
+  await page
+    .getByLabel('Sua interpretação')
+    .fill('Este estudo relata ganho de rastreabilidade.');
+  await page.getByRole('button', { name: 'Registrar evidência' }).click();
+
+  await source.selectOption({ label: 'Contrasting Governance Study' });
+  await page
+    .getByLabel('Evidência da fonte')
+    .fill('The intervention did not improve decision traceability.');
+  await page
+    .getByLabel('Sua interpretação')
+    .fill('Este estudo não observou o mesmo ganho.');
+  await page.getByRole('button', { name: 'Registrar evidência' }).click();
+
+  const comparison = page.locator('.comparison-board');
+  await expect(
+    comparison.getByRole('heading', {
+      name: 'Relações confirmadas pelo pesquisador',
+    }),
+  ).toBeVisible();
+  await comparison.getByLabel('Relação').selectOption('diverges');
+  await comparison
+    .getByLabel('Nota analítica')
+    .fill('Os resultados reportados apontam em direções opostas.');
+  await comparison.getByRole('button', { name: 'Registrar relação' }).click();
+
+  const confirmed = page.locator('.confirmed-relation');
+  await expect(confirmed).toContainText('Divergência');
+  await expect(confirmed).toContainText(
+    'Os resultados reportados apontam em direções opostas.',
+  );
+
+  const diagnostics = page.locator('.coverage-diagnostics');
+  await expect(diagnostics).toContainText('2');
+  await expect(diagnostics).toContainText('relações confirmadas');
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Exportar diagnóstico' }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe(
+    'readplus-research-diagnostics.md',
+  );
+
+  await page.reload();
+  await page.getByRole('button', { name: 'Pesquisas' }).click();
+  await expect(page.locator('.confirmed-relation')).toContainText('Divergência');
+
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+    .analyze();
+  expect(results.violations).toEqual([]);
+});
