@@ -17,12 +17,15 @@ export default {
 
     return jsonResponse(request, config, {
       service: 'readplus-intelligence-gateway',
-      version: '8',
+      version: '10',
       enabled: config.enabled,
       configured: Boolean(config.token && config.model && config.clientToken),
       authenticationConfigured: Boolean(config.clientToken),
+      operationalControlsReady: config.operationalControlsReady,
+      controls: config.controls,
       externalProcessingAvailable:
         config.enabled &&
+        config.operationalControlsReady &&
         Boolean(config.token && config.model && config.clientToken),
     });
   },

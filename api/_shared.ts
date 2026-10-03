@@ -6,6 +6,12 @@ export interface GatewayRuntimeConfig {
   model?: string;
   clientToken?: string;
   allowedOrigins: Set<string>;
+  controls: {
+    waf: boolean;
+    budget: boolean;
+    observability: boolean;
+  };
+  operationalControlsReady: boolean;
 }
 
 export function gatewayRuntimeConfig(
@@ -15,6 +21,12 @@ export function gatewayRuntimeConfig(
     ?.split(',')
     .map((value) => value.trim())
     .filter(Boolean);
+
+  const controls = {
+    waf: env.READPLUS_WAF_READY === 'true',
+    budget: env.READPLUS_BUDGET_READY === 'true',
+    observability: env.READPLUS_OBSERVABILITY_READY === 'true',
+  };
 
   return {
     enabled: env.READPLUS_AI_ENABLED === 'true',
@@ -26,6 +38,9 @@ export function gatewayRuntimeConfig(
         ? configuredOrigins
         : [DEFAULT_ALLOWED_ORIGIN],
     ),
+    controls,
+    operationalControlsReady:
+      controls.waf && controls.budget && controls.observability,
   };
 }
 

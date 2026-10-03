@@ -43,6 +43,9 @@ const env = {
   AI_GATEWAY_API_KEY: 'test-token-not-a-real-secret',
   READPLUS_ALLOWED_ORIGINS: 'https://fhenriquefcruz.github.io',
   READPLUS_CLIENT_TOKEN: 'session-access-token',
+  READPLUS_WAF_READY: 'true',
+  READPLUS_BUDGET_READY: 'true',
+  READPLUS_OBSERVABILITY_READY: 'true',
 };
 
 function request(body: unknown = payload, origin = 'https://fhenriquefcruz.github.io') {
@@ -98,6 +101,18 @@ describe('server-side intelligence gateway', () => {
 
     expect(response.status).toBe(503);
     expect(await response.json()).toMatchObject({ error: 'gateway_disabled' });
+  });
+
+  it('fica fail-closed enquanto controles operacionais não estiverem prontos', async () => {
+    const response = await handleIntelligenceRequest(request(), {
+      env: { ...env, READPLUS_WAF_READY: 'false' },
+      fetchImpl: vi.fn() as unknown as typeof fetch,
+    });
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({
+      error: 'gateway_controls_incomplete',
+    });
   });
 
   it('valida IDs, limites e consentimento antes de chamar o modelo', () => {

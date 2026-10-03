@@ -128,7 +128,7 @@ describe('intelligence gateway health-check', () => {
         new Response(
           JSON.stringify({
             service: 'readplus-intelligence-gateway',
-            version: '8',
+            version: '10',
             enabled: false,
             configured: true,
             authenticationConfigured: true,
@@ -139,7 +139,7 @@ describe('intelligence gateway health-check', () => {
     });
 
     expect(health.state).toBe('disabled');
-    expect(health.version).toBe('8');
+    expect(health.version).toBe('10');
   });
 
   it('só marca ready quando processamento externo está disponível', async () => {
@@ -149,10 +149,16 @@ describe('intelligence gateway health-check', () => {
         new Response(
           JSON.stringify({
             service: 'readplus-intelligence-gateway',
-            version: '8',
+            version: '10',
             enabled: true,
             configured: true,
             authenticationConfigured: true,
+            operationalControlsReady: true,
+            controls: {
+              waf: true,
+              budget: true,
+              observability: true,
+            },
             externalProcessingAvailable: true,
           }),
           { status: 200, headers: { 'Content-Type': 'application/json' } },
@@ -161,6 +167,33 @@ describe('intelligence gateway health-check', () => {
 
     expect(health.state).toBe('ready');
     expect(health.externalProcessingAvailable).toBe(true);
+  });
+
+  it('mantém estado incomplete quando controles operacionais não estão prontos', async () => {
+    const health = await checkIntelligenceGatewayHealth({
+      baseUrl: 'https://gateway.example',
+      fetchImpl: async () =>
+        new Response(
+          JSON.stringify({
+            service: 'readplus-intelligence-gateway',
+            version: '10',
+            enabled: true,
+            configured: true,
+            authenticationConfigured: true,
+            operationalControlsReady: false,
+            controls: {
+              waf: false,
+              budget: true,
+              observability: true,
+            },
+            externalProcessingAvailable: false,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+    });
+
+    expect(health.state).toBe('incomplete');
+    expect(health.controls?.waf).toBe(false);
   });
 
   it('rejeita endpoint que não se identifica como gateway READ+', async () => {

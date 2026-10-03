@@ -63,6 +63,17 @@ A rodada **Query Replay & Gateway Status (v9)** fecha duas lacunas operacionais:
 - gateway distingue não configurado, desativado, incompleto, indisponível e pronto;
 - o formulário generativo permanece fail-closed até `externalProcessingAvailable=true`.
 
+A rodada **Gateway Infrastructure Readiness (v10)** endurece a fronteira operacional:
+
+- deploy Vercel manual e reproduzível por GitHub Actions;
+- credenciais de infraestrutura com nomes exclusivos do READ+;
+- identidade do projeto Vercel verificada antes do deploy;
+- deploy inicial obrigatório em modo fail-closed;
+- WAF/rate limiting, budget e observabilidade passam a ser guardas explícitos;
+- `READPLUS_AI_ENABLED=true` sozinho não libera processamento externo;
+- smoke dedicado de `/api/health` após deploy;
+- nenhuma infraestrutura de outro produto é reutilizada.
+
 Documentação:
 - [Auditoria — Fases 0 e 1](docs/audit-phase-0-1.md)
 - [Arquitetura](docs/architecture.md)
@@ -211,8 +222,8 @@ https://fhenriquefcruz.github.io/read/
 
 ## Próximas prioridades
 
-1. criar/vincular o projeto Vercel do gateway e configurar WAF/rate limiting/budgets;
-2. ativar a síntese generativa opt-in somente após os controles de abuso;
-3. migrar do token compartilhado de piloto para autenticação individual quando houver contas;
-4. comparação semântica assistida somente como sugestão, nunca como conclusão automática;
-5. importação por ISBN e melhorias adicionais de matching bibliográfico.
+1. provisionar um projeto Vercel exclusivo do READ+ e executar o workflow v10 em modo fail-closed;
+2. configurar WAF/rate limiting, budget e observabilidade e confirmar o smoke do gateway;
+3. ativar a síntese generativa opt-in somente depois dos guardas operacionais;
+4. migrar do token compartilhado de piloto para autenticação individual quando houver contas;
+5. comparação semântica assistida somente como sugestão, nunca como conclusão automática.

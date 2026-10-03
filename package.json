@@ -15,7 +15,9 @@
     "validate": "npm run security && npm run lint && npm run typecheck && npm run test:unit && npm run build",
     "test:unit": "vitest run",
     "security": "node scripts/security-check.mjs",
-    "format:check": "biome format src api tests e2e scripts"
+    "format:check": "biome format src api tests e2e scripts",
+    "gateway:readiness": "node scripts/gateway-readiness.mjs",
+    "gateway:smoke": "node scripts/gateway-smoke.mjs"
   },
   "dependencies": {
     "react": "19.3.0",
