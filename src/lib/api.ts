@@ -135,7 +135,8 @@ function openAlexFilters(parsed: ParsedQuery): string[] {
   const filters: string[] = [];
   const { yearFrom, yearTo, type, openAccess, language } = parsed.filters;
 
-  if (yearFrom && yearTo && yearFrom === yearTo) filters.push(`publication_year:${yearFrom}`);
+  if (yearFrom) filters.push(`from_publication_date:${yearFrom}-01-01`);
+  if (yearTo) filters.push(`to_publication_date:${yearTo}-12-31`);
   if (type) filters.push(`type:${encodeURIComponent(type)}`);
   if (openAccess === true) filters.push('open_access.is_oa:true');
   if (openAccess === false) filters.push('open_access.is_oa:false');
@@ -148,7 +149,7 @@ async function searchOpenAlex(parsed: ParsedQuery, signal?: AbortSignal): Promis
   const params = new URLSearchParams();
   params.set('search', parsed.freeText || parsed.raw);
   params.set('per_page', '35');
-  params.set('sort', '-relevance_score');
+  params.set('sort', 'relevance_score:desc');
   params.set(
     'select',
     'id,doi,title,publication_year,type,language,cited_by_count,authorships,abstract_inverted_index,primary_location,best_oa_location,open_access,topics',
@@ -311,6 +312,19 @@ export async function searchAcademic(
     const cached = localStorage.getItem(key);
     if (cached) {
       const parsedCache = JSON.parse(cached) as CachedSearch;
+      if (!navigator.onLine) {
+        return {
+          ...parsedCache.response,
+          providers: parsedCache.response.providers.map((provider) => ({
+            ...provider,
+            ok: false,
+            count: 0,
+            message: 'Offline — exibindo resultados armazenados localmente.',
+          })),
+          fromCache: true,
+        };
+      }
+
       if (Date.now() - parsedCache.timestamp < CACHE_TTL_MS) {
         return { ...parsedCache.response, fromCache: true };
       }
