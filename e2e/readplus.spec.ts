@@ -184,11 +184,11 @@ test('workspace preserva evidência rastreável e interpretação após reload',
     .fill('O ganho depende de governança e rastreabilidade da decisão.');
   await page.getByRole('button', { name: 'Registrar evidência' }).click();
 
+  await expect(page.getByLabel('Evidência da fonte')).toHaveValue('');
   await expect(
-    page.getByText(
-      'Machine learning supports evidence in public administration.',
-      { exact: true },
-    ),
+    page.getByRole('blockquote').filter({
+      hasText: 'Machine learning supports evidence in public administration.',
+    }),
   ).toBeVisible();
   await expect(
     page.getByText(
@@ -205,10 +205,9 @@ test('workspace preserva evidência rastreável e interpretação após reload',
   await page.getByRole('button', { name: 'Pesquisas' }).click();
 
   await expect(
-    page.getByText(
-      'Machine learning supports evidence in public administration.',
-      { exact: true },
-    ),
+    page.getByRole('blockquote').filter({
+      hasText: 'Machine learning supports evidence in public administration.',
+    }),
   ).toBeVisible();
   await expect(
     page.getByText(
