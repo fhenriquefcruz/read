@@ -98,9 +98,9 @@ export function LibraryView({
           </p>
         </div>
       ) : (
-        <div className="library-table" role="list">
+        <ul className="library-table">
           {filtered.map((entry) => (
-            <article className="library-row" key={entry.id} role="listitem">
+            <li className="library-row" key={entry.id}>
               <div className="library-row__content">
                 <button
                   className="work-title work-title--compact"
@@ -165,9 +165,9 @@ export function LibraryView({
                   Remover
                 </button>
               </div>
-            </article>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </main>
   );
