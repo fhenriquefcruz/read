@@ -167,29 +167,29 @@ describe('fetchWorkRelations integration', () => {
           return new Response(
             JSON.stringify({
               id: 'https://openalex.org/W123',
-              referenced_works: ['https://openalex.org/WREF'],
-              related_works: ['https://openalex.org/WREL'],
+              referenced_works: ['https://openalex.org/W1001'],
+              related_works: ['https://openalex.org/W1002'],
             }),
             { status: 200 },
           );
         }
 
         const filter = url.searchParams.get('filter') ?? '';
-        if (filter.startsWith('openalex:WREF')) {
+        if (filter.startsWith('openalex:W1001')) {
           return new Response(
-            JSON.stringify({ results: [fixture('WREF', 'Foundational Reference')] }),
+            JSON.stringify({ results: [fixture('W1001', 'Foundational Reference')] }),
             { status: 200 },
           );
         }
-        if (filter.startsWith('openalex:WREL')) {
+        if (filter.startsWith('openalex:W1002')) {
           return new Response(
-            JSON.stringify({ results: [fixture('WREL', 'Related Study')] }),
+            JSON.stringify({ results: [fixture('W1002', 'Related Study')] }),
             { status: 200 },
           );
         }
         if (filter === 'cites:W123') {
           return new Response(
-            JSON.stringify({ results: [fixture('WCITE', 'Recent Citing Study')] }),
+            JSON.stringify({ results: [fixture('W1003', 'Recent Citing Study')] }),
             { status: 200 },
           );
         }

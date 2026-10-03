@@ -64,17 +64,17 @@ function relatedWork(id: string, title: string, year: number) {
 }
 
 export const OPENALEX_REFERENCE = relatedWork(
-  'WREF',
+  'W1001',
   'Foundations of Digital Government',
   2019,
 );
 export const OPENALEX_CITING = relatedWork(
-  'WCITE',
+  'W1003',
   'Accountable AI in Government',
   2026,
 );
 export const OPENALEX_RELATED = relatedWork(
-  'WREL',
+  'W1002',
   'Algorithmic Decision Support in the Public Sector',
   2024,
 );
@@ -120,15 +120,15 @@ export async function mockAcademicApis(
         contentType: 'application/json',
         body: JSON.stringify({
           id: 'https://openalex.org/W123',
-          referenced_works: ['https://openalex.org/WREF'],
-          related_works: ['https://openalex.org/WREL'],
+          referenced_works: ['https://openalex.org/W1001'],
+          related_works: ['https://openalex.org/W1002'],
         }),
       });
       return;
     }
 
     const filter = url.searchParams.get('filter') ?? '';
-    if (filter.startsWith('openalex:WREF')) {
+    if (filter.startsWith('openalex:W1001')) {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -136,7 +136,7 @@ export async function mockAcademicApis(
       });
       return;
     }
-    if (filter.startsWith('openalex:WREL')) {
+    if (filter.startsWith('openalex:W1002')) {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -153,7 +153,7 @@ export async function mockAcademicApis(
       return;
     }
 
-    if (/\/works\/W(?:REF|REL|CITE)$/.test(url.pathname)) {
+    if (/\/works\/W(?:1001|1002|1003)$/.test(url.pathname)) {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
