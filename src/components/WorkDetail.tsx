@@ -1,5 +1,6 @@
 import type { AcademicWork } from '../types';
 import { Icon } from './Icons';
+import { ExternalLink } from './ExternalLink';
 
 interface WorkDetailProps {
   work: AcademicWork;
@@ -64,16 +65,12 @@ export function WorkDetail({ work, saved, onClose, onSave }: WorkDetailProps) {
           <Icon name={saved ? 'check' : 'bookmark'} />
           {saved ? 'Salvo na biblioteca' : 'Salvar na biblioteca'}
         </button>
-        {work.officialUrl && (
-          <a className="secondary-button" href={work.officialUrl} target="_blank" rel="noreferrer">
-            <Icon name="external" /> Fonte oficial
-          </a>
-        )}
-        {work.pdfUrl && (
-          <a className="secondary-button" href={work.pdfUrl} target="_blank" rel="noreferrer">
-            <Icon name="file" /> PDF Open Access
-          </a>
-        )}
+        <ExternalLink className="secondary-button" href={work.officialUrl}>
+          <Icon name="external" /> Fonte oficial
+        </ExternalLink>
+        <ExternalLink className="secondary-button" href={work.pdfUrl}>
+          <Icon name="file" /> PDF Open Access
+        </ExternalLink>
       </div>
     </aside>
   );
