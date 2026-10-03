@@ -78,12 +78,28 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
   }, [evidenceWorkId, selectedWorks]);
 
   async function persist(workspace: Workspace) {
-    await workspaceStore.save(workspace);
     setWorkspaces((current) => {
       const next = current.filter((item) => item.id !== workspace.id);
       return [workspace, ...next];
     });
     setActiveId(workspace.id);
+
+    try {
+      await workspaceStore.save(workspace);
+    } catch (error) {
+      const stored = await workspaceStore.list();
+      const normalized = stored
+        .map((item) => ({
+          ...item,
+          evidence: item.evidence ?? [],
+          queries: item.queries ?? [],
+          workIds: item.workIds ?? [],
+        }))
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+      setWorkspaces(normalized);
+      setActiveId(normalized[0]?.id);
+      throw error;
+    }
   }
 
   async function createWorkspace(event: React.FormEvent) {
