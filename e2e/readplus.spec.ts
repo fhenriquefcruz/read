@@ -453,7 +453,10 @@ ER  -
     .getByRole('checkbox', { name: /Contrasting Governance Study/ })
     .check();
 
-  const source = page.getByLabel('Fonte', { exact: true });
+  const source = page.getByRole('combobox', {
+    name: 'Fonte da evidência',
+    exact: true,
+  });
   await source.selectOption({ label: 'Machine Learning in Public Administration' });
   await page
     .getByLabel('Evidência da fonte')

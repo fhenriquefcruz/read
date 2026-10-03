@@ -545,6 +545,7 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
                     <label>
                       Fonte
                       <select
+                        aria-label="Fonte da evidência"
                         value={evidenceWorkId}
                         onChange={(event) => setEvidenceWorkId(event.target.value)}
                       >
