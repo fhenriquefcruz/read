@@ -1,0 +1,69 @@
+const DEFAULT_ALLOWED_ORIGIN = 'https://fhenriquefcruz.github.io';
+
+export interface GatewayRuntimeConfig {
+  enabled: boolean;
+  token?: string;
+  model?: string;
+  allowedOrigins: Set<string>;
+}
+
+export function gatewayRuntimeConfig(
+  env: NodeJS.ProcessEnv = process.env,
+): GatewayRuntimeConfig {
+  const configuredOrigins = env.READPLUS_ALLOWED_ORIGINS
+    ?.split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return {
+    enabled: env.READPLUS_AI_ENABLED === 'true',
+    token: env.AI_GATEWAY_API_KEY ?? env.VERCEL_OIDC_TOKEN,
+    model: env.READPLUS_AI_MODEL?.trim() || undefined,
+    allowedOrigins: new Set(
+      configuredOrigins?.length
+        ? configuredOrigins
+        : [DEFAULT_ALLOWED_ORIGIN],
+    ),
+  };
+}
+
+export function isAllowedOrigin(
+  request: Request,
+  config: GatewayRuntimeConfig,
+): boolean {
+  const origin = request.headers.get('origin');
+  return Boolean(origin && config.allowedOrigins.has(origin));
+}
+
+export function corsHeaders(
+  request: Request,
+  config: GatewayRuntimeConfig,
+): Headers {
+  const headers = new Headers({
+    'Cache-Control': 'no-store',
+    Vary: 'Origin',
+  });
+  const origin = request.headers.get('origin');
+  if (origin && config.allowedOrigins.has(origin)) {
+    headers.set('Access-Control-Allow-Origin', origin);
+    headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    headers.set(
+      'Access-Control-Allow-Headers',
+      'Content-Type, X-Readplus-Request',
+    );
+    headers.set('Access-Control-Max-Age', '600');
+  }
+  return headers;
+}
+
+export function jsonResponse(
+  request: Request,
+  config: GatewayRuntimeConfig,
+  value: unknown,
+  status = 200,
+): Response {
+  const headers = corsHeaders(request, config);
+  headers.set('Content-Type', 'application/json; charset=utf-8');
+  headers.set('X-Content-Type-Options', 'nosniff');
+  return new Response(JSON.stringify(value), { status, headers });
+}

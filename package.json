@@ -7,15 +7,15 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "biome lint src tests e2e scripts",
-    "format": "biome format --write src tests e2e scripts",
+    "lint": "biome lint src api tests e2e scripts",
+    "format": "biome format --write src api tests e2e scripts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "validate": "npm run security && npm run lint && npm run typecheck && npm run test:unit && npm run build",
     "test:unit": "vitest run",
     "security": "node scripts/security-check.mjs",
-    "format:check": "biome format src tests e2e scripts"
+    "format:check": "biome format src api tests e2e scripts"
   },
   "dependencies": {
     "react": "19.3.0",
