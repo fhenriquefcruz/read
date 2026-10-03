@@ -62,6 +62,15 @@ export interface WorkspaceQuery {
   createdAt: string;
 }
 
+export interface SearchReplayRequest {
+  id: string;
+  raw: string;
+  filters: SearchFilters;
+  sourceWorkspaceId: string;
+  sourceWorkspaceTitle: string;
+  requestedAt: string;
+}
+
 export interface ProviderStatus {
   provider: ProviderName;
   ok: boolean;

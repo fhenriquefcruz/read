@@ -15,8 +15,11 @@ import {
   type IntelligenceGatewayClaim,
 } from '../lib/intelligence-gateway';
 import {
+  checkIntelligenceGatewayHealth,
   configuredIntelligenceGatewayUrl,
   runGenerativeIntelligence,
+  type IntelligenceGatewayHealth,
+  type IntelligenceGatewayHealthState,
 } from '../lib/generative-intelligence';
 import type {
   AcademicWork,
@@ -65,6 +68,55 @@ const gapPriorityLabels = {
   low: 'Baixa',
 } as const;
 
+function gatewayHealthCopy(state: IntelligenceGatewayHealthState) {
+  if (state === 'ready') {
+    return {
+      label: 'Disponível',
+      title: 'Gateway pronto para execução opt-in',
+      detail:
+        'Backend, autenticação e processamento externo estão habilitados. O envio ainda exige chave de sessão e consentimento explícito.',
+    };
+  }
+  if (state === 'disabled') {
+    return {
+      label: 'Desativado',
+      title: 'Gateway publicado, geração desligada',
+      detail:
+        'O endpoint respondeu normalmente, mas READPLUS_AI_ENABLED permanece desativado.',
+    };
+  }
+  if (state === 'incomplete') {
+    return {
+      label: 'Incompleto',
+      title: 'Gateway com configuração incompleta',
+      detail:
+        'O endpoint existe, mas ainda faltam modelo, autenticação ou credencial server-side.',
+    };
+  }
+  if (state === 'unreachable') {
+    return {
+      label: 'Indisponível',
+      title: 'Gateway não pôde ser verificado',
+      detail:
+        'A URL está configurada, mas o health-check não respondeu como um gateway READ+ válido.',
+    };
+  }
+  if (state === 'checking') {
+    return {
+      label: 'Verificando',
+      title: 'Verificando disponibilidade do gateway',
+      detail:
+        'Somente o endpoint de saúde está sendo consultado; nenhuma evidência é enviada.',
+    };
+  }
+  return {
+    label: 'Não configurado',
+    title: 'Gateway seguro ainda obrigatório',
+    detail:
+      'Configure VITE_INTELLIGENCE_GATEWAY_URL para conectar o frontend a um backend protegido.',
+  };
+}
+
 export function ResearchIntelligence({
   workspace,
   evidence,
@@ -84,6 +136,9 @@ export function ResearchIntelligence({
   const [relationNote, setRelationNote] = useState('');
   const gatewayUrl = configuredIntelligenceGatewayUrl();
   const [gatewayAccessToken, setGatewayAccessToken] = useState('');
+  const [gatewayHealth, setGatewayHealth] = useState<IntelligenceGatewayHealth>(
+    () => ({ state: gatewayUrl ? 'checking' : 'unconfigured' }),
+  );
   const [externalConsent, setExternalConsent] = useState(false);
   const [gatewayState, setGatewayState] = useState<
     'idle' | 'loading' | 'success' | 'error'
@@ -92,6 +147,34 @@ export function ResearchIntelligence({
   const [generatedClaims, setGeneratedClaims] = useState<
     IntelligenceGatewayClaim[]
   >([]);
+
+  useEffect(() => {
+    if (!gatewayUrl) {
+      setGatewayHealth({ state: 'unconfigured' });
+      return;
+    }
+
+    const controller = new AbortController();
+    setGatewayHealth({ state: 'checking' });
+
+    void checkIntelligenceGatewayHealth({
+      baseUrl: gatewayUrl,
+      signal: controller.signal,
+    })
+      .then(setGatewayHealth)
+      .catch((error) => {
+        if (controller.signal.aborted) return;
+        setGatewayHealth({
+          state: 'unreachable',
+        });
+        console.warn(
+          'READ+ intelligence gateway health-check failed:',
+          error instanceof Error ? error.message : 'unknown error',
+        );
+      });
+
+    return () => controller.abort();
+  }, [gatewayUrl]);
 
   useEffect(() => {
     setSelectedIds(new Set(evidence.map((item) => item.id)));
@@ -590,15 +673,29 @@ export function ResearchIntelligence({
         <div className="generative-gateway-note">
           <div>
             <span className="lens-label">IA generativa</span>
-            <strong>Gateway seguro ainda obrigatório</strong>
-            <p>
-              O código server-side está preparado, mas a publicação está
-              desativada até existir um endpoint Vercel configurado e protegido.
-            </p>
+            <strong>{gatewayHealthCopy('unconfigured').title}</strong>
+            <p>{gatewayHealthCopy('unconfigured').detail}</p>
           </div>
           <span className="chip chip--quiet">Não conectado</span>
         </div>
       ) : (
+        <>
+          <div
+            className={`gateway-health gateway-health--${gatewayHealth.state}`}
+            role="status"
+            aria-live="polite"
+          >
+            <div>
+              <span className="lens-label">Status do gateway</span>
+              <strong>{gatewayHealthCopy(gatewayHealth.state).title}</strong>
+              <p>{gatewayHealthCopy(gatewayHealth.state).detail}</p>
+            </div>
+            <span className="chip chip--quiet">
+              {gatewayHealthCopy(gatewayHealth.state).label}
+            </span>
+          </div>
+
+          {gatewayHealth.state === 'ready' ? (
         <section className="generative-panel" aria-labelledby="generative-title">
           <div className="intelligence-subsection__head">
             <div>
@@ -691,6 +788,20 @@ export function ResearchIntelligence({
             </div>
           )}
         </section>
+          ) : (
+            <div className="generative-gateway-note">
+              <div>
+                <span className="lens-label">Execução externa</span>
+                <strong>Geração permanece bloqueada</strong>
+                <p>
+                  O formulário de acesso só é liberado quando o health-check
+                  confirma processamento externo disponível.
+                </p>
+              </div>
+              <span className="chip chip--quiet">Fail-closed</span>
+            </div>
+          )}
+        </>
       )}
     </section>
   );

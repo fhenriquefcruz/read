@@ -1,7 +1,12 @@
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { searchAcademic } from '../lib/api';
 import { searchHistoryStore } from '../lib/storage';
-import type { AcademicWork, ProviderStatus, SearchFilters } from '../types';
+import type {
+  AcademicWork,
+  ProviderStatus,
+  SearchFilters,
+  SearchReplayRequest,
+} from '../types';
 import { Icon } from '../components/Icons';
 import { ExternalLink } from '../components/ExternalLink';
 
@@ -9,6 +14,8 @@ interface DiscoverViewProps {
   savedIds: Set<string>;
   onSelect: (work: AcademicWork) => void;
   onSave: (work: AcademicWork) => void;
+  replayRequest: SearchReplayRequest | null;
+  onReplayConsumed: (id: string) => void;
 }
 
 const defaultFilters: SearchFilters = { sort: 'relevance' };
@@ -22,6 +29,8 @@ export function DiscoverView({
   savedIds,
   onSelect,
   onSave,
+  replayRequest,
+  onReplayConsumed,
 }: DiscoverViewProps) {
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<SearchFilters>(defaultFilters);
@@ -32,62 +41,95 @@ export function DiscoverView({
     'Pesquise um tema, pergunta ou autor para iniciar uma investigação.',
   );
   const [fromCache, setFromCache] = useState(false);
+  const [replaySourceTitle, setReplaySourceTitle] = useState<string>();
   const abortRef = useRef<AbortController | null>(null);
+  const lastReplayIdRef = useRef<string | undefined>(undefined);
 
-  async function executeSearch(event?: React.FormEvent) {
+  const runSearch = useCallback(
+    async (
+      rawQuery: string,
+      activeFilters: SearchFilters,
+      options: {
+        recordHistory: boolean;
+        replaySourceTitle?: string;
+      },
+    ) => {
+      const trimmed = rawQuery.trim();
+      if (!trimmed) {
+        setMessage('Digite um tema ou uma consulta estruturada.');
+        return;
+      }
+
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      setLoading(true);
+      setReplaySourceTitle(options.replaySourceTitle);
+      setMessage('Consultando fontes acadêmicas…');
+
+      try {
+        const response = await searchAcademic(
+          trimmed,
+          activeFilters,
+          controller.signal,
+        );
+        setWorks(response.works);
+        setProviders(response.providers);
+        setFromCache(response.fromCache);
+
+        if (options.recordHistory) {
+          const now = new Date().toISOString();
+          const historyId =
+            typeof crypto.randomUUID === 'function'
+              ? crypto.randomUUID()
+              : `search-${Date.now()}`;
+          void searchHistoryStore.save({
+            id: historyId,
+            raw: trimmed,
+            filters: { ...activeFilters },
+            resultCount: response.works.length,
+            createdAt: now,
+          });
+        }
+
+        setMessage(
+          response.works.length
+            ? `${response.works.length} trabalhos únicos encontrados e normalizados.`
+            : 'Nenhum trabalho correspondeu aos critérios. Nenhum resultado artificial foi adicionado.',
+        );
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+        setWorks([]);
+        setProviders([]);
+        setMessage(
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível concluir a busca.',
+        );
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    },
+    [],
+  );
+
+  function executeSearch(event?: React.FormEvent) {
     event?.preventDefault();
-    const trimmed = query.trim();
-    if (!trimmed) {
-      setMessage('Digite um tema ou uma consulta estruturada.');
-      return;
-    }
-
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-    setLoading(true);
-    setMessage('Consultando fontes acadêmicas…');
-
-    try {
-      const response = await searchAcademic(
-        trimmed,
-        filters,
-        controller.signal,
-      );
-      setWorks(response.works);
-      setProviders(response.providers);
-      setFromCache(response.fromCache);
-
-      const now = new Date().toISOString();
-      const historyId =
-        typeof crypto.randomUUID === 'function'
-          ? crypto.randomUUID()
-          : `search-${Date.now()}`;
-      void searchHistoryStore.save({
-        id: historyId,
-        raw: trimmed,
-        filters: { ...filters },
-        resultCount: response.works.length,
-        createdAt: now,
-      });
-      setMessage(
-        response.works.length
-          ? `${response.works.length} trabalhos únicos encontrados e normalizados.`
-          : 'Nenhum trabalho correspondeu aos critérios. Nenhum resultado artificial foi adicionado.',
-      );
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') return;
-      setWorks([]);
-      setProviders([]);
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : 'Não foi possível concluir a busca.',
-      );
-    } finally {
-      if (!controller.signal.aborted) setLoading(false);
-    }
+    void runSearch(query, filters, { recordHistory: true });
   }
+
+  useEffect(() => {
+    if (!replayRequest || lastReplayIdRef.current === replayRequest.id) return;
+
+    lastReplayIdRef.current = replayRequest.id;
+    setQuery(replayRequest.raw);
+    setFilters({ ...replayRequest.filters });
+
+    void runSearch(replayRequest.raw, replayRequest.filters, {
+      recordHistory: false,
+      replaySourceTitle: replayRequest.sourceWorkspaceTitle,
+    }).finally(() => onReplayConsumed(replayRequest.id));
+  }, [onReplayConsumed, replayRequest, runSearch]);
 
   const oaCount = works.filter((work) => work.isOpenAccess).length;
   const recentCount = works.filter(
@@ -226,6 +268,11 @@ export function DiscoverView({
           <span>{message}</span>
           {fromCache && (
             <span className="status-pill">cache local recente</span>
+          )}
+          {replaySourceTitle && (
+            <span className="status-pill">
+              reexecutada de {replaySourceTitle}
+            </span>
           )}
         </div>
 

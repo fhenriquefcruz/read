@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
+  checkIntelligenceGatewayHealth,
   configuredIntelligenceGatewayUrl,
   runGenerativeIntelligence,
 } from '../src/lib/generative-intelligence';
@@ -103,5 +104,75 @@ describe('generative intelligence client', () => {
         fetchImpl,
       }),
     ).rejects.toThrow('evidência inexistente');
+  });
+});
+
+
+describe('intelligence gateway health-check', () => {
+  it('não chama a rede quando a URL pública não está configurada', async () => {
+    const fetchImpl = vi.fn();
+
+    const health = await checkIntelligenceGatewayHealth({
+      baseUrl: undefined,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+
+    expect(health.state).toBe('unconfigured');
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('distingue gateway publicado porém desativado', async () => {
+    const health = await checkIntelligenceGatewayHealth({
+      baseUrl: 'https://gateway.example',
+      fetchImpl: async () =>
+        new Response(
+          JSON.stringify({
+            service: 'readplus-intelligence-gateway',
+            version: '8',
+            enabled: false,
+            configured: true,
+            authenticationConfigured: true,
+            externalProcessingAvailable: false,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+    });
+
+    expect(health.state).toBe('disabled');
+    expect(health.version).toBe('8');
+  });
+
+  it('só marca ready quando processamento externo está disponível', async () => {
+    const health = await checkIntelligenceGatewayHealth({
+      baseUrl: 'https://gateway.example',
+      fetchImpl: async () =>
+        new Response(
+          JSON.stringify({
+            service: 'readplus-intelligence-gateway',
+            version: '8',
+            enabled: true,
+            configured: true,
+            authenticationConfigured: true,
+            externalProcessingAvailable: true,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+    });
+
+    expect(health.state).toBe('ready');
+    expect(health.externalProcessingAvailable).toBe(true);
+  });
+
+  it('rejeita endpoint que não se identifica como gateway READ+', async () => {
+    await expect(
+      checkIntelligenceGatewayHealth({
+        baseUrl: 'https://gateway.example',
+        fetchImpl: async () =>
+          new Response(JSON.stringify({ service: 'other' }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+      }),
+    ).rejects.toThrow('gateway READ+ válido');
   });
 });

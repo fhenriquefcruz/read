@@ -337,3 +337,48 @@ Antes de ativar `READPLUS_AI_ENABLED` em produção, o projeto Vercel deve ter:
 - alertas de custo.
 
 A v8 permanece segura mesmo sem esses controles porque a integração externa fica desligada por padrão.
+
+
+## Query Replay & Gateway Status — v9
+
+### Query replay
+
+`WorkspaceQuery` deixa de ser apenas registro histórico e passa a ser também uma instrução reproduzível de busca.
+
+Ao escolher **Reexecutar**:
+1. o App cria um `SearchReplayRequest` efêmero;
+2. navega para Discovery;
+3. restaura consulta bruta e `SearchFilters`;
+4. executa a busca real contra os provedores;
+5. identifica visualmente o workspace de origem;
+6. não cria uma nova entrada idêntica em `search_history`.
+
+Cada clique recebe um ID efêmero próprio, permitindo reexecutar o mesmo recorte mais de uma vez sem depender de mutação do objeto persistido.
+
+### Gateway health
+
+O cliente pode consultar `GET /api/health` quando
+`VITE_INTELLIGENCE_GATEWAY_URL` estiver configurada.
+
+O health-check:
+- não usa `READPLUS_CLIENT_TOKEN`;
+- não envia corpus, evidências, relações ou pergunta;
+- não chama modelo;
+- valida que o serviço se identifica como `readplus-intelligence-gateway`.
+
+Estados de UI:
+- **unconfigured** — URL pública ausente;
+- **checking** — consulta em andamento;
+- **disabled** — backend publicado, `READPLUS_AI_ENABLED` desligado;
+- **incomplete** — endpoint existe, mas faltam controles/configuração;
+- **unreachable** — endpoint não pôde ser validado;
+- **ready** — `externalProcessingAvailable=true`.
+
+O formulário generativo só é renderizado em estado **ready**. Portanto, configurar uma URL por engano não é suficiente para liberar envio externo.
+
+### Estado de infraestrutura
+
+Na conta Vercel conectada durante a v9 não havia projeto disponível para READ+.
+Por isso a v9 não ativa geração externa nem cria segredo automaticamente.
+A próxima etapa operacional é provisionar o projeto e aplicar rate limiting/WAF,
+budgets e observabilidade antes de habilitar `READPLUS_AI_ENABLED`.

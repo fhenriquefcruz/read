@@ -1418,6 +1418,32 @@
     border-top: 1px solid var(--line);
     padding-top: 16px;
   }
+  .gateway-health {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--surface-subtle);
+    padding: 13px;
+  }
+  .gateway-health > div {
+    display: grid;
+    gap: 3px;
+  }
+  .gateway-health strong {
+    font-size: 0.76rem;
+  }
+  .gateway-health p {
+    max-width: 650px;
+    color: var(--text-faint);
+    font-size: 0.68rem;
+    line-height: 1.5;
+  }
+  .gateway-health--ready {
+    border-color: var(--line-strong);
+  }
   .generative-gateway-note > div {
     display: grid;
     gap: 3px;
@@ -1452,6 +1478,13 @@
     display: grid;
     gap: 3px;
     min-width: 0;
+  }
+  .workspace-query__actions {
+    display: flex !important;
+    grid-auto-flow: column;
+    gap: 8px !important;
+    align-items: center;
+    flex: 0 0 auto;
   }
   .workspace-query strong,
   .recent-query-list strong {

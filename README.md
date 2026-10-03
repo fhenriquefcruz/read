@@ -53,6 +53,16 @@ A rodada **Secure Intelligence Gateway (v8)** cria a fronteira server-side real,
 - fail-closed se gateway, modelo, autenticação ou ativação estiverem ausentes;
 - CI passa a auditar também o código em `api/`.
 
+A rodada **Query Replay & Gateway Status (v9)** fecha duas lacunas operacionais:
+
+- consultas preservadas no workspace podem ser reexecutadas diretamente na Descoberta;
+- consulta e filtros estruturados são restaurados exatamente;
+- replay não cria uma entrada duplicada no histórico;
+- resultados identificam o workspace de origem do replay;
+- o frontend consulta `/api/health` sem token, prompt ou evidência;
+- gateway distingue não configurado, desativado, incompleto, indisponível e pronto;
+- o formulário generativo permanece fail-closed até `externalProcessingAvailable=true`.
+
 Documentação:
 - [Auditoria — Fases 0 e 1](docs/audit-phase-0-1.md)
 - [Arquitetura](docs/architecture.md)
@@ -111,6 +121,7 @@ O frontend continua estático nesta etapa para preservar o GitHub Pages. Integra
 - corpus formado a partir da biblioteca;
 - histórico de consultas capturado na descoberta;
 - consultas com filtros e contagem do recorte preservadas na pesquisa;
+- reexecução de consultas preservadas diretamente na Descoberta, restaurando os filtros do recorte;
 - compatibilidade com workspaces antigos que armazenavam consultas como strings;
 - Evidence Board;
 - evidências classificadas como achado, método, limitação, definição ou trecho;
@@ -131,7 +142,9 @@ O frontend continua estático nesta etapa para preservar o GitHub Pages. Integra
 - gateway v2 condicionado a server-side, consentimento e grounding obrigatório;
 - cliente generativo opt-in preparado para endpoint Vercel;
 - chave de acesso mantida apenas em memória durante a sessão;
-- gateway externo desativado quando a URL pública não está configurada.
+- gateway externo desativado quando a URL pública não está configurada;
+- health-check público não sensível antes de liberar o formulário generativo;
+- geração bloqueada no cliente enquanto o backend não declarar processamento externo disponível.
 
 ### Conhecimento conectado
 - notas atômicas;
@@ -198,9 +211,8 @@ https://fhenriquefcruz.github.io/read/
 
 ## Próximas prioridades
 
-1. reexecução de consultas preservadas diretamente a partir do workspace;
-2. criar/vincular o projeto Vercel do gateway e configurar WAF/rate limiting/budgets;
-3. ativar a síntese generativa opt-in somente após os controles de abuso;
-4. migrar do token compartilhado de piloto para autenticação individual quando houver contas;
-5. comparação semântica assistida somente como sugestão, nunca como conclusão automática;
-6. importação por ISBN e melhorias adicionais de matching bibliográfico.
+1. criar/vincular o projeto Vercel do gateway e configurar WAF/rate limiting/budgets;
+2. ativar a síntese generativa opt-in somente após os controles de abuso;
+3. migrar do token compartilhado de piloto para autenticação individual quando houver contas;
+4. comparação semântica assistida somente como sugestão, nunca como conclusão automática;
+5. importação por ISBN e melhorias adicionais de matching bibliográfico.

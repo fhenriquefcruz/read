@@ -19,6 +19,10 @@ import { ResearchIntelligence } from '../components/ResearchIntelligence';
 interface WorkspaceViewProps {
   library: LibraryEntry[];
   onSelect: (work: AcademicWork) => void;
+  onReplayQuery: (
+    query: WorkspaceQuery,
+    workspace: { id: string; title: string },
+  ) => void;
 }
 
 const evidenceKinds: Array<{ value: EvidenceKind; label: string }> = [
@@ -79,7 +83,11 @@ function filterSummary(filters: SearchFilters): string {
   return parts.join(' · ') || 'sem filtros adicionais';
 }
 
-export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
+export function WorkspaceView({
+  library,
+  onSelect,
+  onReplayQuery,
+}: WorkspaceViewProps) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const workspacesRef = useRef<Workspace[]>([]);
   const [searchHistory, setSearchHistory] = useState<SearchHistoryEntry[]>([]);
@@ -451,13 +459,27 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
                             <small>{item.resultCount} resultados naquele recorte</small>
                           )}
                         </div>
-                        <button
-                          className="text-button text-button--danger"
-                          type="button"
-                          onClick={() => void removeQuery(item.id)}
-                        >
-                          Remover
-                        </button>
+                        <div className="workspace-query__actions">
+                          <button
+                            className="text-button"
+                            type="button"
+                            onClick={() =>
+                              onReplayQuery(item, {
+                                id: active.id,
+                                title: active.title,
+                              })
+                            }
+                          >
+                            Reexecutar
+                          </button>
+                          <button
+                            className="text-button text-button--danger"
+                            type="button"
+                            onClick={() => void removeQuery(item.id)}
+                          >
+                            Remover
+                          </button>
+                        </div>
                       </article>
                     ))}
                   </div>

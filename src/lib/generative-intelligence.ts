@@ -10,6 +10,23 @@ export interface GenerativeIntelligenceResponse
   model?: string;
 }
 
+export type IntelligenceGatewayHealthState =
+  | 'unconfigured'
+  | 'checking'
+  | 'ready'
+  | 'disabled'
+  | 'incomplete'
+  | 'unreachable';
+
+export interface IntelligenceGatewayHealth {
+  state: IntelligenceGatewayHealthState;
+  version?: string;
+  enabled?: boolean;
+  configured?: boolean;
+  authenticationConfigured?: boolean;
+  externalProcessingAvailable?: boolean;
+}
+
 interface GatewayClientOptions {
   baseUrl?: string;
   accessToken: string;
@@ -39,6 +56,62 @@ export function configuredIntelligenceGatewayUrl(
   value: string | undefined = import.meta.env.VITE_INTELLIGENCE_GATEWAY_URL,
 ): string | undefined {
   return normalizeGatewayBaseUrl(value);
+}
+
+export async function checkIntelligenceGatewayHealth(options: {
+  baseUrl?: string;
+  fetchImpl?: typeof fetch;
+  signal?: AbortSignal;
+}): Promise<IntelligenceGatewayHealth> {
+  const baseUrl = normalizeGatewayBaseUrl(options.baseUrl);
+  if (!baseUrl) return { state: 'unconfigured' };
+
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const response = await fetchImpl(`${baseUrl}/api/health`, {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+    signal: options.signal,
+  });
+
+  let value: unknown;
+  try {
+    value = await response.json();
+  } catch {
+    throw new Error('O health-check do gateway retornou resposta inválida.');
+  }
+
+  if (!response.ok || !value || typeof value !== 'object') {
+    throw new Error('Não foi possível verificar a disponibilidade do gateway.');
+  }
+
+  const health = value as Record<string, unknown>;
+  if (health.service !== 'readplus-intelligence-gateway') {
+    throw new Error('O endpoint configurado não é um gateway READ+ válido.');
+  }
+
+  const enabled = health.enabled === true;
+  const configured = health.configured === true;
+  const authenticationConfigured = health.authenticationConfigured === true;
+  const externalProcessingAvailable =
+    health.externalProcessingAvailable === true;
+
+  const state: IntelligenceGatewayHealthState = externalProcessingAvailable
+    ? 'ready'
+    : !enabled
+      ? 'disabled'
+      : !configured || !authenticationConfigured
+        ? 'incomplete'
+        : 'unreachable';
+
+  return {
+    state,
+    version:
+      typeof health.version === 'string' ? health.version : undefined,
+    enabled,
+    configured,
+    authenticationConfigured,
+    externalProcessingAvailable,
+  };
 }
 
 export async function runGenerativeIntelligence(
