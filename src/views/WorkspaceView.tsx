@@ -11,6 +11,7 @@ import type {
   WorkspaceQuery,
 } from '../types';
 import { Icon } from '../components/Icons';
+import { ResearchIntelligence } from '../components/ResearchIntelligence';
 
 interface WorkspaceViewProps {
   library: LibraryEntry[];
@@ -563,6 +564,13 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
                   </div>
                 )}
               </section>
+
+              <ResearchIntelligence
+                workspace={active}
+                evidence={evidence}
+                library={library}
+                onSelect={onSelect}
+              />
 
               <section className="workspace-section">
                 <div className="workspace-section__head">
