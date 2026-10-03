@@ -128,12 +128,21 @@ export default function App() {
   }
 
   async function updateEntry(entry: LibraryEntry) {
-    await libraryStore.save(entry);
     setLibrary((current) =>
       current
         .map((item) => (item.id === entry.id ? entry : item))
         .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
     );
+
+    try {
+      await libraryStore.save(entry);
+    } catch (error) {
+      const stored = await libraryStore.list();
+      setLibrary(
+        stored.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+      );
+      throw error;
+    }
   }
 
   async function removeEntry(id: string) {
