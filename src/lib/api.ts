@@ -382,6 +382,114 @@ function crossrefFilters(parsed: ParsedQuery): string[] {
   return filters;
 }
 
+function mapCrossrefWork(raw: unknown): AcademicWork {
+  const item = raw as JsonObject;
+  const authorRows = Array.isArray(item.author) ? item.author : [];
+  const authors: WorkAuthor[] = authorRows.map((rawAuthor) => {
+    const author = rawAuthor as JsonObject;
+    const name =
+      [safeString(author.given), safeString(author.family)]
+        .filter(Boolean)
+        .join(' ') || 'Autor não identificado';
+    const affiliations = Array.isArray(author.affiliation)
+      ? author.affiliation
+      : [];
+    return {
+      name,
+      orcid: safeString(author.ORCID),
+      institutions: affiliations
+        .map((affiliation) => safeString((affiliation as JsonObject).name))
+        .filter((value): value is string => Boolean(value)),
+    };
+  });
+
+  const titles = Array.isArray(item.title) ? item.title : [];
+  const containers = Array.isArray(item['container-title'])
+    ? item['container-title']
+    : [];
+  const dates = (item.published ?? item.issued ?? {}) as JsonObject;
+  const parts = Array.isArray(dates['date-parts']) ? dates['date-parts'] : [];
+  const firstPart = Array.isArray(parts[0]) ? parts[0] : [];
+  const year = typeof firstPart[0] === 'number' ? firstPart[0] : undefined;
+  const doi = normalizeDoi(item.DOI);
+  const links = Array.isArray(item.link) ? item.link : [];
+  const pdf = links.find((rawLink) => {
+    const link = rawLink as JsonObject;
+    return safeString(link['content-type']) === 'application/pdf';
+  }) as JsonObject | undefined;
+  const licenses = Array.isArray(item.license) ? item.license : [];
+  const firstLicense = licenses[0] as JsonObject | undefined;
+  const title = safeString(titles[0]) ?? 'Sem título';
+
+  return {
+    id: doi ? `doi:${doi}` : canonicalId({ doi, title, authors, year }),
+    title,
+    authors,
+    year,
+    abstract: stripTags(item.abstract),
+    doi,
+    type: safeString(item.type) ?? 'article',
+    venue: safeString(containers[0]),
+    publisher: safeString(item.publisher),
+    language: safeString(item.language),
+    citationCount:
+      typeof item['is-referenced-by-count'] === 'number'
+        ? item['is-referenced-by-count']
+        : 0,
+    concepts: [],
+    isOpenAccess: null,
+    officialUrl: safeExternalUrl(
+      doi ? `https://doi.org/${doi}` : safeString(item.URL),
+    ),
+    pdfUrl: safeExternalUrl(pdf ? safeString(pdf.URL) : undefined),
+    license: firstLicense ? safeString(firstLicense.URL) : undefined,
+    providerIds: { Crossref: doi ?? safeString(item.URL) ?? title },
+    sourceProviders: ['Crossref'],
+  };
+}
+
+export async function resolveDoi(
+  rawDoi: string,
+  signal?: AbortSignal,
+): Promise<AcademicWork> {
+  const doi = normalizeDoi(rawDoi);
+  if (!doi || !/^10\.\d{4,9}\/.+/.test(doi)) {
+    throw new Error('Informe um DOI válido, por exemplo 10.1000/exemplo.');
+  }
+
+  const openAlexParams = new URLSearchParams();
+  openAlexParams.set('filter', `doi:${doi}`);
+  openAlexParams.set('per_page', '1');
+  openAlexParams.set('select', OPENALEX_SELECT);
+
+  const [openAlexResult, crossrefResult] = await Promise.allSettled([
+    fetchJson(`https://api.openalex.org/works?${openAlexParams.toString()}`, signal),
+    fetchJson(`https://api.crossref.org/works/${encodeURIComponent(doi)}`, signal),
+  ]);
+
+  const works: AcademicWork[] = [];
+
+  if (openAlexResult.status === 'fulfilled') {
+    const rows = Array.isArray(openAlexResult.value.results)
+      ? openAlexResult.value.results
+      : [];
+    if (rows[0]) works.push(mapOpenAlexWork(rows[0]));
+  }
+
+  if (crossrefResult.status === 'fulfilled') {
+    const message = crossrefResult.value.message;
+    if (message && typeof message === 'object' && !Array.isArray(message)) {
+      works.push(mapCrossrefWork(message));
+    }
+  }
+
+  const merged = dedupe(works)[0];
+  if (!merged) {
+    throw new Error('DOI não encontrado nas fontes acadêmicas consultadas.');
+  }
+  return merged;
+}
+
 async function searchCrossref(
   parsed: ParsedQuery,
   signal?: AbortSignal,
@@ -405,71 +513,7 @@ async function searchCrossref(
   const message = (data.message ?? {}) as JsonObject;
   const items = Array.isArray(message.items) ? message.items : [];
 
-  return items.map((raw) => {
-    const item = raw as JsonObject;
-    const authorRows = Array.isArray(item.author) ? item.author : [];
-    const authors: WorkAuthor[] = authorRows.map((rawAuthor) => {
-      const author = rawAuthor as JsonObject;
-      const name =
-        [safeString(author.given), safeString(author.family)]
-          .filter(Boolean)
-          .join(' ') || 'Autor não identificado';
-      const affiliations = Array.isArray(author.affiliation)
-        ? author.affiliation
-        : [];
-      return {
-        name,
-        orcid: safeString(author.ORCID),
-        institutions: affiliations
-          .map((affiliation) => safeString((affiliation as JsonObject).name))
-          .filter((value): value is string => Boolean(value)),
-      };
-    });
-
-    const titles = Array.isArray(item.title) ? item.title : [];
-    const containers = Array.isArray(item['container-title'])
-      ? item['container-title']
-      : [];
-    const dates = (item.published ?? item.issued ?? {}) as JsonObject;
-    const parts = Array.isArray(dates['date-parts']) ? dates['date-parts'] : [];
-    const firstPart = Array.isArray(parts[0]) ? parts[0] : [];
-    const year = typeof firstPart[0] === 'number' ? firstPart[0] : undefined;
-    const doi = normalizeDoi(item.DOI);
-    const links = Array.isArray(item.link) ? item.link : [];
-    const pdf = links.find((rawLink) => {
-      const link = rawLink as JsonObject;
-      return safeString(link['content-type']) === 'application/pdf';
-    }) as JsonObject | undefined;
-    const licenses = Array.isArray(item.license) ? item.license : [];
-    const firstLicense = licenses[0] as JsonObject | undefined;
-    const title = safeString(titles[0]) ?? 'Sem título';
-
-    return {
-      id: doi ? `doi:${doi}` : canonicalId({ doi, title, authors, year }),
-      title,
-      authors,
-      year,
-      abstract: stripTags(item.abstract),
-      doi,
-      type: safeString(item.type) ?? 'article',
-      venue: safeString(containers[0]),
-      publisher: safeString(item.publisher),
-      language: safeString(item.language),
-      citationCount:
-        typeof item['is-referenced-by-count'] === 'number'
-          ? item['is-referenced-by-count']
-          : 0,
-      concepts: [],
-      isOpenAccess: null,
-      officialUrl: safeExternalUrl(
-        doi ? `https://doi.org/${doi}` : safeString(item.URL),
-      ),
-      pdfUrl: safeExternalUrl(pdf ? safeString(pdf.URL) : undefined),
-      license: firstLicense ? safeString(firstLicense.URL) : undefined,
-      providerIds: { Crossref: doi ?? safeString(item.URL) ?? title },
-      sourceProviders: ['Crossref'],
-    } satisfies AcademicWork;
-  });
+  return items.map(mapCrossrefWork);
 }
 
 function cacheKey(raw: string, visual: Partial<SearchFilters>): string {

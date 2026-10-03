@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchWorkRelations, searchAcademic } from '../src/lib/api';
+import { fetchWorkRelations, resolveDoi, searchAcademic } from '../src/lib/api';
 
 class MemoryStorage {
   private values = new Map<string, string>();
@@ -236,5 +236,45 @@ describe('fetchWorkRelations integration', () => {
     });
 
     expect(relations).toBeNull();
+  });
+});
+
+
+describe('resolveDoi integration', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    vi.stubGlobal('window', globalThis);
+  });
+
+  it('combina OpenAlex e Crossref para um DOI exato', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('api.openalex.org')) {
+          return new Response(JSON.stringify(openAlexPayload), { status: 200 });
+        }
+        if (url.includes('api.crossref.org/works/')) {
+          return new Response(
+            JSON.stringify({ message: crossrefPayload.message.items[0] }),
+            { status: 200 },
+          );
+        }
+        throw new Error(`Unexpected URL: ${url}`);
+      }),
+    );
+
+    const work = await resolveDoi('https://doi.org/10.1000/readplus');
+    expect(work.doi).toBe('10.1000/readplus');
+    expect(work.sourceProviders.sort()).toEqual(['Crossref', 'OpenAlex']);
+    expect(work.pdfUrl).toBe('https://example.org/article.pdf');
+  });
+
+  it('rejeita DOI com formato inválido antes de consultar a rede', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(resolveDoi('não-é-doi')).rejects.toThrow('DOI válido');
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

@@ -1,4 +1,4 @@
-export type ProviderName = 'OpenAlex' | 'Crossref';
+export type ProviderName = 'OpenAlex' | 'Crossref' | 'Imported';
 
 export interface WorkAuthor {
   name: string;
