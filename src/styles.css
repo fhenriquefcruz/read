@@ -1159,6 +1159,72 @@
     color: var(--text-faint);
     font-size: 0.64rem;
   }
+  .workspace-query-list,
+  .recent-query-list {
+    display: grid;
+    gap: 7px;
+    margin-top: 12px;
+  }
+  .workspace-query {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    padding: 11px 12px;
+  }
+  .workspace-query > div {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+  }
+  .workspace-query strong,
+  .recent-query-list strong {
+    font-size: 0.75rem;
+  }
+  .workspace-query span,
+  .workspace-query small,
+  .recent-query-list small {
+    color: var(--text-faint);
+    font-size: 0.65rem;
+  }
+  .recent-query-picker {
+    margin-top: 18px;
+    border-top: 1px solid var(--line);
+    padding-top: 14px;
+  }
+  .recent-query-picker > p {
+    margin-top: 8px;
+  }
+  .recent-query-list button {
+    display: flex;
+    min-height: 48px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--surface-raised);
+    padding: 8px 10px;
+    cursor: pointer;
+    text-align: left;
+  }
+  .recent-query-list button:disabled {
+    cursor: default;
+    opacity: 0.62;
+  }
+  .recent-query-list button > span {
+    display: grid;
+    gap: 2px;
+  }
+  .recent-query-list em {
+    color: var(--accent);
+    font-size: 0.65rem;
+    font-style: normal;
+    font-weight: 700;
+  }
   .compact-list {
     display: grid;
     margin-top: 12px;

@@ -46,6 +46,22 @@ export interface ParsedQuery {
   raw: string;
 }
 
+export interface SearchHistoryEntry {
+  id: string;
+  raw: string;
+  filters: SearchFilters;
+  resultCount: number;
+  createdAt: string;
+}
+
+export interface WorkspaceQuery {
+  id: string;
+  raw: string;
+  filters: SearchFilters;
+  resultCount?: number;
+  createdAt: string;
+}
+
 export interface ProviderStatus {
   provider: ProviderName;
   ok: boolean;
@@ -108,7 +124,7 @@ export interface Workspace {
   title: string;
   question: string;
   workIds: string[];
-  queries: string[];
+  queries?: WorkspaceQuery[];
   evidence?: WorkspaceEvidence[];
   createdAt: string;
   updatedAt: string;

@@ -216,3 +216,44 @@ test('workspace preserva evidência rastreável e interpretação após reload',
     ),
   ).toBeVisible();
 });
+
+
+test('workspace preserva consulta e filtros do histórico de descoberta', async ({
+  page,
+}) => {
+  await page
+    .getByLabel('Pesquisar literatura acadêmica')
+    .fill('machine learning public administration');
+  await page.getByLabel('Filtrar por status').count();
+  await page.locator('.filters').getByLabel('De').fill('2020');
+  await page.locator('.filters').getByLabel('Acesso').selectOption('true');
+  await page.getByRole('button', { name: 'Pesquisar' }).click();
+  await expect(
+    page.getByText('1 trabalhos únicos encontrados e normalizados.'),
+  ).toBeVisible();
+
+  await page.getByRole('button', { name: 'Pesquisas' }).click();
+  await page.getByLabel('Nome da pesquisa').fill('Governança algorítmica');
+  await page
+    .getByLabel('Pergunta central')
+    .fill('Quais evidências sustentam o uso responsável de IA pública?');
+  await page.getByRole('button', { name: 'Nova pesquisa' }).click();
+
+  const recent = page
+    .locator('.recent-query-list')
+    .getByRole('button', { name: /machine learning public administration/ });
+  await expect(recent).toContainText('ano 2020–…');
+  await expect(recent).toContainText('Open Access');
+  await recent.click();
+
+  const saved = page.locator('.workspace-query');
+  await expect(saved).toContainText('machine learning public administration');
+  await expect(saved).toContainText('ano 2020–…');
+  await expect(saved).toContainText('Open Access');
+
+  await page.reload();
+  await page.getByRole('button', { name: 'Pesquisas' }).click();
+  await expect(page.locator('.workspace-query')).toContainText(
+    'machine learning public administration',
+  );
+});
