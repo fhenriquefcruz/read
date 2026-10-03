@@ -81,10 +81,14 @@ describe('research intelligence gateway contract v2', () => {
   });
 
   it('descarta relação que referencia evidência fora do contexto enviado', () => {
+    const firstEvidence = evidence[0];
+    expect(firstEvidence).toBeDefined();
+    if (!firstEvidence) return;
+
     const request = createGatewayRequest(
       'workspace-1',
       'Question?',
-      [evidence[0]!],
+      [firstEvidence],
       true,
       relations,
     );

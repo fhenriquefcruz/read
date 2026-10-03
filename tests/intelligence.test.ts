@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildGroundedBrief,
+  comparableEvidencePairs,
   comparisonCandidates,
+  diagnoseCoverage,
   evidenceMatrix,
   groundedBriefToMarkdown,
   researchCoverageDiagnostics,
   researchDiagnosticsToMarkdown,
+  validateEvidenceRelations,
 } from '../src/lib/intelligence';
 import type { WorkspaceEvidence } from '../src/types';
 
@@ -186,10 +189,14 @@ describe('research intelligence v7 coverage and relations', () => {
   });
 
   it('sugere comparação somente entre fontes distintas do mesmo tipo de evidência', () => {
+    const baseEvidence = evidence[0];
+    expect(baseEvidence).toBeDefined();
+    if (!baseEvidence) return;
+
     const pairs = comparableEvidencePairs([
-      evidence[0]!,
-      { ...evidence[0]!, id: 'e4', workId: 'w2', sourceTitle: 'Study Two' },
-      { ...evidence[0]!, id: 'e5', workId: 'w1', kind: 'method' },
+      baseEvidence,
+      { ...baseEvidence, id: 'e4', workId: 'w2', sourceTitle: 'Study Two' },
+      { ...baseEvidence, id: 'e5', workId: 'w1', kind: 'method' },
     ]);
 
     expect(pairs).toHaveLength(1);
