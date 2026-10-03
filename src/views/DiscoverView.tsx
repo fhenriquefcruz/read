@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { searchAcademic } from '../lib/api';
 import type { AcademicWork, ProviderStatus, SearchFilters } from '../types';
 import { Icon } from '../components/Icons';
+import { ExternalLink } from '../components/ExternalLink';
 
 interface DiscoverViewProps {
   savedIds: Set<string>;
@@ -213,11 +214,9 @@ export function DiscoverView({ savedIds, onSelect, onSave }: DiscoverViewProps) 
                     <Icon name={savedIds.has(work.id) ? 'check' : 'bookmark'} />
                     {savedIds.has(work.id) ? 'Salvo' : 'Salvar'}
                   </button>
-                  {work.officialUrl && (
-                    <a className="text-button" href={work.officialUrl} target="_blank" rel="noreferrer">
-                      Fonte <Icon name="external" />
-                    </a>
-                  )}
+                  <ExternalLink className="text-button" href={work.officialUrl}>
+                    Fonte <Icon name="external" />
+                  </ExternalLink>
                 </div>
               </div>
             </article>
