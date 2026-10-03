@@ -43,7 +43,7 @@ export function DiscoverView({
   const [fromCache, setFromCache] = useState(false);
   const [replaySourceTitle, setReplaySourceTitle] = useState<string>();
   const abortRef = useRef<AbortController | null>(null);
-  const lastReplayIdRef = useRef<string>();
+  const lastReplayIdRef = useRef<string | undefined>(undefined);
 
   const runSearch = useCallback(
     async (
