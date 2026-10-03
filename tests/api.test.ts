@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { searchAcademic } from '../src/lib/api';
+import { fetchWorkRelations, searchAcademic } from '../src/lib/api';
 
 class MemoryStorage {
   private values = new Map<string, string>();
@@ -137,5 +137,104 @@ describe('searchAcademic integration', () => {
     });
 
     expect(result.works[0]?.pdfUrl).toBeUndefined();
+  });
+});
+
+
+describe('fetchWorkRelations integration', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    vi.stubGlobal('window', globalThis);
+  });
+
+  it('carrega referências, trabalhos citantes e relacionados sem fabricar itens', async () => {
+    const fixture = (id: string, title: string) => ({
+      ...openAlexPayload.results[0],
+      id: `https://openalex.org/${id}`,
+      doi: undefined,
+      title,
+      cited_by_count: 3,
+      best_oa_location: {},
+      open_access: { is_oa: false, oa_status: 'closed' },
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = new URL(String(input));
+
+        if (url.pathname.endsWith('/works/W123')) {
+          return new Response(
+            JSON.stringify({
+              id: 'https://openalex.org/W123',
+              referenced_works: ['https://openalex.org/WREF'],
+              related_works: ['https://openalex.org/WREL'],
+            }),
+            { status: 200 },
+          );
+        }
+
+        const filter = url.searchParams.get('filter') ?? '';
+        if (filter.startsWith('openalex:WREF')) {
+          return new Response(
+            JSON.stringify({ results: [fixture('WREF', 'Foundational Reference')] }),
+            { status: 200 },
+          );
+        }
+        if (filter.startsWith('openalex:WREL')) {
+          return new Response(
+            JSON.stringify({ results: [fixture('WREL', 'Related Study')] }),
+            { status: 200 },
+          );
+        }
+        if (filter === 'cites:W123') {
+          return new Response(
+            JSON.stringify({ results: [fixture('WCITE', 'Recent Citing Study')] }),
+            { status: 200 },
+          );
+        }
+
+        throw new Error(`Unexpected OpenAlex URL: ${url.toString()}`);
+      }),
+    );
+
+    const relations = await fetchWorkRelations({
+      id: 'doi:10.1000/readplus',
+      title: 'Artificial intelligence in public administration',
+      authors: [{ name: 'Ada Researcher', institutions: [] }],
+      year: 2025,
+      type: 'article',
+      citationCount: 42,
+      concepts: [],
+      isOpenAccess: true,
+      providerIds: { OpenAlex: 'https://openalex.org/W123' },
+      sourceProviders: ['OpenAlex'],
+    });
+
+    expect(relations?.references.map((item) => item.title)).toEqual([
+      'Foundational Reference',
+    ]);
+    expect(relations?.citedBy.map((item) => item.title)).toEqual([
+      'Recent Citing Study',
+    ]);
+    expect(relations?.related.map((item) => item.title)).toEqual([
+      'Related Study',
+    ]);
+  });
+
+  it('retorna null quando o trabalho não tem identificador OpenAlex', async () => {
+    const relations = await fetchWorkRelations({
+      id: 'doi:10.1000/crossref-only',
+      title: 'Crossref only',
+      authors: [],
+      type: 'article',
+      citationCount: 0,
+      concepts: [],
+      isOpenAccess: null,
+      providerIds: { Crossref: '10.1000/crossref-only' },
+      sourceProviders: ['Crossref'],
+    });
+
+    expect(relations).toBeNull();
   });
 });

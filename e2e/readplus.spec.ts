@@ -102,3 +102,54 @@ test('tela inicial não tem violações automáticas WCAG de alto sinal', async 
 
   expect(results.violations).toEqual([]);
 });
+
+
+test('detalhe explora o grafo acadêmico e expõe autoria qualificada', async ({ page }) => {
+  await page
+    .getByLabel('Pesquisar literatura acadêmica')
+    .fill('machine learning');
+  await page.getByRole('button', { name: 'Pesquisar' }).click();
+  await page
+    .getByRole('button', { name: 'Machine Learning in Public Administration' })
+    .click();
+
+  const panel = page.getByLabel('Detalhes do trabalho');
+  await expect(panel.getByText('Universidade Federal de Mato Grosso do Sul')).toBeVisible();
+  await expect(panel.getByRole('link', { name: 'ORCID' })).toHaveAttribute(
+    'href',
+    'https://orcid.org/0000-0000-0000-0001',
+  );
+  await expect(panel.getByText('Foundations of Digital Government')).toBeVisible();
+  await expect(panel.getByText('Accountable AI in Government')).toBeVisible();
+  await expect(
+    panel.getByText('Algorithmic Decision Support in the Public Sector'),
+  ).toBeVisible();
+
+  await panel
+    .getByRole('button', { name: /Algorithmic Decision Support in the Public Sector/ })
+    .click();
+
+  await expect(
+    page.getByLabel('Detalhes do trabalho').getByRole('heading', {
+      name: 'Algorithmic Decision Support in the Public Sector',
+    }),
+  ).toBeVisible();
+});
+
+test('detalhe exporta referência em BibTeX', async ({ page }) => {
+  await page
+    .getByLabel('Pesquisar literatura acadêmica')
+    .fill('machine learning');
+  await page.getByRole('button', { name: 'Pesquisar' }).click();
+  await page
+    .getByRole('button', { name: 'Machine Learning in Public Administration' })
+    .click();
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByLabel('Detalhes do trabalho').getByRole('button', { name: 'BibTeX' }).click();
+  const download = await downloadPromise;
+
+  expect(download.suggestedFilename()).toBe(
+    'machine-learning-in-public-administration.bib',
+  );
+});
