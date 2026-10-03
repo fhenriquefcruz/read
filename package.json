@@ -1,0 +1,36 @@
+{
+  "name": "readplus",
+  "private": true,
+  "version": "3.0.0-alpha.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "biome lint src tests e2e scripts",
+    "format": "biome format --write src tests e2e scripts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "validate": "npm run security && npm run lint && npm run typecheck && npm run test:unit && npm run build",
+    "test:unit": "vitest run",
+    "security": "node scripts/security-check.mjs",
+    "format:check": "biome format src tests e2e scripts"
+  },
+  "dependencies": {
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@biomejs/biome": "2.5.15",
+    "@playwright/test": "1.63.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "typescript": "7.0.2",
+    "vite": "8.3.2",
+    "vitest": "5.0.3",
+    "@types/node": "^24.0.0"
+  }
+}

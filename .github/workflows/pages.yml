@@ -1,0 +1,106 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Validate source and build
+        run: npm run validate
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E gates
+        run: npm run test:e2e
+
+      - name: Install Lighthouse CI
+        run: npm install --global @lhci/cli@0.15.x
+
+      - name: Collect Lighthouse runs
+        run: lhci collect
+
+      - name: Assert Lighthouse budgets
+        run: lhci assert
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  smoke:
+    name: Production smoke
+    runs-on: ubuntu-latest
+    needs: deploy
+
+    steps:
+      - name: Verify live READ+ shell and PWA assets
+        env:
+          PAGE_URL: ${{ needs.deploy.outputs.page_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="${PAGE_URL%/}"
+
+          success=0
+          for attempt in {1..12}; do
+            if html="$(curl --fail --silent --show-error --location --max-time 15 "$base/")"; then
+              if grep -q '<title>READ+' <<<"$html"; then
+                success=1
+                break
+              fi
+            fi
+
+            if [[ "$attempt" -lt 12 ]]; then
+              sleep 5
+            fi
+          done
+
+          if [[ "$success" -ne 1 ]]; then
+            echo "READ+ production shell did not become healthy."
+            exit 1
+          fi
+
+          curl --fail --silent --show-error --location "$base/manifest.webmanifest" |
+            grep -q '"name": "READ+'
+          curl --fail --silent --show-error --location "$base/sw.js" |
+            grep -q 'readplus-shell'
