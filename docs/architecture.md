@@ -192,3 +192,40 @@ Formatos de saída suportados:
 Os parsers ficam no cliente porque operam apenas sobre arquivos/texto fornecidos pelo usuário e não exigem segredo. Resolução remota de DOI utiliza somente endpoints acadêmicos públicos já adotados pelo produto.
 
 Coleções e tags continuam dados privados locais em IndexedDB nesta fase.
+
+
+## Research Intelligence grounded — v6
+
+A primeira camada de Research Intelligence é deliberadamente local e determinística.
+
+### Evidence Matrix
+A matriz é derivada exclusivamente de `WorkspaceEvidence` e cruza:
+- fonte;
+- achados;
+- métodos;
+- limitações;
+- definições;
+- trechos.
+
+Ela mede **cobertura**, não concordância semântica. A existência de duas evidências em fontes diferentes não é apresentada como convergência científica.
+
+### Grounded Brief
+O brief preserva três fronteiras:
+1. **Fonte** — conteúdo registrado pelo usuário como evidência;
+2. **Interpretação** — leitura do pesquisador, mantida separada;
+3. **Inferência** — não produzida automaticamente pela camada local.
+
+Toda entrada do brief mantém o `evidenceId` e um índice de fonte recuperável. A exportação Markdown conserva essas referências.
+
+### Contrato generativo futuro
+`src/lib/intelligence-gateway.ts` define a fronteira que qualquer backend de IA deverá respeitar.
+
+Regras bloqueantes:
+- nenhum segredo no frontend;
+- consentimento explícito antes de montar payload para processamento externo;
+- o gateway recebe apenas as evidências selecionadas;
+- cada claim de síntese ou inferência deve conter ao menos um `evidenceId`;
+- IDs citados precisam pertencer ao contexto efetivamente enviado;
+- respostas sem grounding são rejeitadas antes de chegar à UI.
+
+A v6 **não instala provedor de modelo nem envia dados para terceiros**. Um backend futuro poderá usar streaming/structured output, mas somente depois de autenticação, rate limiting, observabilidade e política de privacidade estarem implementados.

@@ -38,7 +38,14 @@ export function createGatewayRequest(
   workspaceId: string,
   question: string,
   evidence: WorkspaceEvidence[],
+  externalProcessingConsent: boolean,
 ): IntelligenceGatewayRequest {
+  if (!externalProcessingConsent) {
+    throw new Error(
+      'Consentimento explícito é obrigatório para processamento externo.',
+    );
+  }
+
   return {
     version: '1',
     workspaceId,

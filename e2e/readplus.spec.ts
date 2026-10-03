@@ -344,3 +344,67 @@ ER  -
     'governança, evidência',
   );
 });
+
+
+test('research intelligence gera grounded brief sem inferência automática', async ({
+  page,
+}) => {
+  await page
+    .getByLabel('Pesquisar literatura acadêmica')
+    .fill('machine learning public administration');
+  await page.getByRole('button', { name: 'Pesquisar' }).click();
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+
+  await page.getByRole('button', { name: 'Pesquisas' }).click();
+  await page.getByLabel('Nome da pesquisa').fill('Síntese de evidências');
+  await page
+    .getByLabel('Pergunta central')
+    .fill('Como IA pode apoiar decisões públicas responsáveis?');
+  await page.getByRole('button', { name: 'Nova pesquisa' }).click();
+
+  await page
+    .getByRole('checkbox', { name: /Machine Learning in Public Administration/ })
+    .check();
+
+  await page
+    .getByLabel('Evidência da fonte')
+    .fill('Machine learning supports evidence in public administration.');
+  await page
+    .getByLabel('Sua interpretação')
+    .fill('A adoção precisa preservar governança e rastreabilidade.');
+  await page.getByRole('button', { name: 'Registrar evidência' }).click();
+
+  await expect(page.getByText('Local · grounded')).toBeVisible();
+  await page
+    .getByRole('button', { name: 'Construir síntese rastreável' })
+    .click();
+
+  await expect(page.getByText('Evidence matrix')).toBeVisible();
+  await expect(
+    page.getByText('Evidência organizada por função'),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      'Machine learning supports evidence in public administration.',
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      'A adoção precisa preservar governança e rastreabilidade.',
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(page.getByText('Inferências automáticas: 0')).toBeVisible();
+  await expect(page.getByText('Gateway seguro necessário')).toBeVisible();
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Exportar Markdown' }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe('readplus-grounded-brief.md');
+
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+    .analyze();
+  expect(results.violations).toEqual([]);
+});

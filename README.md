@@ -22,6 +22,16 @@ A rodada **Library & Research Workflow (v5)** fecha o fluxo entre descoberta, bi
 - histórico de buscas com filtros;
 - consultas anexadas a pesquisas com o recorte original preservado.
 
+A rodada **Research Intelligence Grounded (v6)** inicia inteligência sobre o corpus sem depender de IA externa:
+
+- seleção explícita das evidências que entram na análise;
+- Evidence Matrix por fonte e tipo de evidência;
+- Grounded Brief com fonte e interpretação visualmente separadas;
+- exportação do brief em Markdown;
+- zero inferências automáticas na camada local;
+- contrato server-side futuro que rejeita claims sem citations por ID de evidência;
+- processamento externo bloqueado sem consentimento explícito.
+
 Documentação:
 - [Auditoria — Fases 0 e 1](docs/audit-phase-0-1.md)
 - [Arquitetura](docs/architecture.md)
@@ -87,6 +97,15 @@ O frontend continua estático nesta etapa para preservar o GitHub Pages. Integra
 - separação entre evidência da fonte e interpretação do usuário;
 - proteção para evitar remover do corpus uma fonte ainda usada por evidências.
 
+### Research Intelligence
+- Evidence Matrix derivada somente do Evidence Board;
+- Grounded Brief local e determinístico;
+- citations clicáveis para retornar ao trabalho de origem;
+- interpretações do usuário preservadas como camada distinta;
+- exportação Markdown;
+- nenhuma inferência científica automática na v1;
+- integração generativa futura condicionada a gateway server-side, consentimento e grounding obrigatório.
+
 ### Conhecimento conectado
 - notas atômicas;
 - `[[links internos]]`;
@@ -144,7 +163,7 @@ https://fhenriquefcruz.github.io/read/
 - ✅ Fase 7 — biblioteca interoperável v1
 - ✅ Fase 8 — workspace de pesquisa v1
 - 🔄 Fase 9 — Zettelkasten / knowledge graph
-- ⏳ Fase 10 — Research Intelligence
+- 🔄 Fase 10 — Research Intelligence grounded v1
 - ✅ Fase 11 — PWA / offline v1
 - ✅ Fase 12 — segurança baseline
 - ✅ Fase 13 — testes / quality gates
@@ -152,8 +171,8 @@ https://fhenriquefcruz.github.io/read/
 
 ## Próximas prioridades
 
-1. importação por ISBN e melhorias de matching bibliográfico;
-2. operações em lote sobre status, tags e coleções;
-3. reexecução de consultas preservadas diretamente a partir do workspace;
-4. síntese de evidências baseada exclusivamente no Evidence Board e nas fontes vinculadas;
-5. gateway server-side antes de qualquer integração que exija segredo ou IA.
+1. reexecução de consultas preservadas diretamente a partir do workspace;
+2. comparação semântica de evidências com método auditável;
+3. gateway server-side autenticado, com rate limiting e observabilidade;
+4. síntese generativa opt-in validada contra IDs de evidência;
+5. importação por ISBN e melhorias adicionais de matching bibliográfico.

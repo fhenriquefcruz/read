@@ -19,12 +19,23 @@ const evidence: WorkspaceEvidence[] = [
 
 describe('research intelligence gateway contract', () => {
   it('envia somente evidência explícita e consentimento para processamento externo', () => {
-    const request = createGatewayRequest('workspace-1', 'Question?', evidence);
+    const request = createGatewayRequest(
+      'workspace-1',
+      'Question?',
+      evidence,
+      true,
+    );
 
     expect(request.version).toBe('1');
     expect(request.consent.externalProcessing).toBe(true);
     expect(request.evidence).toHaveLength(1);
     expect(request.evidence[0]?.excerpt).toBe('Observed result.');
+  });
+
+  it('recusa montar payload externo sem consentimento explícito', () => {
+    expect(() =>
+      createGatewayRequest('workspace-1', 'Question?', evidence, false),
+    ).toThrow('Consentimento explícito');
   });
 
   it('aceita claim grounded em evidência conhecida', () => {
