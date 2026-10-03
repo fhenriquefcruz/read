@@ -42,6 +42,7 @@ const env = {
   READPLUS_AI_MODEL: 'openai/test-model',
   AI_GATEWAY_API_KEY: 'test-token-not-a-real-secret',
   READPLUS_ALLOWED_ORIGINS: 'https://fhenriquefcruz.github.io',
+  READPLUS_CLIENT_TOKEN: 'session-access-token',
 };
 
 function request(body: unknown = payload, origin = 'https://fhenriquefcruz.github.io') {
@@ -51,6 +52,7 @@ function request(body: unknown = payload, origin = 'https://fhenriquefcruz.githu
       'Content-Type': 'application/json',
       Origin: origin,
       'X-Readplus-Request': 'request-1',
+      Authorization: 'Bearer session-access-token',
     },
     body: JSON.stringify(body),
   });
@@ -64,6 +66,28 @@ describe('server-side intelligence gateway', () => {
     );
 
     expect(response.status).toBe(403);
+  });
+
+  it('exige autenticação do cliente antes de processar evidências', async () => {
+    const unauthorized = new Request(
+      'https://gateway.example/api/intelligence',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Origin: 'https://fhenriquefcruz.github.io',
+        },
+        body: JSON.stringify(payload),
+      },
+    );
+
+    const response = await handleIntelligenceRequest(unauthorized, {
+      env,
+      fetchImpl: vi.fn() as unknown as typeof fetch,
+    });
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toMatchObject({ error: 'unauthorized' });
   });
 
   it('fica fail-closed quando geração externa está desabilitada', async () => {

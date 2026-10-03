@@ -4,6 +4,7 @@ export interface GatewayRuntimeConfig {
   enabled: boolean;
   token?: string;
   model?: string;
+  clientToken?: string;
   allowedOrigins: Set<string>;
 }
 
@@ -19,6 +20,7 @@ export function gatewayRuntimeConfig(
     enabled: env.READPLUS_AI_ENABLED === 'true',
     token: env.AI_GATEWAY_API_KEY ?? env.VERCEL_OIDC_TOKEN,
     model: env.READPLUS_AI_MODEL?.trim() || undefined,
+    clientToken: env.READPLUS_CLIENT_TOKEN?.trim() || undefined,
     allowedOrigins: new Set(
       configuredOrigins?.length
         ? configuredOrigins
@@ -49,7 +51,7 @@ export function corsHeaders(
     headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
     headers.set(
       'Access-Control-Allow-Headers',
-      'Content-Type, X-Readplus-Request',
+      'Authorization, Content-Type, X-Readplus-Request',
     );
     headers.set('Access-Control-Max-Age', '600');
   }

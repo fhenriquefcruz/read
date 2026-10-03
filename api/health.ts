@@ -19,9 +19,11 @@ export default {
       service: 'readplus-intelligence-gateway',
       version: '8',
       enabled: config.enabled,
-      configured: Boolean(config.token && config.model),
+      configured: Boolean(config.token && config.model && config.clientToken),
+      authenticationConfigured: Boolean(config.clientToken),
       externalProcessingAvailable:
-        config.enabled && Boolean(config.token && config.model),
+        config.enabled &&
+        Boolean(config.token && config.model && config.clientToken),
     });
   },
 };

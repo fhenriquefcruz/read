@@ -259,8 +259,13 @@ export async function handleIntelligenceRequest(
   if (!config.enabled) {
     return jsonResponse(request, config, { error: 'gateway_disabled' }, 503);
   }
-  if (!config.token || !config.model) {
+  if (!config.token || !config.model || !config.clientToken) {
     return jsonResponse(request, config, { error: 'gateway_not_configured' }, 503);
+  }
+
+  const authorization = request.headers.get('authorization');
+  if (authorization !== `Bearer ${config.clientToken}`) {
+    return jsonResponse(request, config, { error: 'unauthorized' }, 401);
   }
 
   let body: IntelligenceGatewayRequest;
