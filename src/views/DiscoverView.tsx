@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { searchAcademic } from '../lib/api';
+import { safeExternalUrl } from '../lib/url';
 import type { AcademicWork, ProviderStatus, SearchFilters } from '../types';
 import { Icon } from '../components/Icons';
 import { ExternalLink } from '../components/ExternalLink';

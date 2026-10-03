@@ -1,5 +1,6 @@
 import { matchesClientFilters, parseSearchQuery } from './query';
 import { sortWorks } from './ranking';
+import { safeExternalUrl } from './url';
 import type {
   AcademicWork,
   ParsedQuery,
@@ -206,8 +207,10 @@ async function searchOpenAlex(parsed: ParsedQuery, signal?: AbortSignal): Promis
         .slice(0, 6),
       isOpenAccess: typeof openAccess.is_oa === 'boolean' ? openAccess.is_oa : null,
       oaStatus: safeString(openAccess.oa_status),
-      officialUrl: doi ? `https://doi.org/${doi}` : safeString(primaryLocation.landing_page_url) ?? safeString(item.id),
-      pdfUrl: safeString(bestOa.pdf_url),
+      officialUrl: safeExternalUrl(
+        doi ? `https://doi.org/${doi}` : safeString(primaryLocation.landing_page_url) ?? safeString(item.id),
+      ),
+      pdfUrl: safeExternalUrl(safeString(bestOa.pdf_url)),
       license: safeString(bestOa.license),
       providerIds: { OpenAlex: safeString(item.id) ?? id },
       sourceProviders: ['OpenAlex'],
@@ -284,8 +287,8 @@ async function searchCrossref(parsed: ParsedQuery, signal?: AbortSignal): Promis
       citationCount: typeof item['is-referenced-by-count'] === 'number' ? item['is-referenced-by-count'] : 0,
       concepts: [],
       isOpenAccess: null,
-      officialUrl: doi ? `https://doi.org/${doi}` : safeString(item.URL),
-      pdfUrl: pdf ? safeString(pdf.URL) : undefined,
+      officialUrl: safeExternalUrl(doi ? `https://doi.org/${doi}` : safeString(item.URL)),
+      pdfUrl: safeExternalUrl(pdf ? safeString(pdf.URL) : undefined),
       license: firstLicense ? safeString(firstLicense.URL) : undefined,
       providerIds: { Crossref: doi ?? safeString(item.URL) ?? title },
       sourceProviders: ['Crossref'],
