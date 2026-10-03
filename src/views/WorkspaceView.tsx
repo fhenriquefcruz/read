@@ -1,4 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { searchAcademic } from '../lib/api';
+import {
+  appendQueryRun,
+  compareQueryRuns,
+  latestQueryRun,
+  snapshotSearchResponse,
+  type QueryRunDiff,
+} from '../lib/continuous-research';
 import { validateEvidenceRelations } from '../lib/intelligence';
 import { searchHistoryStore, workspaceStore } from '../lib/storage';
 import type {
@@ -19,6 +27,14 @@ import { ResearchIntelligence } from '../components/ResearchIntelligence';
 interface WorkspaceViewProps {
   library: LibraryEntry[];
   onSelect: (work: AcademicWork) => void;
+  onSaveWork: (work: AcademicWork) => Promise<void>;
+}
+
+interface QueryExecutionState {
+  status: 'loading' | 'ready' | 'error';
+  diff?: QueryRunDiff;
+  works?: AcademicWork[];
+  message?: string;
 }
 
 const evidenceKinds: Array<{ value: EvidenceKind; label: string }> = [
@@ -53,6 +69,7 @@ function normalizeWorkspaceQueries(
           raw: item,
           filters: { sort: 'relevance' as const },
           createdAt: new Date(0).toISOString(),
+          runs: [],
         },
       ];
     }
@@ -60,7 +77,12 @@ function normalizeWorkspaceQueries(
     if (!item || typeof item !== 'object') return [];
     const query = item as Partial<WorkspaceQuery>;
     if (!query.id || !query.raw || !query.filters || !query.createdAt) return [];
-    return [query as WorkspaceQuery];
+    return [
+      {
+        ...(query as WorkspaceQuery),
+        runs: Array.isArray(query.runs) ? query.runs : [],
+      },
+    ];
   });
 }
 
@@ -79,7 +101,11 @@ function filterSummary(filters: SearchFilters): string {
   return parts.join(' · ') || 'sem filtros adicionais';
 }
 
-export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
+export function WorkspaceView({
+  library,
+  onSelect,
+  onSaveWork,
+}: WorkspaceViewProps) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const workspacesRef = useRef<Workspace[]>([]);
   const [searchHistory, setSearchHistory] = useState<SearchHistoryEntry[]>([]);
@@ -90,6 +116,10 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
   const [evidenceKind, setEvidenceKind] = useState<EvidenceKind>('finding');
   const [evidenceExcerpt, setEvidenceExcerpt] = useState('');
   const [evidenceInterpretation, setEvidenceInterpretation] = useState('');
+  const [queryExecutions, setQueryExecutions] = useState<
+    Record<string, QueryExecutionState>
+  >({});
+  const queryAbortRef = useRef<Map<string, AbortController>>(new Map());
 
   useEffect(() => {
     void Promise.all([workspaceStore.list(), searchHistoryStore.list()]).then(
@@ -213,6 +243,7 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
       filters: { ...history.filters },
       resultCount: history.resultCount,
       createdAt: history.createdAt,
+      runs: [],
     };
 
     await persist({
@@ -220,6 +251,85 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
       queries: [query, ...queries],
       updatedAt: new Date().toISOString(),
     });
+  }
+
+  async function executeWorkspaceQuery(queryId: string) {
+    const currentActive = workspacesRef.current.find(
+      (workspace) => workspace.id === activeId,
+    );
+    const query = currentActive?.queries?.find((item) => item.id === queryId);
+    if (!currentActive || !query) return;
+
+    queryAbortRef.current.get(queryId)?.abort();
+    const controller = new AbortController();
+    queryAbortRef.current.set(queryId, controller);
+    setQueryExecutions((current) => ({
+      ...current,
+      [queryId]: { status: 'loading' },
+    }));
+
+    try {
+      const response = await searchAcademic(
+        query.raw,
+        query.filters,
+        controller.signal,
+        { bypassCache: true },
+      );
+      const run = snapshotSearchResponse(response);
+      const previousRun = latestQueryRun(query);
+      const diff = compareQueryRuns(previousRun, run);
+      const updatedQuery = appendQueryRun(query, run);
+
+      await persist({
+        ...currentActive,
+        queries: (currentActive.queries ?? []).map((item) =>
+          item.id === queryId ? updatedQuery : item,
+        ),
+        updatedAt: new Date().toISOString(),
+      });
+
+      setQueryExecutions((current) => ({
+        ...current,
+        [queryId]: {
+          status: 'ready',
+          diff,
+          works: response.works,
+        },
+      }));
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      setQueryExecutions((current) => ({
+        ...current,
+        [queryId]: {
+          status: 'error',
+          message:
+            error instanceof Error
+              ? error.message
+              : 'Não foi possível reexecutar a consulta.',
+        },
+      }));
+    } finally {
+      queryAbortRef.current.delete(queryId);
+    }
+  }
+
+  async function addQueryResultToCorpus(queryId: string, workId: string) {
+    const execution = queryExecutions[queryId];
+    const work = execution?.works?.find((item) => item.id === workId);
+    const currentActive = workspacesRef.current.find(
+      (workspace) => workspace.id === activeId,
+    );
+    if (!work || !currentActive) return;
+
+    await onSaveWork(work);
+
+    if (!currentActive.workIds.includes(work.id)) {
+      await persist({
+        ...currentActive,
+        workIds: [...currentActive.workIds, work.id],
+        updatedAt: new Date().toISOString(),
+      });
+    }
   }
 
   async function removeQuery(id: string) {
@@ -442,24 +552,146 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
 
                 {(active.queries ?? []).length > 0 && (
                   <div className="workspace-query-list">
-                    {(active.queries ?? []).map((item) => (
-                      <article className="workspace-query" key={item.id}>
-                        <div>
-                          <strong>{item.raw}</strong>
-                          <span>{filterSummary(item.filters)}</span>
-                          {item.resultCount !== undefined && (
-                            <small>{item.resultCount} resultados naquele recorte</small>
+                    {(active.queries ?? []).map((item) => {
+                      const execution = queryExecutions[item.id];
+                      const latestRun = latestQueryRun(item);
+                      const diff = execution?.diff;
+
+                      return (
+                        <article className="workspace-query" key={item.id}>
+                          <div className="workspace-query__summary">
+                            <div>
+                              <strong>{item.raw}</strong>
+                              <span>{filterSummary(item.filters)}</span>
+                              {item.resultCount !== undefined && (
+                                <small>
+                                  {item.resultCount} resultados no último recorte
+                                </small>
+                              )}
+                              {latestRun && (
+                                <small>
+                                  Última execução:{' '}
+                                  {new Date(latestRun.executedAt).toLocaleString(
+                                    'pt-BR',
+                                  )}{' '}
+                                  · {(item.runs ?? []).length} snapshot(s)
+                                </small>
+                              )}
+                            </div>
+                            <div className="workspace-query__actions">
+                              <button
+                                className="secondary-button"
+                                type="button"
+                                disabled={execution?.status === 'loading'}
+                                onClick={() => void executeWorkspaceQuery(item.id)}
+                              >
+                                <Icon name="search" />
+                                {execution?.status === 'loading'
+                                  ? 'Reexecutando…'
+                                  : 'Reexecutar'}
+                              </button>
+                              <button
+                                className="text-button text-button--danger"
+                                type="button"
+                                onClick={() => void removeQuery(item.id)}
+                              >
+                                Remover
+                              </button>
+                            </div>
+                          </div>
+
+                          {execution?.status === 'error' && (
+                            <p className="query-execution-error" role="status">
+                              {execution.message}
+                            </p>
                           )}
-                        </div>
-                        <button
-                          className="text-button text-button--danger"
-                          type="button"
-                          onClick={() => void removeQuery(item.id)}
-                        >
-                          Remover
-                        </button>
-                      </article>
-                    ))}
+
+                          {execution?.status === 'ready' && diff?.isBaseline && (
+                            <div className="query-baseline" role="status">
+                              <strong>Baseline estabelecida.</strong>
+                              <span>
+                                {diff.run.resultCount} resultados registrados para
+                                comparação nas próximas execuções.
+                              </span>
+                            </div>
+                          )}
+
+                          {execution?.status === 'ready' &&
+                            diff &&
+                            !diff.isBaseline && (
+                              <div className="query-diff" role="status">
+                                <div className="query-diff__metrics">
+                                  <span>
+                                    <strong>{diff.newResults.length}</strong> novos
+                                  </span>
+                                  <span>
+                                    <strong>{diff.disappearedResults.length}</strong>{' '}
+                                    fora do recorte atual
+                                  </span>
+                                </div>
+
+                                {diff.newResults.length === 0 ? (
+                                  <p>
+                                    Nenhuma nova identidade bibliográfica apareceu
+                                    desde a execução anterior.
+                                  </p>
+                                ) : (
+                                  <div className="query-new-results">
+                                    {diff.newResults.map((result) => {
+                                      const work = execution.works?.find(
+                                        (candidate) => candidate.id === result.id,
+                                      );
+                                      const inCorpus = active.workIds.includes(
+                                        result.id,
+                                      );
+
+                                      return (
+                                        <article key={result.id}>
+                                          <div>
+                                            <strong>{result.title}</strong>
+                                            <span>
+                                              {result.year ?? 's.d.'}
+                                              {result.doi
+                                                ? ` · DOI ${result.doi}`
+                                                : ''}
+                                            </span>
+                                          </div>
+                                          <div>
+                                            {work && (
+                                              <button
+                                                className="text-button"
+                                                type="button"
+                                                onClick={() => onSelect(work)}
+                                              >
+                                                Abrir
+                                              </button>
+                                            )}
+                                            <button
+                                              className="secondary-button"
+                                              type="button"
+                                              disabled={!work || inCorpus}
+                                              onClick={() =>
+                                                void addQueryResultToCorpus(
+                                                  item.id,
+                                                  result.id,
+                                                )
+                                              }
+                                            >
+                                              {inCorpus
+                                                ? 'No corpus'
+                                                : 'Salvar + adicionar'}
+                                            </button>
+                                          </div>
+                                        </article>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                        </article>
+                      );
+                    })}
                   </div>
                 )}
 

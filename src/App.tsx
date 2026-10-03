@@ -223,7 +223,11 @@ export default function App() {
           />
         )}
         {view === 'workspaces' && (
-          <WorkspaceView library={library} onSelect={setSelectedWork} />
+          <WorkspaceView
+            library={library}
+            onSelect={setSelectedWork}
+            onSaveWork={saveWork}
+          />
         )}
         {view === 'knowledge' && <KnowledgeView library={library} />}
       </div>

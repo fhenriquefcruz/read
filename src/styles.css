@@ -2363,3 +2363,113 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+
+
+.workspace-query {
+  display: grid;
+  gap: 12px;
+}
+.workspace-query__summary {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.workspace-query__summary > div:first-child {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.workspace-query__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.workspace-query__actions .secondary-button {
+  min-height: 36px;
+  padding: 7px 10px;
+}
+.query-baseline,
+.query-diff {
+  display: grid;
+  gap: 7px;
+  border-top: 1px solid var(--line);
+  padding-top: 11px;
+}
+.query-baseline {
+  color: var(--text-soft);
+  font-size: 0.7rem;
+}
+.query-baseline strong {
+  color: var(--accent);
+}
+.query-execution-error {
+  color: var(--danger);
+  font-size: 0.7rem;
+}
+.query-diff__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.query-diff__metrics span {
+  border-radius: 999px;
+  background: var(--surface-subtle);
+  padding: 4px 8px;
+  color: var(--text-soft);
+  font-size: 0.65rem;
+}
+.query-diff__metrics strong {
+  color: var(--text);
+}
+.query-diff > p {
+  color: var(--text-faint);
+  font-size: 0.68rem;
+}
+.query-new-results {
+  display: grid;
+  gap: 6px;
+}
+.query-new-results > article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  padding: 9px 10px;
+}
+.query-new-results > article > div:first-child {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.query-new-results > article > div:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+}
+.query-new-results strong {
+  font-size: 0.71rem;
+}
+.query-new-results span {
+  color: var(--text-faint);
+  font-size: 0.62rem;
+}
+
+@media (max-width: 680px) {
+  .workspace-query__summary,
+  .query-new-results > article {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .workspace-query__actions,
+  .query-new-results > article > div:last-child {
+    justify-content: flex-start;
+  }
+}

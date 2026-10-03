@@ -520,10 +520,15 @@ function cacheKey(raw: string, visual: Partial<SearchFilters>): string {
   return `readplus:search:v1:${JSON.stringify({ raw: raw.trim(), visual })}`;
 }
 
+export interface SearchExecutionOptions {
+  bypassCache?: boolean;
+}
+
 export async function searchAcademic(
   raw: string,
   visual: Partial<SearchFilters> = {},
   signal?: AbortSignal,
+  options: SearchExecutionOptions = {},
 ): Promise<SearchResponse> {
   const parsed = parseSearchQuery(raw, visual);
   if (!parsed.freeText && !parsed.filters.author) {
@@ -532,7 +537,7 @@ export async function searchAcademic(
 
   const key = cacheKey(raw, visual);
   try {
-    const cached = localStorage.getItem(key);
+    const cached = options.bypassCache ? null : localStorage.getItem(key);
     if (cached) {
       const parsedCache = JSON.parse(cached) as CachedSearch;
       if (!navigator.onLine) {
