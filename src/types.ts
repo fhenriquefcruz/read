@@ -54,12 +54,27 @@ export interface SearchHistoryEntry {
   createdAt: string;
 }
 
+export interface WorkspaceQueryResultRef {
+  id: string;
+  title: string;
+  doi?: string;
+  year?: number;
+}
+
+export interface WorkspaceQueryRun {
+  id: string;
+  executedAt: string;
+  resultCount: number;
+  results: WorkspaceQueryResultRef[];
+}
+
 export interface WorkspaceQuery {
   id: string;
   raw: string;
   filters: SearchFilters;
   resultCount?: number;
   createdAt: string;
+  runs?: WorkspaceQueryRun[];
 }
 
 export interface ProviderStatus {
