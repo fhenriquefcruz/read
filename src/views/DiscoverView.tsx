@@ -215,7 +215,10 @@ export function DiscoverView({
           )}
         </div>
 
-        <div className="provider-strip" role="group" aria-label="Estado das fontes">
+        <section className="provider-strip" aria-labelledby="provider-status-title">
+          <h2 className="sr-only" id="provider-status-title">
+            Estado das fontes
+          </h2>
           {providers.map((provider) => (
             <span
               className={
@@ -229,7 +232,7 @@ export function DiscoverView({
               {providerLabel(provider)}
             </span>
           ))}
-        </div>
+        </section>
 
         <section className="result-list" aria-label="Resultados acadêmicos">
           {works.map((work, index) => (
