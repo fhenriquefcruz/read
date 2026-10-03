@@ -60,6 +60,12 @@ export interface SearchResponse {
   fromCache: boolean;
 }
 
+export interface WorkRelations {
+  references: AcademicWork[];
+  citedBy: AcademicWork[];
+  related: AcademicWork[];
+}
+
 export type LibraryStatus =
   | 'saved'
   | 'to-read'
