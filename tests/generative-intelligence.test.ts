@@ -1,0 +1,107 @@
+import { describe, expect, it } from 'vitest';
+import {
+  configuredIntelligenceGatewayUrl,
+  runGenerativeIntelligence,
+} from '../src/lib/generative-intelligence';
+import type { IntelligenceGatewayRequest } from '../src/lib/intelligence-gateway';
+
+const request: IntelligenceGatewayRequest = {
+  version: '2',
+  workspaceId: 'workspace-1',
+  question: 'Question?',
+  evidence: [
+    {
+      id: 'e1',
+      workId: 'w1',
+      sourceTitle: 'Study',
+      kind: 'finding',
+      excerpt: 'Observed result.',
+    },
+  ],
+  relations: [],
+  requestedTasks: ['synthesize'],
+  consent: { externalProcessing: true },
+};
+
+describe('generative intelligence client', () => {
+  it('aceita HTTPS e localhost, mas rejeita HTTP remoto e credenciais na URL', () => {
+    expect(
+      configuredIntelligenceGatewayUrl('https://gateway.example'),
+    ).toBe('https://gateway.example');
+    expect(
+      configuredIntelligenceGatewayUrl('http://localhost:3000/'),
+    ).toBe('http://localhost:3000');
+    expect(
+      configuredIntelligenceGatewayUrl('http://gateway.example'),
+    ).toBeUndefined();
+    expect(
+      configuredIntelligenceGatewayUrl('https://user:pass@gateway.example'),
+    ).toBeUndefined();
+  });
+
+  it('não executa sem chave de acesso informada na sessão', async () => {
+    await expect(
+      runGenerativeIntelligence(request, {
+        baseUrl: 'https://gateway.example',
+        accessToken: '',
+      }),
+    ).rejects.toThrow('chave de acesso');
+  });
+
+  it('valida grounding novamente no navegador antes de exibir claims', async () => {
+    const fetchImpl: typeof fetch = async () =>
+      new Response(
+        JSON.stringify({
+          version: '2',
+          requestId: 'r1',
+          model: 'openai/test',
+          claims: [
+            {
+              id: 'c1',
+              text: 'Grounded synthesis.',
+              layer: 'synthesis',
+              evidenceIds: ['e1'],
+              relationIds: [],
+            },
+          ],
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+
+    const response = await runGenerativeIntelligence(request, {
+      baseUrl: 'https://gateway.example',
+      accessToken: 'session-token',
+      fetchImpl,
+    });
+
+    expect(response.claims[0]?.evidenceIds).toEqual(['e1']);
+    expect(response.requestId).toBe('r1');
+  });
+
+  it('rejeita claim do servidor que referencia evidência ausente', async () => {
+    const fetchImpl: typeof fetch = async () =>
+      new Response(
+        JSON.stringify({
+          version: '2',
+          claims: [
+            {
+              id: 'c1',
+              text: 'Hallucinated.',
+              layer: 'synthesis',
+              evidenceIds: ['missing'],
+              relationIds: [],
+            },
+          ],
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+
+    await expect(
+      runGenerativeIntelligence(request, {
+        baseUrl: 'https://gateway.example',
+        accessToken: 'session-token',
+        fetchImpl,
+      }),
+    ).rejects.toThrow('evidência inexistente');
+  });
+});

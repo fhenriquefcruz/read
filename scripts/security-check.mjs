@@ -1,7 +1,7 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 
-const roots = ['src', 'public'];
+const roots = ['src', 'api', 'public'];
 const allowedExtensions = new Set([
   '.ts',
   '.tsx',

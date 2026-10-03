@@ -10,6 +10,14 @@ import {
   researchCoverageDiagnostics,
   type GroundedBrief,
 } from '../lib/intelligence';
+import {
+  createGatewayRequest,
+  type IntelligenceGatewayClaim,
+} from '../lib/intelligence-gateway';
+import {
+  configuredIntelligenceGatewayUrl,
+  runGenerativeIntelligence,
+} from '../lib/generative-intelligence';
 import type {
   AcademicWork,
   EvidenceKind,
@@ -74,10 +82,24 @@ export function ResearchIntelligence({
   const [relationType, setRelationType] =
     useState<EvidenceRelationType>('converges');
   const [relationNote, setRelationNote] = useState('');
+  const gatewayUrl = configuredIntelligenceGatewayUrl();
+  const [gatewayAccessToken, setGatewayAccessToken] = useState('');
+  const [externalConsent, setExternalConsent] = useState(false);
+  const [gatewayState, setGatewayState] = useState<
+    'idle' | 'loading' | 'success' | 'error'
+  >('idle');
+  const [gatewayError, setGatewayError] = useState('');
+  const [generatedClaims, setGeneratedClaims] = useState<
+    IntelligenceGatewayClaim[]
+  >([]);
 
   useEffect(() => {
     setSelectedIds(new Set(evidence.map((item) => item.id)));
     setBrief(null);
+    setGeneratedClaims([]);
+    setGatewayState('idle');
+    setGatewayError('');
+    setExternalConsent(false);
   }, [evidence]);
 
   const selectedCount = evidence.filter((item) => selectedIds.has(item.id)).length;
@@ -122,6 +144,44 @@ export function ResearchIntelligence({
   function openCitation(workId: string) {
     const source = library.find((entry) => entry.id === workId);
     if (source) onSelect(source.work);
+  }
+
+  async function runExternalIntelligence() {
+    if (!gatewayUrl || !externalConsent || !gatewayAccessToken.trim()) return;
+
+    const selectedEvidence = evidence.filter((item) => selectedIds.has(item.id));
+    const selectedEvidenceIds = new Set(selectedEvidence.map((item) => item.id));
+    const selectedRelations = relations.filter(
+      (relation) =>
+        selectedEvidenceIds.has(relation.leftEvidenceId) &&
+        selectedEvidenceIds.has(relation.rightEvidenceId),
+    );
+
+    setGatewayState('loading');
+    setGatewayError('');
+    setGeneratedClaims([]);
+
+    try {
+      const request = createGatewayRequest(
+        workspace.id,
+        workspace.question,
+        selectedEvidence,
+        true,
+        selectedRelations,
+      );
+      const response = await runGenerativeIntelligence(request, {
+        baseUrl: gatewayUrl,
+        accessToken: gatewayAccessToken,
+      });
+      setGeneratedClaims(response.claims);
+      setGatewayState('success');
+      setExternalConsent(false);
+    } catch (error) {
+      setGatewayState('error');
+      setGatewayError(
+        error instanceof Error ? error.message : 'Falha no gateway de inteligência.',
+      );
+    }
   }
 
   async function registerRelation(event: React.FormEvent) {
@@ -526,17 +586,112 @@ export function ResearchIntelligence({
         </>
       )}
 
-      <div className="generative-gateway-note">
-        <div>
-          <span className="lens-label">IA generativa</span>
-          <strong>Gateway seguro ainda obrigatório</strong>
-          <p>
-            Relações confirmadas e lacunas poderão compor o contexto do backend
-            futuro, mas nenhuma claim poderá chegar à UI sem grounding validado.
-          </p>
+      {!gatewayUrl ? (
+        <div className="generative-gateway-note">
+          <div>
+            <span className="lens-label">IA generativa</span>
+            <strong>Gateway seguro ainda obrigatório</strong>
+            <p>
+              O código server-side está preparado, mas a publicação está
+              desativada até existir um endpoint Vercel configurado e protegido.
+            </p>
+          </div>
+          <span className="chip chip--quiet">Não conectado</span>
         </div>
-        <span className="chip chip--quiet">Desativada nesta versão</span>
-      </div>
+      ) : (
+        <section className="generative-panel" aria-labelledby="generative-title">
+          <div className="intelligence-subsection__head">
+            <div>
+              <span className="eyebrow">IA grounded opt-in</span>
+              <h4 id="generative-title">Síntese generativa protegida</h4>
+            </div>
+            <small>
+              A chave fica apenas na memória desta página e não é persistida.
+            </small>
+          </div>
+
+          <label className="gateway-access-field">
+            <span>Chave de acesso do gateway</span>
+            <input
+              type="password"
+              value={gatewayAccessToken}
+              autoComplete="off"
+              onChange={(event) => setGatewayAccessToken(event.target.value)}
+              placeholder="Chave da sessão"
+            />
+          </label>
+
+          <label className="gateway-consent">
+            <input
+              type="checkbox"
+              checked={externalConsent}
+              onChange={(event) => setExternalConsent(event.target.checked)}
+            />
+            <span>
+              Autorizo, somente nesta execução, o envio das evidências
+              selecionadas e relações confirmadas ao gateway externo para
+              síntese grounded.
+            </span>
+          </label>
+
+          <button
+            className="primary-button"
+            type="button"
+            disabled={
+              gatewayState === 'loading' ||
+              selectedCount === 0 ||
+              !externalConsent ||
+              !gatewayAccessToken.trim()
+            }
+            onClick={() => void runExternalIntelligence()}
+          >
+            <Icon name="network" />
+            {gatewayState === 'loading'
+              ? 'Gerando…'
+              : 'Gerar síntese grounded'}
+          </button>
+
+          {gatewayState === 'error' && (
+            <p className="gateway-error" role="status">
+              {gatewayError}
+            </p>
+          )}
+
+          {generatedClaims.length > 0 && (
+            <div className="gateway-claims" aria-live="polite">
+              {generatedClaims.map((claim) => (
+                <article className="gateway-claim" key={claim.id}>
+                  <div className="gateway-claim__head">
+                    <span className="chip chip--quiet">
+                      {claim.layer === 'synthesis' ? 'Síntese' : 'Inferência'}
+                    </span>
+                    <small>
+                      {claim.evidenceIds.length} evidência(s) citada(s)
+                    </small>
+                  </div>
+                  <p>{claim.text}</p>
+                  <div className="gateway-claim__sources">
+                    {claim.evidenceIds.map((id) => {
+                      const source = evidenceById.get(id);
+                      if (!source) return null;
+                      return (
+                        <button
+                          className="text-button"
+                          type="button"
+                          key={id}
+                          onClick={() => openCitation(source.workId)}
+                        >
+                          {source.sourceTitle}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
     </section>
   );
 }

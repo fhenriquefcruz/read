@@ -271,3 +271,69 @@ O contrato futuro agora pode transportar:
 Respostas podem referenciar `relationIds`, mas cada ID é validado contra o contexto enviado. Claims continuam obrigadas a citar ao menos um `evidenceId`.
 
 A relação confirmada pelo usuário é contexto analítico, não autorização para o modelo inventar causalidade, consenso ou magnitude.
+
+
+## Secure Intelligence Gateway — v8
+
+A v8 introduz a primeira fronteira server-side executável para Research Intelligence.
+
+### Topologia
+
+```
+GitHub Pages /read
+  -> consentimento explícito
+  -> chave de acesso mantida apenas em memória
+  -> VITE_INTELLIGENCE_GATEWAY_URL
+  -> Vercel Function /api/intelligence
+  -> validação de contrato + limites + autenticação
+  -> Vercel AI Gateway
+  -> structured output
+  -> validação de evidenceIds/relationIds no servidor
+  -> nova validação no navegador
+  -> UI
+```
+
+O GitHub Pages continua sendo a origem pública principal do produto. O Vercel é usado como boundary para operações que exigem segredo e compute server-side.
+
+### Fail-closed
+
+A Function recusa execução quando qualquer uma destas condições não é atendida:
+- `READPLUS_AI_ENABLED=true`;
+- modelo configurado;
+- credencial AI Gateway/OIDC presente;
+- `READPLUS_CLIENT_TOKEN` presente;
+- `Origin` pertencente à allowlist;
+- chave de acesso de sessão correta;
+- consentimento `externalProcessing=true`;
+- payload dentro dos limites;
+- resposta do modelo grounded nos IDs enviados.
+
+### Grounding em duas camadas
+
+1. O servidor valida toda claim retornada pelo modelo contra `evidenceIds` e `relationIds` realmente enviados.
+2. O cliente repete a mesma validação antes de renderizar.
+
+Uma resposta upstream estruturalmente válida ainda é descartada se citar IDs ausentes.
+
+### Autenticação do piloto
+
+A v8 usa token compartilhado de acesso ao gateway para o piloto:
+- o token não entra no bundle;
+- o usuário o informa manualmente;
+- ele permanece somente no state React da página;
+- não é gravado em IndexedDB, localStorage ou query string.
+
+Esse mecanismo não substitui identidade multiusuário. Quando READ+ possuir contas, o token compartilhado deve ser substituído por autenticação individual e autorização server-side.
+
+### Controle de abuso
+
+CORS não é considerado mecanismo de autenticação.
+
+Antes de ativar `READPLUS_AI_ENABLED` em produção, o projeto Vercel deve ter:
+- WAF/rate limiting na rota;
+- limites/budget no AI Gateway;
+- observabilidade de status, latência e tokens;
+- conteúdo de prompt/completion fora dos logs por padrão;
+- alertas de custo.
+
+A v8 permanece segura mesmo sem esses controles porque a integração externa fica desligada por padrão.
