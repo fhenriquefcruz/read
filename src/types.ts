@@ -84,12 +84,31 @@ export interface LibraryEntry {
   updatedAt: string;
 }
 
+export type EvidenceKind =
+  | 'finding'
+  | 'method'
+  | 'limitation'
+  | 'definition'
+  | 'quote';
+
+export interface WorkspaceEvidence {
+  id: string;
+  workId: string;
+  sourceTitle: string;
+  sourceDoi?: string;
+  kind: EvidenceKind;
+  excerpt: string;
+  interpretation: string;
+  createdAt: string;
+}
+
 export interface Workspace {
   id: string;
   title: string;
   question: string;
   workIds: string[];
   queries: string[];
+  evidence?: WorkspaceEvidence[];
   createdAt: string;
   updatedAt: string;
 }

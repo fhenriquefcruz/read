@@ -947,6 +947,103 @@
     color: var(--text-faint);
     font-size: 0.68rem;
   }
+  .workspace-section__head > div > p {
+    margin-top: 4px;
+    max-width: 650px;
+    color: var(--text-faint);
+    font-size: 0.72rem;
+    line-height: 1.5;
+  }
+  .evidence-workspace {
+    display: grid;
+    gap: 16px;
+  }
+  .evidence-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 150px;
+    gap: 10px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--surface-subtle);
+    padding: 14px;
+  }
+  .evidence-form label {
+    display: grid;
+    gap: 5px;
+    color: var(--text-faint);
+    font-size: 0.67rem;
+    font-weight: 650;
+  }
+  .evidence-form select,
+  .evidence-form textarea {
+    width: 100%;
+    padding: 9px 10px;
+    color: var(--text);
+    font-size: 0.76rem;
+    line-height: 1.5;
+  }
+  .evidence-field--wide,
+  .evidence-form .primary-button {
+    grid-column: 1 / -1;
+  }
+  .evidence-form .primary-button {
+    width: fit-content;
+  }
+  .evidence-empty {
+    padding: 4px 0;
+  }
+  .evidence-list {
+    display: grid;
+    gap: 10px;
+  }
+  .evidence-card {
+    display: grid;
+    gap: 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    padding: 15px;
+  }
+  .evidence-card__top,
+  .evidence-card footer {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 14px;
+  }
+  .evidence-card blockquote {
+    margin: 0;
+    border-left: 3px solid var(--accent);
+    padding: 1px 0 1px 13px;
+    color: var(--text);
+    font-family: var(--font-serif);
+    font-size: 0.96rem;
+    line-height: 1.55;
+  }
+  .evidence-interpretation {
+    border-top: 1px solid var(--line);
+    padding-top: 11px;
+  }
+  .evidence-interpretation p {
+    margin-top: 5px;
+    color: var(--text-soft);
+    font-size: 0.76rem;
+    line-height: 1.55;
+  }
+  .evidence-card footer > div {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+  .evidence-card footer strong {
+    overflow: hidden;
+    font-size: 0.72rem;
+    text-overflow: ellipsis;
+  }
+  .evidence-card footer small {
+    color: var(--text-faint);
+    font-size: 0.64rem;
+  }
   .compact-list {
     display: grid;
     margin-top: 12px;
@@ -1471,6 +1568,17 @@
     }
     .workspace-items {
       grid-template-columns: 1fr;
+    }
+    .evidence-form {
+      grid-template-columns: 1fr;
+    }
+    .evidence-field--wide,
+    .evidence-form .primary-button {
+      grid-column: auto;
+    }
+    .evidence-card footer {
+      align-items: stretch;
+      flex-direction: column;
     }
     .workspace-canvas {
       padding: 18px;
