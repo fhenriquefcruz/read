@@ -1,94 +1,68 @@
 # READ+
 
-**Pesquisa que vira conhecimento.**
+**READ+** é uma plataforma para descoberta, organização e exploração de conhecimento científico e acadêmico.
 
-READ+ está sendo reconstruído como uma plataforma de descoberta acadêmica, biblioteca científica, workspace de pesquisa e conhecimento conectado.
-
-A proposta não é apenas encontrar artigos. A jornada de produto é:
+A jornada de produto é:
 
 **descobrir → filtrar → avaliar → ler → salvar → conectar → compreender → reutilizar**
 
-## Estado atual
+## Reconstrução v3
 
-A reconstrução v3 substitui a antiga implementação monolítica em HTML/JavaScript por uma base tipada, testável e evolutiva.
+A reconstrução está sendo desenvolvida em `rebuild/readplus-platform-v3`.
 
-Implementado nesta fase:
+A auditoria encontrou divergências entre documentação e produção, código legado duplicado, uma chave de Google Books exposta no frontend antigo, fallbacks artificiais e referência a Sci-Hub. Esses mecanismos não fazem parte da nova base.
 
-- busca acadêmica agregada com **OpenAlex + Crossref**;
-- normalização para uma entidade acadêmica única;
-- deduplicação priorizando DOI;
-- sintaxe de busca avançada e filtros visuais;
-- ranking composto e explicável;
-- proveniência dos metadados;
-- estado explícito de disponibilidade de cada fonte;
-- visualização detalhada do trabalho;
-- links oficiais e PDF somente quando a fonte realmente os fornece;
-- biblioteca pessoal persistida em IndexedDB;
-- estados de leitura e notas de biblioteca;
-- workspaces de pesquisa;
-- notas atômicas com `[[links internos]]`;
-- backlinks e knowledge graph derivados das relações reais;
-- light/dark mode;
-- layout responsivo;
-- PWA com app shell offline;
-- testes unitários, E2E e acessibilidade automatizada;
-- CI com quality gates.
+- [Auditoria — Fases 0 e 1](docs/audit-phase-0-1.md)
+- [Arquitetura alvo](docs/architecture.md)
 
-## Integridade acadêmica
+## Stack atual
 
-READ+ **não fabrica artigos, autores, datas, PDFs ou resultados de fallback**.
-
-Quando uma fonte externa está indisponível, a interface informa a indisponibilidade. Uma falha de rede nunca é mascarada com conteúdo fictício.
-
-O projeto não usa Sci-Hub ou mecanismo equivalente.
-
-## Fontes acadêmicas
-
-### OpenAlex
-
-Fonte primária de descoberta, metadados acadêmicos, autores, instituições, tópicos, citações e localizações Open Access.
-
-### Crossref
-
-Fonte complementar para DOI, publicação, autores, editora, links e enriquecimento/deduplicação.
-
-Outros provedores só serão incorporados quando agregarem cobertura ou dados que justifiquem a complexidade operacional e jurídica.
-
-## Busca avançada
-
-Exemplos:
-
-```text
-"machine learning" education
-author:"Daniel Kahneman"
-year:2020-2026
-type:article
-open_access:true
-language:pt
-```
-
-Os mesmos critérios podem ser construídos pelos controles visuais.
-
-## Arquitetura
-
-- React 19
-- TypeScript
-- Vite
+- React 19.3
+- TypeScript 7
+- Vite 8
 - IndexedDB
-- Service Worker
-- OpenAlex + Crossref
 - Vitest
 - Playwright
-- Axe
 - Biome
-- GitHub Actions
-- GitHub Pages no frontend atual
+- PWA com service worker próprio
 
-APIs que exijam segredo, quota por aplicação, IA ou controle centralizado não devem ser chamadas diretamente pelo browser. Para essas integrações, a arquitetura prevê um gateway server-side.
+O frontend continua estático nesta etapa para preservar o GitHub Pages. Integrações que exijam segredo, quota de aplicação ou IA devem passar por uma camada server-side.
+
+## Já implementado
+
+### Academic Discovery Engine
+- OpenAlex + Crossref;
+- normalização em uma entidade acadêmica comum;
+- deduplicação por DOI e chave bibliográfica;
+- filtros visuais e sintaxe avançada;
+- ranking composto;
+- estado dos provedores explícito;
+- nenhum artigo/PDF artificial.
+
+### Biblioteca
+- persistência em IndexedDB;
+- status de leitura;
+- notas;
+- busca e filtros locais.
+
+### Research workspace
+- pesquisas persistentes;
+- pergunta central;
+- corpus formado a partir da biblioteca.
+
+### Conhecimento conectado
+- notas atômicas;
+- `[[links internos]]`;
+- backlinks;
+- grafo derivado das relações entre notas.
+
+### PWA
+- app shell cacheado;
+- assets locais disponíveis offline após instalação/cache;
+- chamadas acadêmicas permanecem network-only;
+- nenhuma busca remota é simulada quando a rede está indisponível.
 
 ## Desenvolvimento
-
-Requer Node.js 24+.
 
 ```bash
 npm install
@@ -98,60 +72,41 @@ npm run dev
 Validação:
 
 ```bash
-npm run lint
-npm run typecheck
-npm run test
-npm run build
+npm run validate
 npm run test:e2e
 ```
 
-Ou:
+## GitHub Pages
 
-```bash
-npm run validate
-```
+O Vite usa `base: /read/`.
 
-## PWA e offline
+Produção atual:
 
-Offline cobre o **app shell e dados pessoais armazenados localmente**. Buscas acadêmicas continuam sendo operações online.
+https://fhenriquefcruz.github.io/read/
 
-O READ+ nunca apresenta uma busca remota como bem-sucedida quando o dispositivo está offline.
+## Princípios de integridade
 
-## Privacidade
+- nunca inventar artigos, autores, métricas ou PDFs;
+- nunca usar Sci-Hub ou equivalentes;
+- deixar indisponibilidade de fonte explícita;
+- nenhum segredo real no bundle;
+- links externos limitados a protocolos seguros;
+- Research Intelligence, quando implementada, deve separar fonte, síntese e inferência e manter rastreabilidade.
 
-Biblioteca, workspaces e notas permanecem no IndexedDB do navegador nesta fase. Não há conta ou sincronização em nuvem ainda.
+## Fases
 
-Nenhum documento privado é enviado para modelo de IA.
-
-## Segurança
-
-- nenhum segredo novo deve ficar no bundle frontend;
-- integrações com credencial protegida devem passar por camada server-side;
-- dependências passam por auditoria no CI;
-- a antiga credencial de Google Books encontrada no legado foi removida da árvore ativa e deve ser rotacionada no provedor.
-
-Veja [docs/audit-phase-0-1.md](docs/audit-phase-0-1.md) e [docs/architecture.md](docs/architecture.md).
-
-## Status das fases
-
-| Fase | Estado |
-| --- | --- |
-| 0 — descoberta | concluída |
-| 1 — auditoria | concluída |
-| 2 — arquitetura de produto | concluída |
-| 3 — arquitetura técnica | concluída |
-| 4 — fundações/design system | em validação |
-| 5 — motor de busca | em validação |
-| 6 — descoberta acadêmica | primeira entrega implementada |
-| 7 — biblioteca | primeira entrega implementada |
-| 8 — workspace de pesquisa | primeira entrega implementada |
-| 9 — Zettelkasten/knowledge graph | primeira entrega implementada |
-| 10 — IA contextual | não iniciada; só entrará com grounding e arquitetura server-side |
-| 11 — PWA/offline | primeira entrega implementada |
-| 12 — segurança | em andamento |
-| 13 — testes/qualidade | em andamento |
-| 14 — produção | pendente dos gates |
-
-## Princípio de evolução
-
-Funcionalidades não entram por quantidade. Cada nova capacidade precisa resolver um problema real da jornada de pesquisa e justificar custo de manutenção, privacidade, segurança e complexidade.
+- ✅ Fase 0 — descoberta
+- ✅ Fase 1 — auditoria
+- ✅ Fase 2 — arquitetura de produto
+- ✅ Fase 3 — arquitetura técnica
+- 🔄 Fase 4 — fundações / design system
+- 🔄 Fase 5 — motor de busca
+- 🔄 Fase 6 — descoberta acadêmica
+- 🔄 Fase 7 — biblioteca
+- 🔄 Fase 8 — workspace
+- 🔄 Fase 9 — Zettelkasten / knowledge graph
+- ⏳ Fase 10 — Research Intelligence
+- 🔄 Fase 11 — PWA / offline
+- 🔄 Fase 12 — segurança
+- 🔄 Fase 13 — testes / qualidade
+- ⏳ Fase 14 — produção
