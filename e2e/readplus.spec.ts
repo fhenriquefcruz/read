@@ -266,6 +266,61 @@ test('workspace preserva consulta e filtros do histórico de descoberta', async 
 });
 
 
+test('workspace reexecuta consulta preservada com os filtros originais', async ({
+  page,
+}) => {
+  await page
+    .getByLabel('Pesquisar literatura acadêmica')
+    .fill('machine learning public administration');
+  await page
+    .locator('.filters')
+    .getByRole('textbox', { name: 'De', exact: true })
+    .fill('2020');
+  await page
+    .locator('.filters')
+    .getByRole('combobox', { name: 'Acesso', exact: true })
+    .selectOption('true');
+  await page.getByRole('button', { name: 'Pesquisar' }).click();
+
+  await page.getByRole('button', { name: 'Pesquisas' }).click();
+  await page.getByLabel('Nome da pesquisa').fill('Governança algorítmica');
+  await page
+    .getByLabel('Pergunta central')
+    .fill('Como o recorte de literatura sustenta esta investigação?');
+  await page.getByRole('button', { name: 'Nova pesquisa' }).click();
+
+  await page
+    .locator('.recent-query-list')
+    .getByRole('button', { name: /machine learning public administration/ })
+    .click();
+
+  const storedQuery = page.locator('.workspace-query');
+  await expect(storedQuery).toContainText('ano 2020–…');
+  await expect(storedQuery).toContainText('Open Access');
+  await storedQuery.getByRole('button', { name: 'Reexecutar' }).click();
+
+  await expect(
+    page.getByLabel('Pesquisar literatura acadêmica'),
+  ).toHaveValue('machine learning public administration');
+  await expect(
+    page
+      .locator('.filters')
+      .getByRole('textbox', { name: 'De', exact: true }),
+  ).toHaveValue('2020');
+  await expect(
+    page
+      .locator('.filters')
+      .getByRole('combobox', { name: 'Acesso', exact: true }),
+  ).toHaveValue('true');
+  await expect(
+    page.getByText('1 trabalhos únicos encontrados e normalizados.'),
+  ).toBeVisible();
+  await expect(
+    page.getByText('reexecutada de Governança algorítmica'),
+  ).toBeVisible();
+});
+
+
 test('biblioteca importa DOI enriquecido sem duplicar referência', async ({
   page,
 }) => {

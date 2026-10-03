@@ -1453,6 +1453,13 @@
     gap: 3px;
     min-width: 0;
   }
+  .workspace-query__actions {
+    display: flex !important;
+    grid-auto-flow: column;
+    gap: 8px !important;
+    align-items: center;
+    flex: 0 0 auto;
+  }
   .workspace-query strong,
   .recent-query-list strong {
     font-size: 0.75rem;

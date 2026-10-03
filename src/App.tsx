@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DiscoverView } from './views/DiscoverView';
 import { LibraryView } from './views/LibraryView';
 import { WorkspaceView } from './views/WorkspaceView';
@@ -6,7 +6,12 @@ import { KnowledgeView } from './views/KnowledgeView';
 import { WorkDetail } from './components/WorkDetail';
 import { Icon, type IconName } from './components/Icons';
 import { libraryStore } from './lib/storage';
-import type { AcademicWork, LibraryEntry } from './types';
+import type {
+  AcademicWork,
+  LibraryEntry,
+  SearchReplayRequest,
+  WorkspaceQuery,
+} from './types';
 
 type View = 'discover' | 'library' | 'workspaces' | 'knowledge';
 type Theme = 'light' | 'dark';
@@ -31,6 +36,9 @@ export default function App() {
   const [theme, setTheme] = useState<Theme>(initialTheme);
   const [library, setLibrary] = useState<LibraryEntry[]>([]);
   const [selectedWork, setSelectedWork] = useState<AcademicWork | null>(null);
+  const [searchReplay, setSearchReplay] = useState<SearchReplayRequest | null>(
+    null,
+  );
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -150,6 +158,34 @@ export default function App() {
     setLibrary((current) => current.filter((entry) => entry.id !== id));
   }
 
+  const replayWorkspaceQuery = useCallback(
+    (
+      query: WorkspaceQuery,
+      workspace: { id: string; title: string },
+    ) => {
+      const replayId =
+        typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : `replay-${Date.now()}`;
+
+      setSearchReplay({
+        id: replayId,
+        raw: query.raw,
+        filters: { ...query.filters },
+        sourceWorkspaceId: workspace.id,
+        sourceWorkspaceTitle: workspace.title,
+        requestedAt: new Date().toISOString(),
+      });
+      setSelectedWork(null);
+      setView('discover');
+    },
+    [],
+  );
+
+  const consumeSearchReplay = useCallback((id: string) => {
+    setSearchReplay((current) => (current?.id === id ? null : current));
+  }, []);
+
   return (
     <div className="app-shell">
       <aside className="app-sidebar">
@@ -211,6 +247,8 @@ export default function App() {
             savedIds={savedIds}
             onSelect={setSelectedWork}
             onSave={saveWork}
+            replayRequest={searchReplay}
+            onReplayConsumed={consumeSearchReplay}
           />
         )}
         {view === 'library' && (
@@ -223,7 +261,11 @@ export default function App() {
           />
         )}
         {view === 'workspaces' && (
-          <WorkspaceView library={library} onSelect={setSelectedWork} />
+          <WorkspaceView
+            library={library}
+            onSelect={setSelectedWork}
+            onReplayQuery={replayWorkspaceQuery}
+          />
         )}
         {view === 'knowledge' && <KnowledgeView library={library} />}
       </div>
