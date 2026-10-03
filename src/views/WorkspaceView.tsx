@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { validateEvidenceRelations } from '../lib/intelligence';
 import { searchHistoryStore, workspaceStore } from '../lib/storage';
 import type {
   AcademicWork,
@@ -8,6 +9,8 @@ import type {
   SearchFilters,
   Workspace,
   WorkspaceEvidence,
+  WorkspaceEvidenceRelation,
+  EvidenceRelationType,
   WorkspaceQuery,
 } from '../types';
 import { Icon } from '../components/Icons';
@@ -78,6 +81,7 @@ function filterSummary(filters: SearchFilters): string {
 
 export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const workspacesRef = useRef<Workspace[]>([]);
   const [searchHistory, setSearchHistory] = useState<SearchHistoryEntry[]>([]);
   const [activeId, setActiveId] = useState<string>();
   const [title, setTitle] = useState('');
@@ -91,13 +95,21 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
     void Promise.all([workspaceStore.list(), searchHistoryStore.list()]).then(
       ([items, history]) => {
         const normalized = items
-          .map((workspace) => ({
-            ...workspace,
-            evidence: workspace.evidence ?? [],
-            queries: normalizeWorkspaceQueries(workspace.id, workspace.queries),
-            workIds: workspace.workIds ?? [],
-          }))
+          .map((workspace) => {
+            const evidence = workspace.evidence ?? [];
+            return {
+              ...workspace,
+              evidence,
+              evidenceRelations: validateEvidenceRelations(
+                evidence,
+                workspace.evidenceRelations ?? [],
+              ),
+              queries: normalizeWorkspaceQueries(workspace.id, workspace.queries),
+              workIds: workspace.workIds ?? [],
+            };
+          })
           .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+        workspacesRef.current = normalized;
         setWorkspaces(normalized);
         setActiveId(normalized[0]?.id);
         setSearchHistory(
@@ -130,10 +142,12 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
   }, [evidenceWorkId, selectedWorks]);
 
   async function persist(workspace: Workspace) {
-    setWorkspaces((current) => {
-      const next = current.filter((item) => item.id !== workspace.id);
-      return [workspace, ...next];
-    });
+    const nextWorkspaces = [
+      workspace,
+      ...workspacesRef.current.filter((item) => item.id !== workspace.id),
+    ];
+    workspacesRef.current = nextWorkspaces;
+    setWorkspaces(nextWorkspaces);
     setActiveId(workspace.id);
 
     try {
@@ -141,13 +155,21 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
     } catch (error) {
       const stored = await workspaceStore.list();
       const normalized = stored
-        .map((item) => ({
-          ...item,
-          evidence: item.evidence ?? [],
-          queries: normalizeWorkspaceQueries(item.id, item.queries),
-          workIds: item.workIds ?? [],
-        }))
+        .map((item) => {
+          const evidence = item.evidence ?? [];
+          return {
+            ...item,
+            evidence,
+            evidenceRelations: validateEvidenceRelations(
+              evidence,
+              item.evidenceRelations ?? [],
+            ),
+            queries: normalizeWorkspaceQueries(item.id, item.queries),
+            workIds: item.workIds ?? [],
+          };
+        })
         .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+      workspacesRef.current = normalized;
       setWorkspaces(normalized);
       setActiveId(normalized[0]?.id);
       throw error;
@@ -165,6 +187,7 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
       workIds: [],
       queries: [],
       evidence: [],
+      evidenceRelations: [],
       createdAt: now,
       updatedAt: now,
     };
@@ -209,14 +232,24 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
   }
 
   async function toggleWork(workId: string) {
-    if (!active) return;
-    const hasEvidence = evidence.some((item) => item.workId === workId);
-    if (active.workIds.includes(workId) && hasEvidence) return;
+    const currentActive = workspacesRef.current.find(
+      (workspace) => workspace.id === activeId,
+    );
+    if (!currentActive) return;
 
-    const workIds = active.workIds.includes(workId)
-      ? active.workIds.filter((id) => id !== workId)
-      : [...active.workIds, workId];
-    await persist({ ...active, workIds, updatedAt: new Date().toISOString() });
+    const currentEvidence = currentActive.evidence ?? [];
+    const hasEvidence = currentEvidence.some((item) => item.workId === workId);
+    if (currentActive.workIds.includes(workId) && hasEvidence) return;
+
+    const workIds = currentActive.workIds.includes(workId)
+      ? currentActive.workIds.filter((id) => id !== workId)
+      : [...currentActive.workIds, workId];
+
+    await persist({
+      ...currentActive,
+      workIds,
+      updatedAt: new Date().toISOString(),
+    });
   }
 
   async function addEvidence(event: React.FormEvent) {
@@ -251,6 +284,63 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
     await persist({
       ...active,
       evidence: evidence.filter((item) => item.id !== id),
+      evidenceRelations: (active.evidenceRelations ?? []).filter(
+        (relation) =>
+          relation.leftEvidenceId !== id && relation.rightEvidenceId !== id,
+      ),
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+
+  async function addEvidenceRelation(input: {
+    leftEvidenceId: string;
+    rightEvidenceId: string;
+    type: EvidenceRelationType;
+    note: string;
+  }) {
+    if (!active) return;
+    if (
+      input.leftEvidenceId === input.rightEvidenceId ||
+      !evidence.some((item) => item.id === input.leftEvidenceId) ||
+      !evidence.some((item) => item.id === input.rightEvidenceId)
+    ) {
+      return;
+    }
+
+    const pairKey = [input.leftEvidenceId, input.rightEvidenceId]
+      .sort()
+      .join('::');
+    const alreadyExists = (active.evidenceRelations ?? []).some(
+      (relation) =>
+        [relation.leftEvidenceId, relation.rightEvidenceId]
+          .sort()
+          .join('::') === pairKey,
+    );
+    if (alreadyExists) return;
+
+    const relation: WorkspaceEvidenceRelation = {
+      id: createId('relation'),
+      leftEvidenceId: input.leftEvidenceId,
+      rightEvidenceId: input.rightEvidenceId,
+      type: input.type,
+      note: input.note.trim(),
+      createdAt: new Date().toISOString(),
+    };
+    await persist({
+      ...active,
+      evidenceRelations: [...(active.evidenceRelations ?? []), relation],
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+  async function removeEvidenceRelation(id: string) {
+    if (!active) return;
+    await persist({
+      ...active,
+      evidenceRelations: (active.evidenceRelations ?? []).filter(
+        (relation) => relation.id !== id,
+      ),
       updatedAt: new Date().toISOString(),
     });
   }
@@ -455,6 +545,7 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
                     <label>
                       Fonte
                       <select
+                        aria-label="Fonte da evidência"
                         value={evidenceWorkId}
                         onChange={(event) => setEvidenceWorkId(event.target.value)}
                       >
@@ -568,8 +659,11 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
               <ResearchIntelligence
                 workspace={active}
                 evidence={evidence}
+                relations={active.evidenceRelations ?? []}
                 library={library}
                 onSelect={onSelect}
+                onAddRelation={addEvidenceRelation}
+                onRemoveRelation={removeEvidenceRelation}
               />
 
               <section className="workspace-section">

@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildGroundedBrief,
+  comparisonCandidates,
   evidenceMatrix,
   groundedBriefToMarkdown,
+  researchCoverageDiagnostics,
+  researchDiagnosticsToMarkdown,
+  validateEvidenceRelations,
 } from '../src/lib/intelligence';
 import type { WorkspaceEvidence } from '../src/types';
 
@@ -89,5 +93,109 @@ describe('grounded research intelligence', () => {
       '**Interpretação do pesquisador:** Access improved under the observed conditions.',
     );
     expect(markdown).toContain('[1] Study One · DOI 10.1000/one');
+  });
+});
+
+
+describe('research intelligence v7 diagnostics', () => {
+  it('sugere apenas pares comparáveis de fontes diferentes e mesmo tipo', () => {
+    const candidates = comparisonCandidates(evidence);
+
+    expect(candidates).toHaveLength(0);
+
+    const expanded = [
+      ...evidence,
+      {
+        id: 'e4',
+        workId: 'w2',
+        sourceTitle: 'Study Two',
+        kind: 'finding' as const,
+        excerpt: 'The intervention improved access for rural users.',
+        interpretation: '',
+        createdAt: '2026-10-03T00:00:00.000Z',
+      },
+    ];
+
+    const comparable = comparisonCandidates(expanded);
+    expect(comparable).toHaveLength(1);
+    expect(comparable[0]?.leftEvidenceId).toBe('e1');
+    expect(comparable[0]?.rightEvidenceId).toBe('e4');
+    expect(comparable[0]?.kind).toBe('finding');
+  });
+
+  it('não chama pares de convergentes ou divergentes sem classificação humana', () => {
+    const diagnostics = researchCoverageDiagnostics(evidence, []);
+
+    expect(diagnostics.relationCount).toBe(0);
+    expect(diagnostics.relationCounts.converges).toBe(0);
+    expect(diagnostics.relationCounts.diverges).toBe(0);
+    expect(diagnostics.gaps.some((gap) => gap.code === 'uncompared-evidence')).toBe(true);
+  });
+
+  it('contabiliza somente relações explicitamente confirmadas', () => {
+    const diagnostics = researchCoverageDiagnostics(evidence, [
+      {
+        id: 'r1',
+        leftEvidenceId: 'e1',
+        rightEvidenceId: 'e2',
+        type: 'qualifies',
+        note: 'A limitação restringe a generalização do achado.',
+        createdAt: '2026-10-03T00:00:00.000Z',
+      },
+    ]);
+
+    expect(diagnostics.relationCount).toBe(1);
+    expect(diagnostics.relationCounts.qualifies).toBe(1);
+  });
+
+  it('gera relatório de diagnóstico deixando autoria da relação explícita', () => {
+    const markdown = researchDiagnosticsToMarkdown('Question', evidence, [
+      {
+        id: 'r1',
+        leftEvidenceId: 'e1',
+        rightEvidenceId: 'e2',
+        type: 'diverges',
+        note: 'Classificação confirmada pelo pesquisador.',
+        createdAt: '2026-10-03T00:00:00.000Z',
+      },
+    ]);
+
+    expect(markdown).toContain('Relações de convergência/divergência são classificadas pelo pesquisador');
+    expect(markdown).toContain('**Divergência**');
+    expect(markdown).toContain('Classificação confirmada pelo pesquisador.');
+  });
+});
+
+
+describe('research intelligence relation integrity', () => {
+  it('descarta relações órfãs ou autorreferentes', () => {
+    const relations = validateEvidenceRelations(evidence, [
+      {
+        id: 'r1',
+        leftEvidenceId: 'e1',
+        rightEvidenceId: 'e2',
+        type: 'diverges',
+        note: 'Different contexts.',
+        createdAt: '2026-10-03T00:00:00.000Z',
+      },
+      {
+        id: 'r2',
+        leftEvidenceId: 'e1',
+        rightEvidenceId: 'missing',
+        type: 'context',
+        note: '',
+        createdAt: '2026-10-03T00:00:00.000Z',
+      },
+      {
+        id: 'r3',
+        leftEvidenceId: 'e1',
+        rightEvidenceId: 'e1',
+        type: 'converges',
+        note: '',
+        createdAt: '2026-10-03T00:00:00.000Z',
+      },
+    ]);
+
+    expect(relations.map((item) => item.id)).toEqual(['r1']);
   });
 });

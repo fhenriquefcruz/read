@@ -229,3 +229,45 @@ Regras bloqueantes:
 - respostas sem grounding são rejeitadas antes de chegar à UI.
 
 A v6 **não instala provedor de modelo nem envia dados para terceiros**. Um backend futuro poderá usar streaming/structured output, mas somente depois de autenticação, rate limiting, observabilidade e política de privacidade estarem implementados.
+
+
+## Research Intelligence comparative — v7
+
+A v7 adiciona comparação sem transformar heurística em conclusão científica.
+
+### Comparison Board
+O sistema pode sugerir pares comparáveis somente quando:
+- as evidências pertencem ao mesmo `EvidenceKind`;
+- vêm de trabalhos diferentes.
+
+A ordenação pode usar sobreposição lexical apenas para priorizar a fila. **Isso não classifica a relação.**
+
+Somente o pesquisador pode persistir:
+- `converges`;
+- `diverges`;
+- `qualifies`;
+- `context`.
+
+Cada `WorkspaceEvidenceRelation` mantém os dois `evidenceIds`, nota analítica e timestamp. Ao remover uma evidência, relações dependentes são removidas junto.
+
+### Coverage Diagnostics
+O diagnóstico local sinaliza lacunas estruturais observáveis, por exemplo:
+- uma única fonte;
+- ausência de método;
+- ausência de limitações;
+- achados vindos de uma única fonte;
+- baixa cobertura de interpretação;
+- múltiplas fontes ainda não comparadas.
+
+Esses sinais **não constituem score de qualidade metodológica** e não dizem que uma pesquisa é boa, ruim, conclusiva ou suficiente.
+
+### Gateway contract v2
+O contrato futuro agora pode transportar:
+- evidências selecionadas;
+- relações confirmadas pelo pesquisador;
+- tarefas solicitadas: síntese, comparação e identificação de lacunas;
+- consentimento explícito.
+
+Respostas podem referenciar `relationIds`, mas cada ID é validado contra o contexto enviado. Claims continuam obrigadas a citar ao menos um `evidenceId`.
+
+A relação confirmada pelo usuário é contexto analítico, não autorização para o modelo inventar causalidade, consenso ou magnitude.
