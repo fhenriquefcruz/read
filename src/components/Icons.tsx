@@ -48,8 +48,8 @@ export function Icon({ name, ...props }: SVGProps<SVGSVGElement> & { name: IconN
       focusable="false"
       {...props}
     >
-      {paths[name].map((path, index) => (
-        <path d={path} key={index} />
+      {paths[name].map((path) => (
+        <path d={path} key={path} />
       ))}
     </svg>
   );
