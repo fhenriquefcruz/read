@@ -947,6 +947,103 @@
     color: var(--text-faint);
     font-size: 0.68rem;
   }
+  .workspace-section__head > div > p {
+    margin-top: 4px;
+    max-width: 650px;
+    color: var(--text-faint);
+    font-size: 0.72rem;
+    line-height: 1.5;
+  }
+  .evidence-workspace {
+    display: grid;
+    gap: 16px;
+  }
+  .evidence-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 150px;
+    gap: 10px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--surface-subtle);
+    padding: 14px;
+  }
+  .evidence-form label {
+    display: grid;
+    gap: 5px;
+    color: var(--text-faint);
+    font-size: 0.67rem;
+    font-weight: 650;
+  }
+  .evidence-form select,
+  .evidence-form textarea {
+    width: 100%;
+    padding: 9px 10px;
+    color: var(--text);
+    font-size: 0.76rem;
+    line-height: 1.5;
+  }
+  .evidence-field--wide,
+  .evidence-form .primary-button {
+    grid-column: 1 / -1;
+  }
+  .evidence-form .primary-button {
+    width: fit-content;
+  }
+  .evidence-empty {
+    padding: 4px 0;
+  }
+  .evidence-list {
+    display: grid;
+    gap: 10px;
+  }
+  .evidence-card {
+    display: grid;
+    gap: 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    padding: 15px;
+  }
+  .evidence-card__top,
+  .evidence-card footer {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 14px;
+  }
+  .evidence-card blockquote {
+    margin: 0;
+    border-left: 3px solid var(--accent);
+    padding: 1px 0 1px 13px;
+    color: var(--text);
+    font-family: var(--font-serif);
+    font-size: 0.96rem;
+    line-height: 1.55;
+  }
+  .evidence-interpretation {
+    border-top: 1px solid var(--line);
+    padding-top: 11px;
+  }
+  .evidence-interpretation p {
+    margin-top: 5px;
+    color: var(--text-soft);
+    font-size: 0.76rem;
+    line-height: 1.55;
+  }
+  .evidence-card footer > div {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+  .evidence-card footer strong {
+    overflow: hidden;
+    font-size: 0.72rem;
+    text-overflow: ellipsis;
+  }
+  .evidence-card footer small {
+    color: var(--text-faint);
+    font-size: 0.64rem;
+  }
   .compact-list {
     display: grid;
     margin-top: 12px;
@@ -1100,7 +1197,7 @@
     position: fixed;
     inset: 14px 14px 14px auto;
     z-index: 50;
-    width: min(640px, calc(100vw - 28px));
+    width: min(780px, calc(100vw - 28px));
     overflow: auto;
     border: 1px solid var(--line);
     border-radius: 22px;
@@ -1136,9 +1233,35 @@
     background: var(--surface-subtle);
   }
   .detail-authors {
-    margin-top: 12px;
+    margin-top: 16px;
     color: var(--text-soft);
     font-size: 0.83rem;
+  }
+  .author-list {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .author-list li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 5px 9px;
+  }
+  .author-list strong {
+    color: var(--text);
+    font-size: 0.8rem;
+  }
+  .author-list span {
+    color: var(--text-faint);
+    font-size: 0.7rem;
+  }
+  .author-orcid {
+    color: var(--accent);
+    font-size: 0.68rem;
+    font-weight: 700;
   }
   .metadata-grid {
     display: grid;
@@ -1170,11 +1293,102 @@
     font-family: var(--font-serif);
     font-size: 1rem;
   }
+  .detail-section h4 {
+    margin: 0;
+    font-size: 0.76rem;
+  }
+  .detail-section__head {
+    margin-bottom: 14px;
+  }
+  .detail-section__head > div > p {
+    max-width: 620px;
+  }
   .detail-section p {
     margin-top: 9px;
     color: var(--text-soft);
     font-size: 0.83rem;
     line-height: 1.75;
+  }
+  .relation-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .relation-group {
+    min-width: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--surface-raised);
+    padding: 12px;
+  }
+  .relation-group__head {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 58px;
+  }
+  .relation-group__head p {
+    margin-top: 3px;
+    color: var(--text-faint);
+    font-size: 0.64rem;
+    line-height: 1.35;
+  }
+  .relation-group__head > span {
+    min-width: 24px;
+    border-radius: 99px;
+    background: var(--surface-subtle);
+    padding: 2px 6px;
+    color: var(--text-faint);
+    font-size: 0.64rem;
+    text-align: center;
+  }
+  .relation-list {
+    display: grid;
+    gap: 2px;
+    margin-top: 8px;
+    border-top: 1px solid var(--line);
+  }
+  .relation-item {
+    display: grid;
+    gap: 3px;
+    width: 100%;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    background: transparent;
+    padding: 9px 0;
+    cursor: pointer;
+    text-align: left;
+  }
+  .relation-item:last-child {
+    border-bottom: 0;
+  }
+  .relation-item strong {
+    color: var(--text);
+    font-size: 0.69rem;
+    line-height: 1.35;
+  }
+  .relation-item span,
+  .relation-empty {
+    color: var(--text-faint);
+    font-size: 0.62rem;
+    line-height: 1.4;
+  }
+  .relation-item:hover strong {
+    color: var(--accent);
+  }
+  .relation-empty {
+    margin-top: 10px;
+  }
+  .relation-error {
+    color: var(--danger);
+  }
+  .export-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 12px;
   }
   .detail-actions {
     display: flex;
@@ -1355,6 +1569,17 @@
     .workspace-items {
       grid-template-columns: 1fr;
     }
+    .evidence-form {
+      grid-template-columns: 1fr;
+    }
+    .evidence-field--wide,
+    .evidence-form .primary-button {
+      grid-column: auto;
+    }
+    .evidence-card footer {
+      align-items: stretch;
+      flex-direction: column;
+    }
     .workspace-canvas {
       padding: 18px;
     }
@@ -1363,6 +1588,9 @@
     }
     .metadata-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .relation-grid {
+      grid-template-columns: 1fr;
     }
     .detail-panel {
       inset: 8px;
