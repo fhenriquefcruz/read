@@ -164,3 +164,68 @@ describe('research intelligence v7 diagnostics', () => {
     expect(markdown).toContain('Classificação confirmada pelo pesquisador.');
   });
 });
+
+
+describe('research intelligence v7 coverage and relations', () => {
+  it('diagnostica apenas cobertura observável, sem atribuir qualidade científica', () => {
+    const diagnostic = diagnoseCoverage('Does it help?', evidence);
+
+    expect(diagnostic.evidenceCount).toBe(3);
+    expect(diagnostic.sourceCount).toBe(2);
+    expect(diagnostic.kindsCovered).toEqual([
+      'finding',
+      'method',
+      'limitation',
+    ]);
+    expect(diagnostic.missingKinds).toEqual(['definition', 'quote']);
+    expect(diagnostic.interpretedCount).toBe(1);
+    expect(diagnostic.questionPresent).toBe(true);
+    expect(diagnostic.notes).toContain(
+      'Há evidências sem interpretação explícita do pesquisador.',
+    );
+  });
+
+  it('sugere comparação somente entre fontes distintas do mesmo tipo de evidência', () => {
+    const pairs = comparableEvidencePairs([
+      evidence[0]!,
+      { ...evidence[0]!, id: 'e4', workId: 'w2', sourceTitle: 'Study Two' },
+      { ...evidence[0]!, id: 'e5', workId: 'w1', kind: 'method' },
+    ]);
+
+    expect(pairs).toHaveLength(1);
+    expect(pairs[0]?.left.id).toBe('e1');
+    expect(pairs[0]?.right.id).toBe('e4');
+    expect(pairs[0]?.kind).toBe('finding');
+  });
+
+  it('descarta relações órfãs ou autorreferentes', () => {
+    const relations = validateEvidenceRelations(evidence, [
+      {
+        id: 'r1',
+        leftEvidenceId: 'e1',
+        rightEvidenceId: 'e2',
+        type: 'diverges',
+        note: 'Different contexts.',
+        createdAt: '2026-10-03T00:00:00.000Z',
+      },
+      {
+        id: 'r2',
+        leftEvidenceId: 'e1',
+        rightEvidenceId: 'missing',
+        type: 'context',
+        note: '',
+        createdAt: '2026-10-03T00:00:00.000Z',
+      },
+      {
+        id: 'r3',
+        leftEvidenceId: 'e1',
+        rightEvidenceId: 'e1',
+        type: 'converges',
+        note: '',
+        createdAt: '2026-10-03T00:00:00.000Z',
+      },
+    ]);
+
+    expect(relations.map((item) => item.id)).toEqual(['r1']);
+  });
+});
