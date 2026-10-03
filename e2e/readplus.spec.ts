@@ -385,14 +385,14 @@ test('research intelligence gera grounded brief sem inferência automática', as
   await expect(
     page.getByText('Evidência organizada por função'),
   ).toBeVisible();
+  const groundedBrief = page.locator('.grounded-brief');
   await expect(
-    page.getByText(
-      'Machine learning supports evidence in public administration.',
-      { exact: true },
-    ),
+    groundedBrief.getByRole('blockquote').filter({
+      hasText: 'Machine learning supports evidence in public administration.',
+    }),
   ).toBeVisible();
   await expect(
-    page.getByText(
+    groundedBrief.getByText(
       'A adoção precisa preservar governança e rastreabilidade.',
       { exact: true },
     ),
