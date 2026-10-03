@@ -246,6 +246,14 @@ test('workspace preserva consulta e filtros do histórico de descoberta', async 
     .fill('Quais evidências sustentam o uso responsável de IA pública?');
   await page.getByRole('button', { name: 'Nova pesquisa' }).click();
 
+  await page
+    .locator('.workspace-picker')
+    .getByRole('checkbox', {
+      name: /Machine Learning in Public Administration/,
+    })
+    .check();
+  await expect(page.getByText('1 trabalhos', { exact: true })).toBeVisible();
+
   const recent = page
     .locator('.recent-query-list')
     .getByRole('button', { name: /machine learning public administration/ });
