@@ -98,6 +98,35 @@ export default function App() {
     setLibrary((current) => [entry, ...current]);
   }
 
+  async function importWorks(
+    works: AcademicWork[],
+  ): Promise<{ added: number; skipped: number }> {
+    const currentIds = new Set(library.map((entry) => entry.id));
+    const now = new Date().toISOString();
+    const additions: LibraryEntry[] = [];
+
+    for (const work of works) {
+      if (currentIds.has(work.id)) continue;
+      currentIds.add(work.id);
+      additions.push({
+        id: work.id,
+        work,
+        status: 'saved',
+        tags: [],
+        note: '',
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    await Promise.all(additions.map((entry) => libraryStore.save(entry)));
+    if (additions.length) {
+      setLibrary((current) => [...additions, ...current]);
+    }
+
+    return { added: additions.length, skipped: works.length - additions.length };
+  }
+
   async function updateEntry(entry: LibraryEntry) {
     await libraryStore.save(entry);
     setLibrary((current) =>
@@ -181,6 +210,7 @@ export default function App() {
             onUpdate={updateEntry}
             onRemove={removeEntry}
             onSelect={setSelectedWork}
+            onImportWorks={importWorks}
           />
         )}
         {view === 'workspaces' && (

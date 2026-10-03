@@ -79,6 +79,7 @@ export interface LibraryEntry {
   work: AcademicWork;
   status: LibraryStatus;
   tags: string[];
+  collection?: string;
   note: string;
   createdAt: string;
   updatedAt: string;

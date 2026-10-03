@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   bibliographyFilename,
   serializeBibliography,
+  serializeBibliographySet,
   toBibTeX,
   toCSLJSON,
   toRIS,
@@ -64,5 +65,22 @@ describe('bibliography exports', () => {
     expect(bibliographyFilename(work, 'bibtex')).toBe(
       'machine-learning-in-public-administration.bib',
     );
+  });
+});
+
+
+describe('bibliography batch export', () => {
+  it('gera CSL-JSON como array válido para múltiplos trabalhos', () => {
+    const content = serializeBibliographySet([work, { ...work, id: 'second', title: 'Second Work', doi: undefined }], 'csl-json');
+    const parsed = JSON.parse(content) as Array<Record<string, unknown>>;
+
+    expect(parsed).toHaveLength(2);
+    expect(parsed[0]?.DOI).toBe('10.1000/readplus');
+    expect(parsed[1]?.title).toBe('Second Work');
+  });
+
+  it('concatena registros RIS mantendo terminadores', () => {
+    const content = serializeBibliographySet([work, { ...work, id: 'second', title: 'Second Work' }], 'ris');
+    expect(content.match(/ER  -/g)).toHaveLength(2);
   });
 });
