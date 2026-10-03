@@ -215,7 +215,7 @@ export function DiscoverView({
           )}
         </div>
 
-        <div className="provider-strip" aria-label="Estado das fontes">
+        <div className="provider-strip" role="group" aria-label="Estado das fontes">
           {providers.map((provider) => (
             <span
               className={
@@ -234,10 +234,7 @@ export function DiscoverView({
         <section className="result-list" aria-label="Resultados acadêmicos">
           {works.map((work, index) => (
             <article className="work-row" key={work.id}>
-              <div
-                className="work-row__rank"
-                aria-label={`posição ${index + 1}`}
-              >
+              <div className="work-row__rank" aria-hidden="true">
                 {String(index + 1).padStart(2, '0')}
               </div>
               <div className="work-row__body">
