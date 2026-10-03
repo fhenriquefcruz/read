@@ -205,17 +205,15 @@ export function KnowledgeView({ library }: KnowledgeViewProps) {
                   );
                 })}
                 {graph.nodes.map((node) => (
-                  <a
+                  <g
                     key={node.id}
-                    href="#knowledge-note"
-                    aria-label={`Abrir nota: ${node.title}`}
-                    onClick={() => setActiveId(node.id)}
                     className={
                       node.id === activeId
                         ? 'graph-node graph-node--active'
                         : 'graph-node'
                     }
                   >
+                    <title>{node.title}</title>
                     <circle
                       cx={node.x}
                       cy={node.y}
@@ -224,7 +222,7 @@ export function KnowledgeView({ library }: KnowledgeViewProps) {
                     <text x={node.x} y={node.y + 18} textAnchor="middle">
                       {node.title.slice(0, 24)}
                     </text>
-                  </a>
+                  </g>
                 ))}
               </svg>
             )}
