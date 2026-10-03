@@ -216,3 +216,131 @@ test('workspace preserva evidência rastreável e interpretação após reload',
     ),
   ).toBeVisible();
 });
+
+
+test('workspace preserva consulta e filtros do histórico de descoberta', async ({
+  page,
+}) => {
+  await page
+    .getByLabel('Pesquisar literatura acadêmica')
+    .fill('machine learning public administration');
+  await page
+    .locator('.filters')
+    .getByRole('textbox', { name: 'De', exact: true })
+    .fill('2020');
+  await page
+    .locator('.filters')
+    .getByRole('combobox', { name: 'Acesso', exact: true })
+    .selectOption('true');
+  await page.getByRole('button', { name: 'Pesquisar' }).click();
+  await expect(
+    page.getByText('1 trabalhos únicos encontrados e normalizados.'),
+  ).toBeVisible();
+
+  await page.getByRole('button', { name: 'Pesquisas' }).click();
+  await page.getByLabel('Nome da pesquisa').fill('Governança algorítmica');
+  await page
+    .getByLabel('Pergunta central')
+    .fill('Quais evidências sustentam o uso responsável de IA pública?');
+  await page.getByRole('button', { name: 'Nova pesquisa' }).click();
+
+  const recent = page
+    .locator('.recent-query-list')
+    .getByRole('button', { name: /machine learning public administration/ });
+  await expect(recent).toContainText('ano 2020–…');
+  await expect(recent).toContainText('Open Access');
+  await recent.click();
+
+  const saved = page.locator('.workspace-query');
+  await expect(saved).toContainText('machine learning public administration');
+  await expect(saved).toContainText('ano 2020–…');
+  await expect(saved).toContainText('Open Access');
+
+  await page.reload();
+  await page.getByRole('button', { name: 'Pesquisas' }).click();
+  await expect(page.locator('.workspace-query')).toContainText(
+    'machine learning public administration',
+  );
+});
+
+
+test('biblioteca importa DOI enriquecido sem duplicar referência', async ({
+  page,
+}) => {
+  await page.getByRole('button', { name: 'Biblioteca' }).click();
+  await page.getByText('Importar referências').click();
+
+  await page.getByLabel('DOI', { exact: true }).fill('10.1000/readplus.2025.1');
+  await page.getByRole('button', { name: 'Resolver DOI' }).click();
+
+  await expect(
+    page.getByRole('button', {
+      name: 'Machine Learning in Public Administration',
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByText('Referência importada e enriquecida com sucesso.'),
+  ).toBeVisible();
+
+  await page.getByLabel('DOI', { exact: true }).fill('10.1000/readplus.2025.1');
+  await page.getByRole('button', { name: 'Resolver DOI' }).click();
+  await expect(
+    page.getByText('Esta referência já existe na biblioteca.'),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('button', {
+      name: 'Machine Learning in Public Administration',
+    }),
+  ).toHaveCount(1);
+});
+
+test('biblioteca importa RIS, organiza metadados locais e exporta seleção', async ({
+  page,
+}) => {
+  await page.getByRole('button', { name: 'Biblioteca' }).click();
+  await page.getByText('Importar referências').click();
+
+  await page.getByLabel('Conteúdo bibliográfico').fill(`TY  - JOUR
+TI  - Imported Policy Study
+AU  - Maria Pesquisadora
+PY  - 2024
+DO  - 10.1000/imported-policy
+JO  - Policy Evidence Review
+ER  -
+`);
+  await page.getByRole('button', { name: 'Importar conteúdo' }).click();
+
+  await expect(page.getByText('1 importada(s) · 0 duplicada(s) ignorada(s).')).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Imported Policy Study' }),
+  ).toBeVisible();
+
+  await page
+    .getByLabel('Coleção de Imported Policy Study')
+    .fill('Referencial teórico');
+  const tags = page.getByLabel('Tags de Imported Policy Study');
+  await tags.fill('governança, evidência');
+  await tags.press('Tab');
+
+  await expect(page.getByText('governança', { exact: true })).toBeVisible();
+  await expect(page.getByText('evidência', { exact: true })).toBeVisible();
+
+  await page.getByLabel('Selecionar Imported Policy Study').check();
+  await page
+    .getByLabel('Formato da exportação em lote')
+    .selectOption('ris');
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Exportar seleção' }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe('readplus-library.ris');
+
+  await page.reload();
+  await page.getByRole('button', { name: 'Biblioteca' }).click();
+  await expect(
+    page.getByLabel('Coleção de Imported Policy Study'),
+  ).toHaveValue('Referencial teórico');
+  await expect(page.getByLabel('Tags de Imported Policy Study')).toHaveValue(
+    'governança, evidência',
+  );
+});

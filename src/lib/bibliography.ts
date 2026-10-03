@@ -123,3 +123,37 @@ export function downloadBibliography(work: AcademicWork, format: BibliographyFor
   anchor.click();
   URL.revokeObjectURL(href);
 }
+
+
+export function serializeBibliographySet(
+  works: AcademicWork[],
+  format: BibliographyFormat,
+): string {
+  if (format === 'bibtex') return works.map(toBibTeX).join('\n');
+  if (format === 'ris') return works.map(toRIS).join('\n');
+
+  const items = works.map((work) => JSON.parse(toCSLJSON(work)) as unknown);
+  return `${JSON.stringify(items, null, 2)}\n`;
+}
+
+export function downloadBibliographySet(
+  works: AcademicWork[],
+  format: BibliographyFormat,
+  baseName = 'readplus-library',
+): void {
+  if (!works.length) return;
+  const content = serializeBibliographySet(works, format);
+  const extension =
+    format === 'bibtex' ? 'bib' : format === 'ris' ? 'ris' : 'json';
+  const type =
+    format === 'csl-json'
+      ? 'application/json'
+      : 'text/plain;charset=utf-8';
+  const blob = new Blob([content], { type });
+  const href = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = href;
+  anchor.download = `${baseName}.${extension}`;
+  anchor.click();
+  URL.revokeObjectURL(href);
+}

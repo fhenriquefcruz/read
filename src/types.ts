@@ -1,4 +1,4 @@
-export type ProviderName = 'OpenAlex' | 'Crossref';
+export type ProviderName = 'OpenAlex' | 'Crossref' | 'Imported';
 
 export interface WorkAuthor {
   name: string;
@@ -46,6 +46,22 @@ export interface ParsedQuery {
   raw: string;
 }
 
+export interface SearchHistoryEntry {
+  id: string;
+  raw: string;
+  filters: SearchFilters;
+  resultCount: number;
+  createdAt: string;
+}
+
+export interface WorkspaceQuery {
+  id: string;
+  raw: string;
+  filters: SearchFilters;
+  resultCount?: number;
+  createdAt: string;
+}
+
 export interface ProviderStatus {
   provider: ProviderName;
   ok: boolean;
@@ -79,6 +95,7 @@ export interface LibraryEntry {
   work: AcademicWork;
   status: LibraryStatus;
   tags: string[];
+  collection?: string;
   note: string;
   createdAt: string;
   updatedAt: string;
@@ -107,7 +124,7 @@ export interface Workspace {
   title: string;
   question: string;
   workIds: string[];
-  queries: string[];
+  queries?: WorkspaceQuery[];
   evidence?: WorkspaceEvidence[];
   createdAt: string;
   updatedAt: string;

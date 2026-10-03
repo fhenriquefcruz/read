@@ -1,4 +1,9 @@
-import type { KnowledgeNote, LibraryEntry, Workspace } from '../types';
+import type {
+  KnowledgeNote,
+  LibraryEntry,
+  SearchHistoryEntry,
+  Workspace,
+} from '../types';
 
 type StoreName =
   | 'library'
@@ -98,4 +103,11 @@ export const noteStore = {
   list: () => getAll<KnowledgeNote>('notes'),
   save: (note: KnowledgeNote) => put('notes', note),
   remove: (id: string) => remove('notes', id),
+};
+
+
+export const searchHistoryStore = {
+  list: () => getAll<SearchHistoryEntry>('searchHistory'),
+  save: (entry: SearchHistoryEntry) => put('searchHistory', entry),
+  remove: (id: string) => remove('searchHistory', id),
 };

@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
-import { workspaceStore } from '../lib/storage';
+import { searchHistoryStore, workspaceStore } from '../lib/storage';
 import type {
   AcademicWork,
   EvidenceKind,
   LibraryEntry,
+  SearchHistoryEntry,
+  SearchFilters,
   Workspace,
   WorkspaceEvidence,
+  WorkspaceQuery,
 } from '../types';
 import { Icon } from '../components/Icons';
 
@@ -32,8 +35,49 @@ function evidenceLabel(kind: EvidenceKind): string {
   return evidenceKinds.find((item) => item.value === kind)?.label ?? kind;
 }
 
+function normalizeWorkspaceQueries(
+  workspaceId: string,
+  value: unknown,
+): WorkspaceQuery[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((item, index) => {
+    if (typeof item === 'string') {
+      return [
+        {
+          id: `legacy-${workspaceId}-${index}`,
+          raw: item,
+          filters: { sort: 'relevance' as const },
+          createdAt: new Date(0).toISOString(),
+        },
+      ];
+    }
+
+    if (!item || typeof item !== 'object') return [];
+    const query = item as Partial<WorkspaceQuery>;
+    if (!query.id || !query.raw || !query.filters || !query.createdAt) return [];
+    return [query as WorkspaceQuery];
+  });
+}
+
+function filterSummary(filters: SearchFilters): string {
+  const parts: string[] = [];
+  if (filters.yearFrom || filters.yearTo) {
+    parts.push(`ano ${filters.yearFrom ?? '…'}–${filters.yearTo ?? '…'}`);
+  }
+  if (filters.type) parts.push(`tipo ${filters.type}`);
+  if (filters.openAccess !== undefined) {
+    parts.push(filters.openAccess ? 'Open Access' : 'acesso fechado');
+  }
+  if (filters.language) parts.push(`idioma ${filters.language}`);
+  if (filters.author) parts.push(`autor ${filters.author}`);
+  if (filters.sort !== 'relevance') parts.push(`ordem ${filters.sort}`);
+  return parts.join(' · ') || 'sem filtros adicionais';
+}
+
 export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [searchHistory, setSearchHistory] = useState<SearchHistoryEntry[]>([]);
   const [activeId, setActiveId] = useState<string>();
   const [title, setTitle] = useState('');
   const [question, setQuestion] = useState('');
@@ -43,18 +87,25 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
   const [evidenceInterpretation, setEvidenceInterpretation] = useState('');
 
   useEffect(() => {
-    void workspaceStore.list().then((items) => {
-      const normalized = items
-        .map((workspace) => ({
-          ...workspace,
-          evidence: workspace.evidence ?? [],
-          queries: workspace.queries ?? [],
-          workIds: workspace.workIds ?? [],
-        }))
-        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-      setWorkspaces(normalized);
-      setActiveId(normalized[0]?.id);
-    });
+    void Promise.all([workspaceStore.list(), searchHistoryStore.list()]).then(
+      ([items, history]) => {
+        const normalized = items
+          .map((workspace) => ({
+            ...workspace,
+            evidence: workspace.evidence ?? [],
+            queries: normalizeWorkspaceQueries(workspace.id, workspace.queries),
+            workIds: workspace.workIds ?? [],
+          }))
+          .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+        setWorkspaces(normalized);
+        setActiveId(normalized[0]?.id);
+        setSearchHistory(
+          history
+            .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+            .slice(0, 20),
+        );
+      },
+    );
   }, []);
 
   const active = workspaces.find((workspace) => workspace.id === activeId);
@@ -92,7 +143,7 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
         .map((item) => ({
           ...item,
           evidence: item.evidence ?? [],
-          queries: item.queries ?? [],
+          queries: normalizeWorkspaceQueries(item.id, item.queries),
           workIds: item.workIds ?? [],
         }))
         .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
@@ -119,6 +170,41 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
     await persist(workspace);
     setTitle('');
     setQuestion('');
+  }
+
+
+  async function addQuery(history: SearchHistoryEntry) {
+    if (!active) return;
+    const queries = active.queries ?? [];
+    const exists = queries.some(
+      (item) =>
+        item.raw === history.raw &&
+        JSON.stringify(item.filters) === JSON.stringify(history.filters),
+    );
+    if (exists) return;
+
+    const query: WorkspaceQuery = {
+      id: history.id,
+      raw: history.raw,
+      filters: { ...history.filters },
+      resultCount: history.resultCount,
+      createdAt: history.createdAt,
+    };
+
+    await persist({
+      ...active,
+      queries: [query, ...queries],
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+  async function removeQuery(id: string) {
+    if (!active) return;
+    await persist({
+      ...active,
+      queries: (active.queries ?? []).filter((item) => item.id !== id),
+      updatedAt: new Date().toISOString(),
+    });
   }
 
   async function toggleWork(workId: string) {
@@ -249,6 +335,78 @@ export function WorkspaceView({ library, onSelect }: WorkspaceViewProps) {
                 <h2>{active.title}</h2>
                 <p>{active.question || 'Sem pergunta central definida.'}</p>
               </div>
+
+
+              <section className="workspace-section">
+                <div className="workspace-section__head">
+                  <div>
+                    <h3>Consultas da pesquisa</h3>
+                    <p>
+                      Preserve a pergunta operacional e os filtros usados para
+                      formar este corpus.
+                    </p>
+                  </div>
+                  <span>{(active.queries ?? []).length} consultas</span>
+                </div>
+
+                {(active.queries ?? []).length > 0 && (
+                  <div className="workspace-query-list">
+                    {(active.queries ?? []).map((item) => (
+                      <article className="workspace-query" key={item.id}>
+                        <div>
+                          <strong>{item.raw}</strong>
+                          <span>{filterSummary(item.filters)}</span>
+                          {item.resultCount !== undefined && (
+                            <small>{item.resultCount} resultados naquele recorte</small>
+                          )}
+                        </div>
+                        <button
+                          className="text-button text-button--danger"
+                          type="button"
+                          onClick={() => void removeQuery(item.id)}
+                        >
+                          Remover
+                        </button>
+                      </article>
+                    ))}
+                  </div>
+                )}
+
+                <div className="recent-query-picker">
+                  <span className="lens-label">Histórico recente</span>
+                  {searchHistory.length === 0 ? (
+                    <p className="muted">
+                      Execute uma busca em Descobrir para registrar consultas.
+                    </p>
+                  ) : (
+                    <div className="recent-query-list">
+                      {searchHistory.slice(0, 8).map((history) => {
+                        const alreadyAdded = (active.queries ?? []).some(
+                          (item) =>
+                            item.raw === history.raw &&
+                            JSON.stringify(item.filters) ===
+                              JSON.stringify(history.filters),
+                        );
+                        return (
+                          <button
+                            type="button"
+                            key={history.id}
+                            disabled={alreadyAdded}
+                            onClick={() => void addQuery(history)}
+                          >
+                            <span>
+                              <strong>{history.raw}</strong>
+                              <small>{filterSummary(history.filters)}</small>
+                            </span>
+                            <em>{alreadyAdded ? 'Adicionada' : 'Adicionar'}</em>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </section>
+
 
               <section className="workspace-section">
                 <div className="workspace-section__head">

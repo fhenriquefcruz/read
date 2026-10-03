@@ -183,6 +183,19 @@ export async function mockAcademicApis(
       return;
     }
 
+    const url = new URL(route.request().url());
+    if (/\/works\/10\.1000(?:%2F|\/)readplus\.2025\.1$/i.test(url.pathname)) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          status: 'ok',
+          message: CROSSREF_WORK,
+        }),
+      });
+      return;
+    }
+
     await route.fulfill({
       status: 200,
       contentType: 'application/json',

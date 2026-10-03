@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { searchAcademic } from '../lib/api';
+import { searchHistoryStore } from '../lib/storage';
 import type { AcademicWork, ProviderStatus, SearchFilters } from '../types';
 import { Icon } from '../components/Icons';
 import { ExternalLink } from '../components/ExternalLink';
@@ -56,6 +57,19 @@ export function DiscoverView({
       setWorks(response.works);
       setProviders(response.providers);
       setFromCache(response.fromCache);
+
+      const now = new Date().toISOString();
+      const historyId =
+        typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : `search-${Date.now()}`;
+      void searchHistoryStore.save({
+        id: historyId,
+        raw: trimmed,
+        filters: { ...filters },
+        resultCount: response.works.length,
+        createdAt: now,
+      });
       setMessage(
         response.works.length
           ? `${response.works.length} trabalhos únicos encontrados e normalizados.`

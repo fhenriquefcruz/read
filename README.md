@@ -10,13 +10,17 @@ A jornada de produto é:
 
 A reconstrução v3 substituiu a aplicação monolítica antiga por uma base React + TypeScript com busca acadêmica real, persistência local, PWA e quality gates.
 
-A rodada **Research Depth (v4)** aprofunda essa base para que uma busca evolua para investigação:
+A rodada **Research Depth (v4)** aprofundou a base para que uma busca evolua para investigação.
 
-- literatura relacionada navegável;
-- referências e trabalhos citantes;
-- exportação bibliográfica interoperável;
-- workspace com evidências vinculadas às fontes;
-- separação explícita entre conteúdo da fonte e interpretação do pesquisador.
+A rodada **Library & Research Workflow (v5)** fecha o fluxo entre descoberta, biblioteca e pesquisa:
+
+- importação por DOI com enriquecimento OpenAlex + Crossref;
+- importação local de BibTeX, RIS e CSL-JSON;
+- deduplicação por identidade bibliográfica;
+- coleções e tags persistentes;
+- exportação bibliográfica em lote;
+- histórico de buscas com filtros;
+- consultas anexadas a pesquisas com o recorte original preservado.
 
 Documentação:
 - [Auditoria — Fases 0 e 1](docs/audit-phase-0-1.md)
@@ -61,12 +65,22 @@ O frontend continua estático nesta etapa para preservar o GitHub Pages. Integra
 - persistência em IndexedDB;
 - status de leitura;
 - notas;
-- busca e filtros locais.
+- busca e filtros locais;
+- importação por DOI;
+- importação BibTeX, RIS e CSL-JSON;
+- prevenção de duplicatas;
+- coleções livres;
+- tags editáveis;
+- seleção múltipla;
+- exportação em lote em BibTeX, RIS e CSL-JSON.
 
 ### Research workspace
 - pesquisas persistentes;
 - pergunta central;
 - corpus formado a partir da biblioteca;
+- histórico de consultas capturado na descoberta;
+- consultas com filtros e contagem do recorte preservadas na pesquisa;
+- compatibilidade com workspaces antigos que armazenavam consultas como strings;
 - Evidence Board;
 - evidências classificadas como achado, método, limitação, definição ou trecho;
 - origem preservada por trabalho/título/DOI;
@@ -127,8 +141,8 @@ https://fhenriquefcruz.github.io/read/
 - ✅ Fase 4 — fundações / design system
 - ✅ Fase 5 — motor de busca v1
 - 🔄 Fase 6 — descoberta acadêmica
-- 🔄 Fase 7 — biblioteca
-- 🔄 Fase 8 — workspace de pesquisa
+- ✅ Fase 7 — biblioteca interoperável v1
+- ✅ Fase 8 — workspace de pesquisa v1
 - 🔄 Fase 9 — Zettelkasten / knowledge graph
 - ⏳ Fase 10 — Research Intelligence
 - ✅ Fase 11 — PWA / offline v1
@@ -138,8 +152,8 @@ https://fhenriquefcruz.github.io/read/
 
 ## Próximas prioridades
 
-1. importação de referências por DOI/ISBN e formatos bibliográficos;
-2. coleções e tags mais fortes na biblioteca;
-3. consultas e filtros persistidos por pesquisa;
+1. importação por ISBN e melhorias de matching bibliográfico;
+2. operações em lote sobre status, tags e coleções;
+3. reexecução de consultas preservadas diretamente a partir do workspace;
 4. síntese de evidências baseada exclusivamente no Evidence Board e nas fontes vinculadas;
 5. gateway server-side antes de qualquer integração que exija segredo ou IA.

@@ -37,10 +37,33 @@ Exportações locais suportadas:
 A serialização não inventa volume, número, páginas ou decomposição de nomes quando esses campos não existem no modelo canônico.
 
 ### Library
-Item salvo com estado de leitura, tags, coleções, notas e timestamps.
+Item salvo com estado de leitura, tags, coleção, notas e timestamps.
+
+#### Bibliographic interoperability
+A biblioteca aceita três caminhos de entrada:
+1. salvar um resultado normalizado da descoberta;
+2. resolver um DOI nas fontes acadêmicas;
+3. importar BibTeX, RIS ou CSL-JSON localmente.
+
+Regras:
+- DOI normalizado é a identidade preferencial para deduplicação;
+- referências sem DOI recebem uma identidade local derivada do título;
+- importação local recebe proveniência `Imported` e não simula métricas ausentes;
+- resolução DOI tenta combinar OpenAlex e Crossref;
+- falha de uma fonte não invalida metadata legítima obtida da outra;
+- exportação individual ou em lote não inventa campos ausentes.
 
 ### Research workspace
 Objeto persistente com pergunta/tema, consultas, filtros, trabalhos selecionados, notas e evidências.
+
+#### Query provenance
+Cada busca concluída em Discovery gera um `SearchHistoryEntry` local com:
+- consulta bruta;
+- filtros estruturados;
+- quantidade de resultados daquele recorte;
+- timestamp.
+
+O workspace pode incorporar essa consulta como `WorkspaceQuery`, preservando o recorte que ajudou a formar o corpus. Workspaces legados com `queries: string[]` são normalizados em leitura sem apagar o banco.
 
 #### Evidence model
 Cada `WorkspaceEvidence` mantém:
@@ -151,3 +174,21 @@ Quando for implementada, deverá:
 6. permitir reconstruir quais fontes sustentaram cada resposta.
 
 O Evidence Board da v4 existe justamente para criar essa fundação antes da IA.
+
+
+## Interoperabilidade bibliográfica — v5
+
+Formatos de entrada suportados:
+- DOI;
+- BibTeX;
+- RIS;
+- CSL-JSON.
+
+Formatos de saída suportados:
+- BibTeX;
+- RIS;
+- CSL-JSON.
+
+Os parsers ficam no cliente porque operam apenas sobre arquivos/texto fornecidos pelo usuário e não exigem segredo. Resolução remota de DOI utiliza somente endpoints acadêmicos públicos já adotados pelo produto.
+
+Coleções e tags continuam dados privados locais em IndexedDB nesta fase.
