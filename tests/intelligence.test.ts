@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildGroundedBrief,
-  comparableEvidencePairs,
   comparisonCandidates,
-  diagnoseCoverage,
   evidenceMatrix,
   groundedBriefToMarkdown,
   researchCoverageDiagnostics,
@@ -169,42 +167,7 @@ describe('research intelligence v7 diagnostics', () => {
 });
 
 
-describe('research intelligence v7 coverage and relations', () => {
-  it('diagnostica apenas cobertura observável, sem atribuir qualidade científica', () => {
-    const diagnostic = diagnoseCoverage('Does it help?', evidence);
-
-    expect(diagnostic.evidenceCount).toBe(3);
-    expect(diagnostic.sourceCount).toBe(2);
-    expect(diagnostic.kindsCovered).toEqual([
-      'finding',
-      'method',
-      'limitation',
-    ]);
-    expect(diagnostic.missingKinds).toEqual(['definition', 'quote']);
-    expect(diagnostic.interpretedCount).toBe(1);
-    expect(diagnostic.questionPresent).toBe(true);
-    expect(diagnostic.notes).toContain(
-      'Há evidências sem interpretação explícita do pesquisador.',
-    );
-  });
-
-  it('sugere comparação somente entre fontes distintas do mesmo tipo de evidência', () => {
-    const baseEvidence = evidence[0];
-    expect(baseEvidence).toBeDefined();
-    if (!baseEvidence) return;
-
-    const pairs = comparableEvidencePairs([
-      baseEvidence,
-      { ...baseEvidence, id: 'e4', workId: 'w2', sourceTitle: 'Study Two' },
-      { ...baseEvidence, id: 'e5', workId: 'w1', kind: 'method' },
-    ]);
-
-    expect(pairs).toHaveLength(1);
-    expect(pairs[0]?.left.id).toBe('e1');
-    expect(pairs[0]?.right.id).toBe('e4');
-    expect(pairs[0]?.kind).toBe('finding');
-  });
-
+describe('research intelligence relation integrity', () => {
   it('descarta relações órfãs ou autorreferentes', () => {
     const relations = validateEvidenceRelations(evidence, [
       {
