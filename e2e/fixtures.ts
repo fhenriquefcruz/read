@@ -79,6 +79,43 @@ export const OPENALEX_RELATED = relatedWork(
   2024,
 );
 
+export const OPENALEX_NEW_WORK = {
+  ...OPENALEX_WORK,
+  id: 'https://openalex.org/W2001',
+  doi: 'https://doi.org/10.1000/readplus.2026.2',
+  title: 'Transparent Algorithms in Public Decision Making',
+  publication_year: 2026,
+  cited_by_count: 5,
+  authorships: [
+    {
+      author: {
+        display_name: 'Bruno Researcher',
+        orcid: null,
+      },
+      institutions: [{ display_name: 'Public Policy Lab' }],
+    },
+  ],
+  abstract_inverted_index: {
+    Transparent: [0],
+    algorithms: [1],
+    improve: [2],
+    accountable: [3],
+    decisions: [4],
+  },
+  primary_location: {
+    landing_page_url: 'https://doi.org/10.1000/readplus.2026.2',
+    source: {
+      display_name: 'Journal of Digital Government',
+      host_organization_name: 'Research Publisher',
+    },
+  },
+  best_oa_location: {
+    pdf_url: 'https://example.org/transparent-algorithms.pdf',
+    license: 'cc-by',
+  },
+  topics: [{ display_name: 'Algorithmic Accountability' }],
+};
+
 export const CROSSREF_WORK = {
   DOI: '10.1000/readplus.2025.1',
   title: ['Machine Learning in Public Administration'],
@@ -100,7 +137,11 @@ export const CROSSREF_WORK = {
 
 export async function mockAcademicApis(
   page: Page,
-  options: { openAlexFails?: boolean; crossrefFails?: boolean } = {},
+  options: {
+    openAlexFails?: boolean;
+    crossrefFails?: boolean;
+    extraOpenAlexWorks?: unknown[];
+  } = {},
 ) {
   await page.route('**://api.openalex.org/**', async (route: Route) => {
     if (options.openAlexFails) {
@@ -169,7 +210,10 @@ export async function mockAcademicApis(
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ meta: { count: 1 }, results: [OPENALEX_WORK] }),
+      body: JSON.stringify({
+        meta: { count: 1 + (options.extraOpenAlexWorks?.length ?? 0) },
+        results: [OPENALEX_WORK, ...(options.extraOpenAlexWorks ?? [])],
+      }),
     });
   });
 

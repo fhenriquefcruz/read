@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { mockAcademicApis } from './fixtures';
+import { mockAcademicApis, OPENALEX_NEW_WORK } from './fixtures';
 
 test.beforeEach(async ({ page }) => {
   await mockAcademicApis(page);
@@ -512,4 +512,77 @@ ER  -
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
     .analyze();
   expect(results.violations).toEqual([]);
+});
+
+
+test('continuous research reexecuta consulta, detecta novidade e incorpora ao corpus', async ({
+  page,
+}) => {
+  await page
+    .getByLabel('Pesquisar literatura acadêmica')
+    .fill('machine learning public administration');
+  await page.getByRole('button', { name: 'Pesquisar' }).click();
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+
+  await page.getByRole('button', { name: 'Pesquisas' }).click();
+  await page.getByLabel('Nome da pesquisa').fill('Radar de literatura');
+  await page
+    .getByLabel('Pergunta central')
+    .fill('O que mudou na literatura sobre decisões algorítmicas públicas?');
+  await page.getByRole('button', { name: 'Nova pesquisa' }).click();
+
+  const recent = page
+    .locator('.recent-query-list')
+    .getByRole('button', { name: /machine learning public administration/ });
+  await recent.click();
+
+  const queryCard = page.locator('.workspace-query').filter({
+    hasText: 'machine learning public administration',
+  });
+
+  await queryCard.getByRole('button', { name: 'Reexecutar' }).click();
+  await expect(queryCard.getByText('Baseline estabelecida.')).toBeVisible();
+  await expect(queryCard).toContainText(
+    '1 resultados registrados para comparação',
+  );
+
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
+  await mockAcademicApis(page, {
+    extraOpenAlexWorks: [OPENALEX_NEW_WORK],
+  });
+
+  await queryCard.getByRole('button', { name: 'Reexecutar' }).click();
+
+  await expect(queryCard.locator('.query-diff__metrics')).toContainText(
+    '1 novos',
+  );
+  await expect(
+    queryCard.getByText('Transparent Algorithms in Public Decision Making', {
+      exact: true,
+    }),
+  ).toBeVisible();
+
+  await queryCard
+    .getByRole('button', { name: 'Salvar + adicionar' })
+    .click();
+
+  await expect(
+    queryCard.getByRole('button', { name: 'No corpus' }),
+  ).toBeDisabled();
+  await expect(page.getByText('2 trabalhos', { exact: true })).toBeVisible();
+
+  await page.reload();
+  await page.getByRole('button', { name: 'Pesquisas' }).click();
+
+  const persistedQuery = page.locator('.workspace-query').filter({
+    hasText: 'machine learning public administration',
+  });
+  await expect(persistedQuery).toContainText('2 snapshot(s)');
+  await expect(
+    page
+      .locator('.compact-list')
+      .getByRole('button', {
+        name: /Transparent Algorithms in Public Decision Making/,
+      }),
+  ).toBeVisible();
 });
