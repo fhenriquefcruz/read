@@ -9,6 +9,7 @@ import type {
   SearchFilters,
   SearchResponse,
   WorkAuthor,
+  WorkRelations,
 } from '../types';
 
 const CACHE_TTL_MS = 10 * 60 * 1000;
@@ -175,6 +176,127 @@ function openAlexFilters(parsed: ParsedQuery): string[] {
   return filters;
 }
 
+const OPENALEX_SELECT =
+  'id,doi,title,publication_year,type,language,cited_by_count,authorships,abstract_inverted_index,primary_location,best_oa_location,open_access,topics';
+
+function mapOpenAlexWork(raw: unknown): AcademicWork {
+  const item = raw as JsonObject;
+  const authorships = Array.isArray(item.authorships) ? item.authorships : [];
+  const authors = authorships.reduce<WorkAuthor[]>((list, entry) => {
+    const authorship = entry as JsonObject;
+    const author = (authorship.author ?? {}) as JsonObject;
+    const institutions = Array.isArray(authorship.institutions)
+      ? authorship.institutions
+      : [];
+    const name = safeString(author.display_name);
+    if (!name) return list;
+
+    const orcid = safeString(author.orcid);
+    list.push({
+      name,
+      ...(orcid ? { orcid } : {}),
+      institutions: institutions
+        .map((institution) =>
+          safeString((institution as JsonObject).display_name),
+        )
+        .filter((value): value is string => Boolean(value)),
+    });
+    return list;
+  }, []);
+
+  const bestOa = (item.best_oa_location ?? {}) as JsonObject;
+  const openAccess = (item.open_access ?? {}) as JsonObject;
+  const primaryLocation = (item.primary_location ?? {}) as JsonObject;
+  const source = (primaryLocation.source ?? {}) as JsonObject;
+  const topics = Array.isArray(item.topics) ? item.topics : [];
+  const doi = normalizeDoi(item.doi);
+  const id =
+    safeString(item.id) ??
+    canonicalId({
+      doi,
+      title: safeString(item.title) ?? 'Sem título',
+      authors,
+      year: undefined,
+    });
+
+  return {
+    id,
+    title: safeString(item.title) ?? 'Sem título',
+    authors,
+    year:
+      typeof item.publication_year === 'number'
+        ? item.publication_year
+        : undefined,
+    abstract: reconstructAbstract(item.abstract_inverted_index),
+    doi,
+    type: safeString(item.type) ?? 'article',
+    venue: safeString(source.display_name),
+    publisher: safeString(source.host_organization_name),
+    language: safeString(item.language),
+    citationCount:
+      typeof item.cited_by_count === 'number' ? item.cited_by_count : 0,
+    concepts: topics
+      .map((topic) => safeString((topic as JsonObject).display_name))
+      .filter((value): value is string => Boolean(value))
+      .slice(0, 6),
+    isOpenAccess:
+      typeof openAccess.is_oa === 'boolean' ? openAccess.is_oa : null,
+    oaStatus: safeString(openAccess.oa_status),
+    officialUrl: safeExternalUrl(
+      doi
+        ? `https://doi.org/${doi}`
+        : (safeString(primaryLocation.landing_page_url) ??
+            safeString(item.id)),
+    ),
+    pdfUrl: safeExternalUrl(safeString(bestOa.pdf_url)),
+    license: safeString(bestOa.license),
+    providerIds: { OpenAlex: safeString(item.id) ?? id },
+    sourceProviders: ['OpenAlex'],
+  };
+}
+
+function extractOpenAlexId(value?: string): string | undefined {
+  if (!value) return undefined;
+  const match = value.match(/(W\d+)$/i);
+  return match?.[1]?.toUpperCase();
+}
+
+async function fetchOpenAlexBatch(
+  ids: string[],
+  signal?: AbortSignal,
+): Promise<AcademicWork[]> {
+  const normalized = [
+    ...new Set(ids.map((id) => extractOpenAlexId(id)).filter(Boolean)),
+  ].filter((id): id is string => Boolean(id));
+
+  if (!normalized.length) return [];
+
+  const params = new URLSearchParams();
+  params.set('filter', `openalex:${normalized.join('|')}`);
+  params.set('per_page', String(Math.min(100, normalized.length)));
+  params.set('select', OPENALEX_SELECT);
+
+  const data = await fetchJson(
+    `https://api.openalex.org/works?${params.toString()}`,
+    signal,
+  );
+  const results = Array.isArray(data.results)
+    ? data.results.map(mapOpenAlexWork)
+    : [];
+
+  const byId = new Map(
+    results
+      .map((work) => [extractOpenAlexId(work.providerIds.OpenAlex), work] as const)
+      .filter((entry): entry is readonly [string, AcademicWork] =>
+        Boolean(entry[0]),
+      ),
+  );
+
+  return normalized
+    .map((id) => byId.get(id))
+    .filter((work): work is AcademicWork => Boolean(work));
+}
+
 async function searchOpenAlex(
   parsed: ParsedQuery,
   signal?: AbortSignal,
@@ -183,10 +305,7 @@ async function searchOpenAlex(
   params.set('search', parsed.freeText || parsed.raw);
   params.set('per_page', '35');
   params.set('sort', 'relevance_score:desc');
-  params.set(
-    'select',
-    'id,doi,title,publication_year,type,language,cited_by_count,authorships,abstract_inverted_index,primary_location,best_oa_location,open_access,topics',
-  );
+  params.set('select', OPENALEX_SELECT);
   const filters = openAlexFilters(parsed);
   if (filters.length) params.set('filter', filters.join(','));
 
@@ -196,81 +315,61 @@ async function searchOpenAlex(
   );
   const results = Array.isArray(data.results) ? data.results : [];
 
-  return results.map((raw) => {
-    const item = raw as JsonObject;
-    const authorships = Array.isArray(item.authorships) ? item.authorships : [];
-    const authors = authorships.reduce<WorkAuthor[]>((list, entry) => {
-      const authorship = entry as JsonObject;
-      const author = (authorship.author ?? {}) as JsonObject;
-      const institutions = Array.isArray(authorship.institutions)
-        ? authorship.institutions
-        : [];
-      const name = safeString(author.display_name);
-      if (!name) return list;
+  return results.map(mapOpenAlexWork);
+}
 
-      const orcid = safeString(author.orcid);
-      list.push({
-        name,
-        ...(orcid ? { orcid } : {}),
-        institutions: institutions
-          .map((institution) =>
-            safeString((institution as JsonObject).display_name),
-          )
-          .filter((value): value is string => Boolean(value)),
-      });
-      return list;
-    }, []);
+export async function fetchWorkRelations(
+  work: AcademicWork,
+  signal?: AbortSignal,
+): Promise<WorkRelations | null> {
+  const openAlexId = extractOpenAlexId(work.providerIds.OpenAlex);
+  if (!openAlexId) return null;
 
-    const bestOa = (item.best_oa_location ?? {}) as JsonObject;
-    const openAccess = (item.open_access ?? {}) as JsonObject;
-    const primaryLocation = (item.primary_location ?? {}) as JsonObject;
-    const source = (primaryLocation.source ?? {}) as JsonObject;
-    const topics = Array.isArray(item.topics) ? item.topics : [];
-    const doi = normalizeDoi(item.doi);
-    const id =
-      safeString(item.id) ??
-      canonicalId({
-        doi,
-        title: safeString(item.title) ?? 'Sem título',
-        authors,
-        year: undefined,
-      });
+  const detailParams = new URLSearchParams();
+  detailParams.set('select', 'id,referenced_works,related_works');
+  const detail = await fetchJson(
+    `https://api.openalex.org/works/${openAlexId}?${detailParams.toString()}`,
+    signal,
+  );
 
-    return {
-      id,
-      title: safeString(item.title) ?? 'Sem título',
-      authors,
-      year:
-        typeof item.publication_year === 'number'
-          ? item.publication_year
-          : undefined,
-      abstract: reconstructAbstract(item.abstract_inverted_index),
-      doi,
-      type: safeString(item.type) ?? 'article',
-      venue: safeString(source.display_name),
-      publisher: safeString(source.host_organization_name),
-      language: safeString(item.language),
-      citationCount:
-        typeof item.cited_by_count === 'number' ? item.cited_by_count : 0,
-      concepts: topics
-        .map((topic) => safeString((topic as JsonObject).display_name))
-        .filter((value): value is string => Boolean(value))
-        .slice(0, 6),
-      isOpenAccess:
-        typeof openAccess.is_oa === 'boolean' ? openAccess.is_oa : null,
-      oaStatus: safeString(openAccess.oa_status),
-      officialUrl: safeExternalUrl(
-        doi
-          ? `https://doi.org/${doi}`
-          : (safeString(primaryLocation.landing_page_url) ??
-              safeString(item.id)),
-      ),
-      pdfUrl: safeExternalUrl(safeString(bestOa.pdf_url)),
-      license: safeString(bestOa.license),
-      providerIds: { OpenAlex: safeString(item.id) ?? id },
-      sourceProviders: ['OpenAlex'],
-    } satisfies AcademicWork;
-  });
+  const references = Array.isArray(detail.referenced_works)
+    ? detail.referenced_works
+        .map((id) => safeString(id))
+        .filter((id): id is string => Boolean(id))
+        .slice(0, 8)
+    : [];
+
+  const related = Array.isArray(detail.related_works)
+    ? detail.related_works
+        .map((id) => safeString(id))
+        .filter((id): id is string => Boolean(id))
+        .slice(0, 8)
+    : [];
+
+  const citedByParams = new URLSearchParams();
+  citedByParams.set('filter', `cites:${openAlexId}`);
+  citedByParams.set('sort', 'publication_date:desc');
+  citedByParams.set('per_page', '8');
+  citedByParams.set('select', OPENALEX_SELECT);
+
+  const [referenceWorks, relatedWorks, citedByData] = await Promise.all([
+    fetchOpenAlexBatch(references, signal),
+    fetchOpenAlexBatch(related, signal),
+    fetchJson(
+      `https://api.openalex.org/works?${citedByParams.toString()}`,
+      signal,
+    ),
+  ]);
+
+  const citedBy = Array.isArray(citedByData.results)
+    ? citedByData.results.map(mapOpenAlexWork)
+    : [];
+
+  return {
+    references: referenceWorks,
+    citedBy,
+    related: relatedWorks,
+  };
 }
 
 function crossrefFilters(parsed: ParsedQuery): string[] {
