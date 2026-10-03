@@ -207,7 +207,16 @@ export function KnowledgeView({ library }: KnowledgeViewProps) {
                 {graph.nodes.map((node) => (
                   <g
                     key={node.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Abrir nota: ${node.title}`}
                     onClick={() => setActiveId(node.id)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        setActiveId(node.id);
+                      }
+                    }}
                     className={
                       node.id === activeId
                         ? 'graph-node graph-node--active'
