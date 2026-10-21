@@ -48,6 +48,7 @@ export function validateImport(data) {
   const ids = new Set();
   for (const p of data.places) {
     if (!p || typeof p.id!=="string" || !p.id || ids.has(p.id) || typeof p.name!=="string" || !p.name.trim() || p.name.length>160 || typeof p.category!=="string" || p.category.length>80 || typeof p.city!=="string" || p.city.length>160 || typeof p.address!=="string" || p.address.length>300 || typeof p.favorite!=="boolean" || typeof p.wishlist!=="boolean") return "Um estabelecimento possui dados inválidos ou ID duplicado.";
+    if ((p.lat!==null && p.lat!==undefined && (!Number.isFinite(p.lat) || Math.abs(p.lat)>90)) || (p.lng!==null && p.lng!==undefined && (!Number.isFinite(p.lng) || Math.abs(p.lng)>180)) || ((p.lat===null || p.lat===undefined)!==(p.lng===null || p.lng===undefined))) return "Coordenadas geográficas inválidas ou incompletas.";
     ids.add(p.id);
   }
   const visitIds = new Set();
