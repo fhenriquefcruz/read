@@ -212,6 +212,54 @@ function geoCheckLink(lat,lng){
  const link=el("geo-check");
  if(link){link.href="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(lat+","+lng);link.hidden=false;}
 }
+async function googleGeocodeAddress(address){
+ const key=readGoogleKey();
+ if(!key)return null;
+ await loadGoogleMaps(key);
+ if(!globalThis.google?.maps?.Geocoder)throw Error("Geocoding API não habilitada");
+ const answer=await new google.maps.Geocoder().geocode({address,region:"br"});
+ const place=answer.results?.[0],loc=place?.geometry?.location;
+ if(!loc)return null;
+ return {lat:String(loc.lat()),lon:String(loc.lng()),display_name:place.formatted_address||address};
+}
+async function mountGooglePlaces(){
+ const host=el("places-autocomplete");
+ if(!host||!readGoogleKey())return;
+ try{
+   await loadGoogleMaps(readGoogleKey());
+   if(!host.isConnected)return;
+   const {PlaceAutocompleteElement}=await google.maps.importLibrary("places");
+   const widget=new PlaceAutocompleteElement();
+   widget.placeholder="Pesquise restaurantes, cafés e endereços no Google";
+   widget.style.width="100%";
+   widget.addEventListener("gmp-select",async ({placePrediction})=>{
+     try{
+       const place=placePrediction.toPlace();
+       await place.fetchFields({fields:["displayName","formattedAddress","location"]});
+       if(!host.isConnected)return;
+       const position=place.location;
+       if(!position)throw Error("Local sem coordenadas");
+       const lat=typeof position.lat==="function"?position.lat():position.lat;
+       const lng=typeof position.lng==="function"?position.lng():position.lng;
+       if(!Number.isFinite(lat)||!Number.isFinite(lng))throw Error("Coordenadas indisponíveis");
+       const name=el("place-name"),address=el("place-address");
+       if(name&&!name.value.trim()&&place.displayName)name.value=place.displayName.slice(0,160);
+       if(address&&place.formattedAddress)address.value=place.formattedAddress.slice(0,300);
+       el("place-lat").value=lat.toFixed(7);
+       el("place-lng").value=lng.toFixed(7);
+       geoAutofilled=true;
+       geoSuccessfulQuery=getAddressQuery();
+       geoCheckLink(lat.toFixed(7),lng.toFixed(7));
+       geoStatus("Google Places: localização selecionada. Confira endereço e ponto do mapa antes de salvar.");
+       notify("Local encontrado no Google Maps.");
+     }catch(error){console.warn("Google Places",error);geoStatus("Não foi possível obter os detalhes do lugar. Preencha o endereço manualmente.");}
+   });
+   host.replaceChildren(widget);
+ }catch(error){
+   console.warn("Google Places indisponível",error);
+   if(host.isConnected)host.innerHTML='<p class="subtle-note">Não foi possível carregar sugestões do Google. O cadastro manual continua disponível.</p>';
+ }
+}
 async function geocode({automatic=false}={}){
  const latField=el("place-lat"),lngField=el("place-lng");
  if(!latField||!lngField)return;
@@ -232,12 +280,24 @@ async function geocode({automatic=false}={}){
      // O Nominatim público não é usado para autocomplete por tecla: somente após sair do campo ou salvar.
      lastGeocode=Date.now();
      geoStatus("Localizando endereço e coordenadas…");
-     const url="https://nominatim.openstreetmap.org/search?format=json&limit=1&q="+encodeURIComponent(q);
-     const response=await fetch(url,{headers:{Accept:"application/json"},signal:controller.signal});
-     if(!response.ok)throw Error("Serviço de busca indisponível");
-     const data=await response.json();
+     let result=null;
+     const cached=geoCache.get(q);
+     if(cached){result={lat:cached.lat,lon:cached.lng,display_name:cached.description};}
+     else{
+       if(readGoogleKey()){
+         try{result=await googleGeocodeAddress(q);}
+         catch(error){console.warn("Google Geocoding indisponível; busca aberta ativada",error);}
+       }
+       if(!result){
+         // Não implementar autocomplete com Nominatim público: somente busca após sair do campo.
+         const url="https://nominatim.openstreetmap.org/search?format=json&limit=1&q="+encodeURIComponent(q);
+         const response=await fetch(url,{headers:{Accept:"application/json"},signal:controller.signal});
+         if(!response.ok)throw Error("Serviço de busca indisponível");
+         const data=await response.json();
+         result=Array.isArray(data)?data[0]:null;
+       }
+     }
      if(controller.signal.aborted || (automatic&&getAddressQuery()!==q))return;
-     const result=Array.isArray(data)?data[0]:null;
      if(!result||!Number.isFinite(Number(result.lat))||!Number.isFinite(Number(result.lon))){
        if(geoAutofilled){latField.value="";lngField.value="";geoAutofilled=false;geoSuccessfulQuery="";}
        geoStatus("Endereço não encontrado. Verifique rua, número e cidade, ou informe as coordenadas manualmente.");
