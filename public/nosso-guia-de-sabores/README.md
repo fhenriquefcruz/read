@@ -22,7 +22,8 @@ A configuração original do READ+ utiliza Vite para enviar os conteúdos da pas
 - Persistência por IndexedDB (com alternativa localStorage), exportação/importação JSON validada.
 - Interface responsiva com tema claro e escuro.
 - Mapa georreferenciado colorido conforme a nota: pontos mais escuros indicam avaliação melhor; locais pendentes ficam em cinza.
-- Busca opcional de coordenadas por nome/endereço com confirmação antes de salvar.
+- Geocodificação automática ao preencher o endereço e sair do campo: latitude e longitude aparecem sem precisar clicar em um botão. O resultado é uma sugestão e pode ser conferido no Google Maps ou ajustado manualmente. Para reduzir requisições, a busca só ocorre após concluir o campo, não a cada tecla.
+- Nomes padrão dos participantes: **Fábio** e **Tássia delícia gostosa do Fábio**. Registros anteriores com nomes personalizados são preservados.
 
 ## Google Maps
 
