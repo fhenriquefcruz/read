@@ -6,7 +6,7 @@ document.getElementById("today-label").textContent=new Date().toLocaleDateString
 const EMPTY=()=>({schemaVersion:1,members:["",""],weights:{...DEFAULT_WEIGHTS},theme:"light",places:[],visits:[]});
 let state=EMPTY(),storeMode="indexeddb",editVisitId=null,fromWishlistId=null,formMode="detailed",photoData=null,formProposal=null,currentView="",toastTimer;
 let filters={search:"",category:"",city:"",minimum:"",favorite:false,again:false,from:"",to:"",sort:"score"},historyQuery="",wishQuery="",mapQuery="";
-let mapInstance=null,mapVersion=0,lastGeocode=0;
+let mapInstance=null,mapVersion=0,lastGeocode=0,draftValues=null;const clearedRatings=new Set();
 const H=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=n=>n===null||n===undefined?"—":Number(n).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:2});
 const money=n=>n===null||n===undefined?"—":Number(n).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
@@ -28,7 +28,7 @@ function bar(name,n,max,label=fmt(n)){return '<div class="chart-row"><span title
 function cover(place){const v=visitsFor(place.id).find(x=>x.photo);return v?'<img loading="lazy" src="'+H(v.photo)+'" alt="Foto de '+H(place.name)+'">':'<span aria-hidden="true">✳</span>';}
 function statusTag(visit){return result(visit)?'<span class="status-chip complete">✓ Avaliado pelos dois</span>':'<span class="status-chip pending">◷ Avaliação pendente</span>';}
 function openModal(content){modalBody.innerHTML=content;dialog.showModal();}
-function closeModal(){dialog.close();}
+function closeModal(){if(dialog.open)dialog.close();}
 function dbOpen(){return new Promise((resolve,reject)=>{if(!window.indexedDB){reject(Error("IndexedDB não disponível"));return;}const q=indexedDB.open(DB_NAME,1);q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains("records"))q.result.createObjectStore("records");};q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error);});}
 async function dbRead(){const db=await dbOpen();return new Promise((resolve,reject)=>{const tx=db.transaction("records");const req=tx.objectStore("records").get("main");req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);tx.oncomplete=()=>db.close();tx.onerror=()=>{db.close();reject(tx.error);};});}
 async function dbWrite(value){const db=await dbOpen();return new Promise((resolve,reject)=>{const tx=db.transaction("records","readwrite");tx.objectStore("records").put(value,"main");tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>{db.close();reject(tx.error);};tx.onabort=()=>{db.close();reject(tx.error);};});}
@@ -40,6 +40,7 @@ function render(){let view=location.hash.slice(1)||"dashboard";currentView=view;
  const pages={dashboard:dashboardPage,ranking:rankingPage,map:mapPage,history:historyPage,wishlist:wishlistPage,new:newPage,settings:settingsPage};
  if(!pages[view])view="dashboard";
  app.innerHTML=pages[view]();
+ if(view==="new"&&draftValues){for(const [id,data] of Object.entries(draftValues)){const node=el(id);if(!node)continue;if(node.type==="checkbox")node.checked=data;else node.value=data;}}
  if(view==="map")queueMicrotask(drawMap);
 }
 
@@ -89,7 +90,7 @@ function filteredRank(){
 }
 function avgCriterion(s,key){return s.complete.reduce((a,x)=>a+(x.visit.ratings[0][key]+x.visit.ratings[1][key])/2,0)/(s.complete.length||1);}
 function rankingPage(){
- const {ranked,pending}=rankedPlaces(state.places,state.visits,state.weights),list=filteredRank();const cities=[...new Set(state.places.map(p=>p.city.trim()).filter(Boolean))].sort();
+ const ranking=rankedPlaces(state.places,state.visits,state.weights),ranked=ranking.ranked,pending=ranking.pending.filter(s=>s.all.length),list=filteredRank();const cities=[...new Set(state.places.map(p=>p.city.trim()).filter(Boolean))].sort();
  let out=header("NOSSO TOP DE SABORES","Ranking gastronômico","A classificação considera apenas visitas avaliadas pelos dois e atualiza automaticamente a cada mudança.",'<button class="button button-outline intro-action" data-nav="map">⌖ Visualizar no mapa</button>');
  out+='<div class="toolbar"><input id="rank-search" class="input control search-control" aria-label="Pesquisar estabelecimentos" placeholder="⌕  Buscar um lugar..." value="'+H(filters.search)+'"><select id="rank-category" class="select control" aria-label="Filtrar categoria"><option value="">Todas as categorias</option>'+catOptions(filters.category)+'</select><select id="rank-city" class="select control" aria-label="Filtrar cidade"><option value="">Todas as cidades</option>'+cities.map(c=>'<option value="'+H(c)+'" '+(filters.city===c?"selected":"")+'>'+H(c)+'</option>').join("")+'</select><select id="rank-sort" class="select control" aria-label="Ordenação"><option value="score" '+(filters.sort==="score"?"selected":"")+'>Melhor nota geral</option><option value="cost" '+(filters.sort==="cost"?"selected":"")+'>Custo-benefício</option><option value="attend" '+(filters.sort==="attend"?"selected":"")+'>Melhor atendimento</option><option value="ambiente" '+(filters.sort==="ambiente"?"selected":"")+'>Melhor ambiente</option><option value="recent" '+(filters.sort==="recent"?"selected":"")+'>Mais recentes</option><option value="member0" '+(filters.sort==="member0"?"selected":"")+'>Melhor nota de '+H(person(0))+'</option><option value="member1" '+(filters.sort==="member1"?"selected":"")+'>Melhor nota de '+H(person(1))+'</option></select>';
  out+='<select id="rank-min" class="select control" aria-label="Nota mínima"><option value="">Qualquer nota</option>'+[5,6,7,8,9].map(x=>'<option value="'+x+'" '+(filters.minimum===String(x)?"selected":"")+'>Nota ≥ '+x+'</option>').join("")+'</select><label class="checkbox-row"><input type="checkbox" id="rank-fav" '+(filters.favorite?"checked":"")+'> Favoritos</label><label class="checkbox-row"><input type="checkbox" id="rank-again" '+(filters.again?"checked":"")+'> Voltaríamos</label><label class="field" style="font-size:10px">Desde <input id="rank-from" class="input" type="date" value="'+H(filters.from)+'"></label><label class="field" style="font-size:10px">Até <input id="rank-to" class="input" type="date" value="'+H(filters.to)+'"></label><button class="button button-ghost button-small" data-action="clearFilters">Limpar filtros</button></div>';
@@ -118,7 +119,7 @@ function wishlistPage(){
 }
 
 function scoreGroup(member,existing){
- return '<div class="member-card"><div class="detail-heading"><div><span class="eyebrow">AVALIAÇÃO INDIVIDUAL</span><h3>'+H(person(member))+'</h3></div><span class="member-score" id="member-preview-'+member+'">'+(weightedScore(existing,state.weights)===null?"—":fmt(weightedScore(existing,state.weights)))+'</span></div><p class="subtle-note">Cada pessoa tem uma avaliação independente. Para salvar uma nota oficial, preencha todos os seis critérios desta pessoa.</p><div class="score-grid">'+CRITERIA.map(c=>'<div class="score-field"><label for="score-'+member+'-'+c.key+'">'+H(c.label)+' · '+state.weights[c.key]+'%</label><select class="select" id="score-'+member+'-'+c.key+'">'+scoreOptions(existing?.[c.key])+'</select></div>').join("")+'</div></div>';
+ return '<div class="member-card"><div class="detail-heading"><div><span class="eyebrow">AVALIAÇÃO INDIVIDUAL</span><h3>'+H(person(member))+'</h3></div><span class="member-score" id="member-preview-'+member+'">'+(weightedScore(existing,state.weights)===null?"—":fmt(weightedScore(existing,state.weights)))+'</span></div><p class="subtle-note">Cada pessoa tem uma avaliação independente. Para salvar uma nota oficial, preencha todos os seis critérios desta pessoa.</p><div class="score-grid">'+CRITERIA.map(c=>'<div class="score-field"><label for="score-'+member+'-'+c.key+'">'+H(c.label)+' · '+state.weights[c.key]+'%</label><select class="select" id="score-'+member+'-'+c.key+'">'+scoreOptions(existing?.[c.key])+'</select></div>').join("")+'</div>'+(existing?'<div class="card-buttons"><button type="button" class="button button-danger button-small" data-action="clearRating" data-value="'+member+'">Remover avaliação individual</button></div>':'')+'</div>';
 }
 function formPagePlace(visit){
  let id=visit?.placeId||fromWishlistId;const p=placeById(id);const today=todayISO();
@@ -142,6 +143,7 @@ function formPagePlace(visit){
  '<div class="field"><label for="visit-return">Voltaríamos?</label><select class="select" id="visit-return"><option value="">Ainda não decidimos</option><option value="yes" '+(visit?.returnAgain===true?"selected":"")+'>Sim, com certeza</option><option value="no" '+(visit?.returnAgain===false?"selected":"")+'>Não</option></select></div>'+
  '<div class="field"><label for="visit-photo">Fotografia (opcional)</label><input type="file" class="input" id="visit-photo" accept="image/png,image/jpeg,image/webp"><small>Comprimida no dispositivo para economizar espaço. Nunca enviada a servidor.</small>'+(photoData?'<div class="photo-preview"><img src="'+H(photoData)+'" alt="Foto anexada"><button type="button" data-action="removePhoto" class="button button-danger button-small">Remover</button></div>':"")+'</div></div></section>';
 }
+function captureDraft(){if(!draftValues)draftValues={};app.querySelectorAll("#visit-form input:not([type=file]),#visit-form textarea,#visit-form select").forEach(node=>{if(node.id)draftValues[node.id]=node.type==="checkbox"?node.checked:node.value;});}
 function newPage(){
  const visit=editVisitId?state.visits.find(v=>v.id===editVisitId):null;if(visit&&!photoData)photoData=visit.photo||null;
  return header("UMA NOVA MEMÓRIA",""+(visit?"Editar experiência":"Adicionar experiência"),"Dê um nome ao lugar, conte o que aconteceu e deixe cada pessoa avaliar com seu próprio olhar.")+
@@ -154,7 +156,7 @@ function newPage(){
 }
 function readScores(i,previous){
  const vals=CRITERIA.map(c=>el("score-"+i+"-"+c.key)?.value||"");const n=vals.filter(Boolean).length;
- if(n===0)return {score:previous||null,error:null,changed:false};
+ if(n===0)return {score:clearedRatings.has(i)?null:(previous||null),error:null,changed:false};
  if(n!==6)return {error:"Preencha todos os seis critérios de "+person(i)+" ou deixe todos em branco."};
  const obj={};CRITERIA.forEach((c,j)=>obj[c.key]=Number(vals[j]));
  if(CRITERIA.some(c=>!validHalfStep(obj[c.key])))return {error:"As notas de "+person(i)+" precisam estar entre 0 e 10, de 0,5 em 0,5."};
@@ -180,7 +182,7 @@ async function saveVisit(){
  const v={id:old?.id||uid(),placeId,date,dishes:el("visit-dishes").value.trim(),notes:el("visit-notes").value.trim(),positives:el("visit-positives").value.trim(),negatives:el("visit-negatives").value.trim(),cost,returnAgain:el("visit-return").value==="yes"?true:el("visit-return").value==="no"?false:null,photo:photoData,quickScore:quick,ratings};
  if(old){const index=revised.visits.findIndex(x=>x.id===old.id);revised.visits[index]=v;}else revised.visits.push(v);
  const error=validateImport(revised);if(error){notify(error);return;}
- if(await persist(revised)){editVisitId=null;fromWishlistId=null;photoData=null;formProposal=null;formMode="detailed";notify(old?"Experiência atualizada.":"Memória guardada com carinho.");nav("history");}
+ if(await persist(revised)){editVisitId=null;fromWishlistId=null;photoData=null;formProposal=null;formMode="detailed";draftValues=null;clearedRatings.clear();notify(old?"Experiência atualizada.":"Memória guardada com carinho.");nav("history");}
 }
 async function readPhoto(file){if(!file)return;if(!["image/jpeg","image/png","image/webp"].includes(file.type)||file.size>8*1024*1024){notify("Escolha JPG, PNG ou WebP de até 8 MB.");return;}try{const image=await createImageBitmap(file);const factor=Math.min(1,1100/Math.max(image.width,image.height));const canvas=document.createElement("canvas");canvas.width=Math.max(1,Math.round(image.width*factor));canvas.height=Math.max(1,Math.round(image.height*factor));canvas.getContext("2d").drawImage(image,0,0,canvas.width,canvas.height);image.close();const data=canvas.toDataURL("image/jpeg",.75);if(data.length>2500000)throw Error("Arquivo grande");photoData=data;const preview=el("visit-photo")?.parentElement;preview?.querySelector(".photo-preview")?.remove();preview?.insertAdjacentHTML("beforeend",'<div class="photo-preview"><img src="'+H(data)+'" alt="Fotografia selecionada"><button type="button" data-action="removePhoto" class="button button-danger button-small">Remover</button></div>');notify("Foto preparada neste dispositivo.");}catch(e){console.error(e);notify("Não foi possível processar essa foto.");}}
 async function geocode(){
@@ -285,15 +287,16 @@ function trackFilter(target){const id=target.id;if(id==="rank-search")filters.se
 function refreshTextFilter(id){const node=el(id),start=node?.selectionStart;render();const next=el(id);if(next){next.focus();try{next.setSelectionRange(start,start);}catch(_){}}}
 document.addEventListener("click",async e=>{
  const btn=e.target.closest("button,[data-nav]");if(!btn)return;
- if(btn.dataset.nav){e.preventDefault();if(btn.dataset.nav==="new"){editVisitId=null;fromWishlistId=null;photoData=null;formMode="detailed";}nav(btn.dataset.nav);return;}
+ if(btn.dataset.nav){e.preventDefault();if(btn.dataset.nav==="new"){editVisitId=null;fromWishlistId=null;photoData=null;formMode="detailed";draftValues=null;clearedRatings.clear();}nav(btn.dataset.nav);return;}
  const action=btn.dataset.action,id=btn.dataset.id;
  if(action==="detail")placeDetail(id);
- if(action==="editVisit"){closeModal();editVisitId=id;fromWishlistId=null;photoData=state.visits.find(v=>v.id===id)?.photo||null;formMode="detailed";nav("new");}
- if(action==="newVisitFor"||action==="convertWish"){closeModal();editVisitId=null;fromWishlistId=id;photoData=null;formMode="detailed";nav("new");}
+ if(action==="editVisit"){closeModal();editVisitId=id;fromWishlistId=null;photoData=state.visits.find(v=>v.id===id)?.photo||null;formMode="detailed";draftValues=null;clearedRatings.clear();nav("new");}
+ if(action==="newVisitFor"||action==="convertWish"){closeModal();editVisitId=null;fromWishlistId=id;photoData=null;formMode="detailed";draftValues=null;clearedRatings.clear();nav("new");}
  if(action==="deleteVisit")await deleteVisit(id);
  if(action==="deletePlace")await deletePlace(id);
  if(action==="toggleFavorite")await toggleFav(id);
- if(action==="mode"){formMode=btn.dataset.value;render();}
+ if(action==="mode"){captureDraft();formMode=btn.dataset.value;render();}
+ if(action==="clearRating"){const i=Number(btn.dataset.value);clearedRatings.add(i);CRITERIA.forEach(c=>{const score=el("score-"+i+"-"+c.key);if(score)score.value="";});const preview=el("member-preview-"+i);if(preview)preview.textContent="—";notify("Nota de "+person(i)+" será removida ao salvar.");}
  if(action==="removePhoto"){photoData=null;btn.closest(".photo-preview")?.remove();}
  if(action==="geocode")await geocode();
  if(action==="parseReport")parseReport();
