@@ -378,16 +378,34 @@ function mapPage(){
 let leafletPromise=null,googlePromise=null;
 function includeLeaflet(){if(leafletPromise)return leafletPromise;leafletPromise=new Promise((resolve,reject)=>{const css=document.createElement("link");css.rel="stylesheet";css.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";css.integrity="sha256-p4NxAoJBhIIN+hmNHrzxUJRTaK7R9I9lVJ0pZD5Z0I=";css.crossOrigin="";document.head.appendChild(css);const js=document.createElement("script");js.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";js.integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=";js.crossOrigin="";js.onload=resolve;js.onerror=()=>{leafletPromise=null;reject(Error("mapa indisponível"));};document.head.appendChild(js);});return leafletPromise;}
 function readGoogleKey(){try{return sessionStorage.getItem("sabores-google-key")||"";}catch(_){return "";}}
-function loadGoogleMaps(key){if(globalThis.google?.maps)return Promise.resolve();if(googlePromise)return googlePromise;googlePromise=new Promise((resolve,reject)=>{const script=document.createElement("script");script.src="https://maps.googleapis.com/maps/api/js?key="+encodeURIComponent(key)+"&loading=async&callback=__saboresGoogleReady";script.async=true;window.__saboresGoogleReady=()=>resolve();script.onerror=()=>{googlePromise=null;reject(Error("Google Maps indisponível"));};document.head.appendChild(script);setTimeout(()=>{if(!globalThis.google?.maps)reject(Error("Tempo esgotado ao carregar Google Maps"));},18000);});return googlePromise;}
+function loadGoogleMaps(key){
+ if(globalThis.google?.maps?.Map)return Promise.resolve();
+ if(googlePromise)return googlePromise;
+ googlePromise=new Promise((resolve,reject)=>{
+   const script=document.createElement("script");
+   let settled=false;
+   const fail=error=>{if(settled)return;settled=true;clearTimeout(timer);googlePromise=null;reject(error);};
+   const timer=setTimeout(()=>fail(Error("Tempo limite da API Google Maps")),14000);
+   script.src="https://maps.googleapis.com/maps/api/js?key="+encodeURIComponent(key)+"&loading=async&v=weekly&callback=__saboresGoogleReady&language=pt-BR&region=BR";
+   script.async=true;
+   window.__saboresGoogleReady=()=>{if(settled)return;settled=true;clearTimeout(timer);resolve();};
+   window.gm_authFailure=()=>fail(Error("Google Maps: verifique chave, faturamento e restrições do domínio"));
+   script.onerror=()=>fail(Error("Falha de rede ao carregar Google Maps"));
+   document.head.appendChild(script);
+ });
+ return googlePromise;
+}
 async function drawMap(){
  const version=++mapVersion,container=el("geo-map");if(!container)return;
  if(mapInstance?.remove){mapInstance.remove();mapInstance=null;}
  const points=mapSummaries();if(!points.length)return;
  const key=readGoogleKey();
  try{
+  try{
   if(key){await loadGoogleMaps(key);if(version!==mapVersion||!el("geo-map"))return;container.innerHTML="";const bounds=new google.maps.LatLngBounds(),map=new google.maps.Map(container,{center:{lat:points[0].place.lat,lng:points[0].place.lng},zoom:12,mapTypeControl:false,streetViewControl:false,fullscreenControl:true});const info=new google.maps.InfoWindow();
    points.forEach(s=>{const position={lat:s.place.lat,lng:s.place.lng};bounds.extend(position);const marker=new google.maps.Marker({position,map,title:s.place.name,icon:{path:google.maps.SymbolPath.CIRCLE,scale:11,fillColor:pointColor(s.score),fillOpacity:1,strokeColor:"#fdfbf5",strokeWeight:2}});marker.addListener("click",()=>{const node=document.createElement("div");node.textContent=s.place.name+" — nota "+(s.score===null?"pendente":fmt(s.score));info.setContent(node);info.open({anchor:marker,map});});});if(points.length>1)map.fitBounds(bounds,45);return;
   }
+    }catch(googleError){console.warn('Google Maps indisponível. Alternando para OpenStreetMap.',googleError);notify('Google Maps indisponível. Mapa aberto carregado como alternativa.');}
   await includeLeaflet();if(version!==mapVersion||!el("geo-map"))return;container.innerHTML="";const L=window.L;mapInstance=L.map(container,{scrollWheelZoom:false}).setView([points[0].place.lat,points[0].place.lng],12);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(mapInstance);
   const bounds=[];points.forEach(s=>{const position=[s.place.lat,s.place.lng];bounds.push(position);const pin=L.circleMarker(position,{radius:11,color:"#fdfbf5",weight:2,fillColor:pointColor(s.score),fillOpacity:1}).addTo(mapInstance);
