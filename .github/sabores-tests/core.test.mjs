@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {CRITERIA,DEFAULT_WEIGHTS,weightedScore,visitResult,rankedPlaces,validateImport} from "../../public/nosso-guia-de-sabores/core.js";
+import {scoreBand,SCORE_BANDS,CRITERIA,DEFAULT_WEIGHTS,weightedScore,visitResult,rankedPlaces,validateImport} from "../../public/nosso-guia-de-sabores/core.js";
 const rating=n=>Object.fromEntries(CRITERIA.map(c=>[c.key,n]));
 const place=(id,name)=>({id,name,category:"Restaurante",city:"Campo Grande",address:"",favorite:false,wishlist:false,lat:null,lng:null});
 const visit=(id,placeId,date,a,b)=>({id,placeId,date,ratings:[a,b],dishes:"",notes:"",positives:"",negatives:"",cost:null,photo:null,returnAgain:null,quickScore:null});
@@ -19,3 +19,11 @@ test("desempate prioriza sabor, depois custo, depois data",()=>{
 });
 test("backup válido aceita coordenadas e rejeita posição impossível",()=>{const p={...place("p","Local"),lat:-20.468,lng:-54.623};assert.equal(validateImport(full([p],[])),null);assert.match(validateImport(full([{...p,lat:180}],[])),/Coordenadas/);});
 test("backup rejeita nota impossível e IDs duplicados",()=>{const p=place("p","Local");assert.match(validateImport(full([p,p],[])),/inválidos|duplicado/);const bad=visit("v","p","2026-10-20",rating(11),rating(6));assert.match(validateImport(full([p],[bad])),/notas/);});
+
+test("faixas editoriais: limites exatos e ausência de nota",()=>{
+ assert.equal(SCORE_BANDS.length,5);
+ for(const [n,label] of [[10,"Imperdível"],[9,"Imperdível"],[8.99,"Excelente"],[8,"Excelente"],[7.99,"Muito bom"],[7,"Muito bom"],[6.99,"Bom"],[6,"Bom"],[5.99,"A melhorar"],[0,"A melhorar"]]){
+   assert.equal(scoreBand(n).label,label);
+ }
+ for(const value of [null,undefined,-1,11,NaN])assert.equal(scoreBand(value).label,"Pendente");
+});
