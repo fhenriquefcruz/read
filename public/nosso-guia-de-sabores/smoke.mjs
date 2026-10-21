@@ -8,7 +8,7 @@ try{
   const page=await browser.newPage({viewport:{width:1365,height:900},locale:"pt-BR"});
   page.on("pageerror",err=>errors.push(err.message));
   await page.goto(base,{waitUntil:"domcontentloaded"});
-  await page.getByRole("heading",{name:/Nossa jornada gastronômica/}).waitFor();
+  await page.getByRole("heading",{name:/Cada sabor conta uma história/}).waitFor();
   assert.equal(await page.locator(".kpi").count(),4);
   await page.locator('.sidebar [data-nav="settings"]').click();
   await page.locator("#member0").fill("Ana");
@@ -30,6 +30,8 @@ try{
   await page.locator('.sidebar [data-nav="ranking"]').click();
   assert.match(await page.locator(".rank-list").first().innerText(),/Restaurante Teste/);
   assert.match(await page.locator(".rank-list").first().innerText(),/8,5/);
+  assert.match(await page.locator(".rank-list").first().innerText(),/Excelente/);
+  assert.equal(await page.locator(".rules-guide-item").count(),5);
   await page.locator('.sidebar [data-nav="map"]').click();
   await page.locator(".map-place-list .map-place").first().waitFor();
   assert.match(await page.locator(".map-place-list").innerText(),/Restaurante Teste/);
