@@ -1,5 +1,8 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
+
+// axe-core usa outra cópia de tipos de playwright-core; só compatibiliza os tipos de Page.
+type AxePage = ConstructorParameters<typeof AxeBuilder>[0]['page'];
 import { mockAcademicApis } from './fixtures';
 
 test.beforeEach(async ({ page }) => {
@@ -96,7 +99,7 @@ test('não cria resultados artificiais quando todas as fontes falham', async ({
 test('tela inicial não tem violações automáticas WCAG de alto sinal', async ({
   page,
 }) => {
-  const results = await new AxeBuilder({ page })
+  const results = await new AxeBuilder({ page: page as unknown as AxePage })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
     .analyze();
 
@@ -462,7 +465,7 @@ test('research intelligence gera grounded brief sem inferência automática', as
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe('readplus-grounded-brief.md');
 
-  const results = await new AxeBuilder({ page })
+  const results = await new AxeBuilder({ page: page as unknown as AxePage })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
     .analyze();
   expect(results.violations).toEqual([]);
@@ -563,7 +566,7 @@ ER  -
   await page.getByRole('button', { name: 'Pesquisas' }).click();
   await expect(page.locator('.confirmed-relation')).toContainText('Divergência');
 
-  const results = await new AxeBuilder({ page })
+  const results = await new AxeBuilder({ page: page as unknown as AxePage })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
     .analyze();
   expect(results.violations).toEqual([]);
