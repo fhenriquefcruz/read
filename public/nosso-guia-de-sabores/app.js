@@ -3,17 +3,20 @@ const STORE_KEY="nosso-guia-sabores-data-v1",DB_NAME="nosso-guia-sabores";
 const app=document.getElementById("app"),dialog=document.getElementById("detail-dialog"),modalBody=document.getElementById("modal-body"),toastEl=document.getElementById("toast");
 modalBody.className="modal-body";
 document.getElementById("today-label").textContent=new Date().toLocaleDateString("pt-BR",{month:"long",year:"numeric"});
-const EMPTY=()=>({schemaVersion:1,members:["",""],weights:{...DEFAULT_WEIGHTS},theme:"light",places:[],visits:[]});
+const DEFAULT_MEMBERS=["Fábio","Tássia delícia gostosa do Fábio"];
+const EMPTY=()=>({schemaVersion:1,members:[...DEFAULT_MEMBERS],weights:{...DEFAULT_WEIGHTS},theme:"light",places:[],visits:[]});
 let state=EMPTY(),storeMode="indexeddb",editVisitId=null,fromWishlistId=null,formMode="detailed",photoData=null,formProposal=null,currentView="",toastTimer;
 let filters={search:"",category:"",city:"",minimum:"",favorite:false,again:false,from:"",to:"",sort:"score"},historyQuery="",wishQuery="",mapQuery="";
 let mapInstance=null,mapVersion=0,lastGeocode=0,draftValues=null;const clearedRatings=new Set();
+let geoRequest=null,geoAutofilled=false,geoSuccessfulQuery="";
+const geoCache=new Map();
 const H=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=n=>n===null||n===undefined?"—":Number(n).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:2});
 const money=n=>n===null||n===undefined?"—":Number(n).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const dateText=s=>s?new Date(s+"T12:00:00").toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"numeric"}):"—";
 const todayISO=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10);};
 const uid=()=>globalThis.crypto?.randomUUID?.() || "id-"+Date.now()+"-"+Math.random().toString(36).slice(2);
-const person=i=>state.members[i]?.trim() || "Pessoa "+(i+1);
+const person=i=>state.members[i]?.trim() || DEFAULT_MEMBERS[i];
 const el=id=>document.getElementById(id);
 const placeById=id=>state.places.find(p=>p.id===id);
 const visitsFor=id=>state.visits.filter(v=>v.placeId===id).sort((a,b)=>b.date.localeCompare(a.date));
@@ -33,6 +36,9 @@ function dbOpen(){return new Promise((resolve,reject)=>{if(!window.indexedDB){re
 async function dbRead(){const db=await dbOpen();return new Promise((resolve,reject)=>{const tx=db.transaction("records");const req=tx.objectStore("records").get("main");req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);tx.oncomplete=()=>db.close();tx.onerror=()=>{db.close();reject(tx.error);};});}
 async function dbWrite(value){const db=await dbOpen();return new Promise((resolve,reject)=>{const tx=db.transaction("records","readwrite");tx.objectStore("records").put(value,"main");tx.oncomplete=()=>{db.close();resolve();};tx.onerror=()=>{db.close();reject(tx.error);};tx.onabort=()=>{db.close();reject(tx.error);};});}
 async function init(){try{const data=await dbRead();if(data&&!validateImport(data))state=data;else if(!data){const s=localStorage.getItem(STORE_KEY);if(s){const parsed=JSON.parse(s);if(!validateImport(parsed)){state=parsed;await dbWrite(state);}}}}catch(e){console.warn("Usando armazenamento local alternativo",e);storeMode="localstorage";try{const parsed=JSON.parse(localStorage.getItem(STORE_KEY));if(!validateImport(parsed))state=parsed;}catch(_){}}
+ // Preserve os nomes personalizados existentes e atualize somente os campos vazios/genéricos.
+ const updated=state.members.map((name,i)=>!name?.trim()||name.trim()==="Pessoa "+(i+1)?DEFAULT_MEMBERS[i]:name);
+ if(updated.some((name,i)=>name!==state.members[i]))await persist({...state,members:updated});
  render(); }
 async function persist(next){try{if(storeMode==="indexeddb")await dbWrite(next);else localStorage.setItem(STORE_KEY,JSON.stringify(next));state=next;return true;}catch(e){console.error("Erro ao gravar",e);notify("Falha ao salvar. Confira o espaço do navegador e faça um backup.");return false;}}
 function nav(name){const target=["dashboard","ranking","map","history","wishlist","new","settings"].includes(name)?name:"dashboard";if(location.hash.slice(1)!==target)location.hash=target;else render();scrollTo({top:0,behavior:"instant"});}
@@ -131,7 +137,7 @@ function formPagePlace(visit){
  '<div class="field"><label for="place-address">Endereço (opcional)</label><input class="input" id="place-address" maxlength="300" value="'+H(p?.address||"")+'" placeholder="Rua, número, bairro"></div>'+
  '<div class="field"><label for="place-lat">Latitude</label><input class="input" id="place-lat" type="number" min="-90" max="90" step="any" placeholder="Ex.: -20.465" value="'+(p?.lat??"")+'"></div>'+
  '<div class="field"><label for="place-lng">Longitude</label><input class="input" id="place-lng" type="number" min="-180" max="180" step="any" placeholder="Ex.: -54.612" value="'+(p?.lng??"")+'"></div>'+
- '<div class="full"><button class="button button-outline button-small" data-action="geocode" type="button">⌖ Buscar coordenadas do local</button> <span class="subtle-note" id="geocode-status">Busca por nome, cidade e endereço (OpenStreetMap). Confira o resultado antes de salvar.</span></div>'+
+ '<div class="full"><button class="button button-outline button-small" data-action="geocode" type="button">⌖ Atualizar localização</button> <span class="subtle-note" id="geocode-status" role="status" aria-live="polite">Ao preencher o endereço e sair do campo, buscamos latitude e longitude automaticamente. Confira a localização sugerida.</span> <a id="geo-check" class="button button-ghost button-small" href="#" target="_blank" rel="noopener noreferrer" hidden>Conferir no Google Maps ↗</a></div>'+
  '<div class="field full"><label class="checkbox-row"><input type="checkbox" id="place-favorite" '+(p?.favorite?"checked":"")+'> Adicionar aos favoritos do casal</label></div></div></section>'+
  '<section class="form-section"><div class="form-head"><span class="form-count">02</span><div><h2>A visita</h2><p class="section-sub">A data, a comida e os detalhes que queremos guardar.</p></div></div><div class="form-grid">'+
  '<div class="field"><label for="visit-date">Data da visita *</label><input type="date" class="input" id="visit-date" required value="'+H(visit?.date||today)+'"></div>'+
@@ -163,6 +169,8 @@ function readScores(i,previous){
  return {score:obj,error:null,changed:true};
 }
 async function saveVisit(){
+ // Garante a busca mesmo quando o usuário toca diretamente em Salvar após digitar o endereço.
+ if(getAddressQuery())await geocode({automatic:true});
  const old=editVisitId?state.visits.find(v=>v.id===editVisitId):null;
  let placeId=old?.placeId||fromWishlistId||el("place-existing")?.value||null;
  const name=el("place-name")?.value.trim()||"";if(!name){notify("Informe o nome do estabelecimento.");el("place-name")?.focus();return;}
@@ -185,12 +193,66 @@ async function saveVisit(){
  if(await persist(revised)){editVisitId=null;fromWishlistId=null;photoData=null;formProposal=null;formMode="detailed";draftValues=null;clearedRatings.clear();notify(old?"Experiência atualizada.":"Memória guardada com carinho.");nav("history");}
 }
 async function readPhoto(file){if(!file)return;if(!["image/jpeg","image/png","image/webp"].includes(file.type)||file.size>8*1024*1024){notify("Escolha JPG, PNG ou WebP de até 8 MB.");return;}try{const image=await createImageBitmap(file);const factor=Math.min(1,1100/Math.max(image.width,image.height));const canvas=document.createElement("canvas");canvas.width=Math.max(1,Math.round(image.width*factor));canvas.height=Math.max(1,Math.round(image.height*factor));canvas.getContext("2d").drawImage(image,0,0,canvas.width,canvas.height);image.close();const data=canvas.toDataURL("image/jpeg",.75);if(data.length>2500000)throw Error("Arquivo grande");photoData=data;const preview=el("visit-photo")?.parentElement;preview?.querySelector(".photo-preview")?.remove();preview?.insertAdjacentHTML("beforeend",'<div class="photo-preview"><img src="'+H(data)+'" alt="Fotografia selecionada"><button type="button" data-action="removePhoto" class="button button-danger button-small">Remover</button></div>');notify("Foto preparada neste dispositivo.");}catch(e){console.error(e);notify("Não foi possível processar essa foto.");}}
-async function geocode(){
- const q=[el("place-name")?.value,el("place-address")?.value,el("place-city")?.value].filter(Boolean).join(", ").trim();
- if(q.length<4){notify("Informe nome, endereço ou cidade para localizar.");return;}
- if(Date.now()-lastGeocode<1200){notify("Aguarde antes de fazer outra busca.");return;}
- lastGeocode=Date.now();const btn=app.querySelector('[data-action="geocode"]');if(btn)btn.disabled=true;
- try{const response=await fetch("https://nominatim.openstreetmap.org/search?format=json&limit=1&q="+encodeURIComponent(q),{headers:{Accept:"application/json"}});if(!response.ok)throw Error(String(response.status));const data=await response.json();if(!data.length){notify("Local não encontrado. Informe as coordenadas manualmente.");return;}const r=data[0];if(confirm('Conferir local encontrado:\n'+r.display_name+'\n\nPreencher coordenadas '+r.lat+', '+r.lon+'?')){el("place-lat").value=Number(r.lat).toFixed(7);el("place-lng").value=Number(r.lon).toFixed(7);el("geocode-status").textContent="Coordenadas sugeridas. Confirme se correspondem ao lugar real.";} }catch(e){console.warn(e);notify("A busca de coordenadas falhou. Você ainda pode informá-las manualmente.");}finally{if(btn)btn.disabled=false;}
+function getAddressQuery(){
+ const address=el("place-address")?.value.trim()||"",city=el("place-city")?.value.trim()||"";
+ return address.length>=6?[address,city].filter(Boolean).join(", "):"";
+}
+function geoStatus(message){
+ const label=el("geocode-status");
+ if(label)label.textContent=message;
+}
+function geoCheckLink(lat,lng){
+ const link=el("geo-check");
+ if(link){link.href="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(lat+","+lng);link.hidden=false;}
+}
+async function geocode({automatic=false}={}){
+ const latField=el("place-lat"),lngField=el("place-lng");
+ if(!latField||!lngField)return;
+ const addressQuery=getAddressQuery();
+ const q=automatic?addressQuery:(addressQuery||[el("place-name")?.value,el("place-city")?.value].filter(Boolean).join(", ").trim());
+ if(!q){if(!automatic)geoStatus("Informe um endereço de pelo menos 6 caracteres, ou nome e cidade.");return;}
+ // Coordenadas digitadas manualmente ou herdadas de um local existente nunca são substituídas automaticamente.
+ if(automatic&&(latField.value||lngField.value)&&!geoAutofilled)return;
+ if(q===geoSuccessfulQuery&&latField.value&&lngField.value)return;
+ if(geoRequest?.query===q)return geoRequest.promise;
+ if(geoRequest)geoRequest.controller.abort();
+ const controller=new AbortController();
+ const promise=(async()=>{
+   try{
+     const interval=Math.max(0,1150-(Date.now()-lastGeocode));
+     if(interval)await new Promise(resolve=>setTimeout(resolve,interval));
+     if(controller.signal.aborted)return;
+     // O Nominatim público não é usado para autocomplete por tecla: somente após sair do campo ou salvar.
+     lastGeocode=Date.now();
+     geoStatus("Localizando endereço e coordenadas…");
+     const url="https://nominatim.openstreetmap.org/search?format=json&limit=1&q="+encodeURIComponent(q);
+     const response=await fetch(url,{headers:{Accept:"application/json"},signal:controller.signal});
+     if(!response.ok)throw Error("Serviço de busca indisponível");
+     const data=await response.json();
+     if(controller.signal.aborted || (automatic&&getAddressQuery()!==q))return;
+     const result=Array.isArray(data)?data[0]:null;
+     if(!result||!Number.isFinite(Number(result.lat))||!Number.isFinite(Number(result.lon))){
+       if(geoAutofilled){latField.value="";lngField.value="";geoAutofilled=false;geoSuccessfulQuery="";}
+       geoStatus("Endereço não encontrado. Verifique rua, número e cidade, ou informe as coordenadas manualmente.");
+       return;
+     }
+     if(automatic&&(latField.value||lngField.value)&&!geoAutofilled)return;
+     latField.value=Number(result.lat).toFixed(7);
+     lngField.value=Number(result.lon).toFixed(7);
+     geoAutofilled=true;
+     geoSuccessfulQuery=q;
+     if(geoCache.size>30)geoCache.clear();
+     geoCache.set(q,{lat:latField.value,lng:lngField.value,description:result.display_name||q});
+     geoCheckLink(latField.value,lngField.value);
+     geoStatus("Coordenadas preenchidas automaticamente: "+(result.display_name||q)+". Confira no mapa.");
+   }catch(error){
+     if(error?.name==="AbortError")return;
+     console.warn("Geocodificação falhou",error);
+     geoStatus("Não foi possível buscar o endereço agora. Você pode preencher as coordenadas manualmente.");
+   }
+ })();
+ geoRequest={query:q,controller,promise};
+ try{await promise;}finally{if(geoRequest?.promise===promise)geoRequest=null;}
 }
 function parseReport(){
  const txt=el("natural-report").value.trim();if(!txt){notify("Escreva seu relato primeiro.");return;}
@@ -298,7 +360,7 @@ document.addEventListener("click",async e=>{
  if(action==="mode"){captureDraft();formMode=btn.dataset.value;render();}
  if(action==="clearRating"){const i=Number(btn.dataset.value);clearedRatings.add(i);CRITERIA.forEach(c=>{const score=el("score-"+i+"-"+c.key);if(score)score.value="";});const preview=el("member-preview-"+i);if(preview)preview.textContent="—";notify("Nota de "+person(i)+" será removida ao salvar.");}
  if(action==="removePhoto"){photoData=null;btn.closest(".photo-preview")?.remove();}
- if(action==="geocode")await geocode();
+ if(action==="geocode")await geocode({automatic:false});
  if(action==="parseReport")parseReport();
  if(action==="applyReport")applyReport();
  if(action==="clearFilters"){filters={search:"",category:"",city:"",minimum:"",favorite:false,again:false,from:"",to:"",sort:"score"};render();}
@@ -313,13 +375,21 @@ document.addEventListener("submit",async e=>{if(!["visit-form","wish-form","sett
 document.addEventListener("change",async e=>{
  const node=e.target,id=node.id;
  if(id==="visit-photo")await readPhoto(node.files?.[0]);
- if(id==="place-existing"){const p=placeById(node.value);for(const [target,key] of [["place-name","name"],["place-city","city"],["place-address","address"],["place-lat","lat"],["place-lng","lng"]])el(target).value=p?.[key]??"";el("place-category").value=p?.category||"Restaurante";el("place-favorite").checked=Boolean(p?.favorite);}
+ if(id==="place-address"||id==="place-city")await geocode({automatic:true});
+ if(id==="place-lat"||id==="place-lng"){geoAutofilled=false;geoSuccessfulQuery="";}
+ if(id==="place-existing"){geoRequest?.controller.abort();geoAutofilled=false;geoSuccessfulQuery="";const p=placeById(node.value);for(const [target,key] of [["place-name","name"],["place-city","city"],["place-address","address"],["place-lat","lat"],["place-lng","lng"]])el(target).value=p?.[key]??"";el("place-category").value=p?.category||"Restaurante";el("place-favorite").checked=Boolean(p?.favorite);}
  if(id==="import-file")await importData(node.files?.[0]);
  if(id.startsWith("weight-")){const sum=CRITERIA.reduce((s,c)=>s+(Number(el("weight-"+c.key)?.value)||0),0);el("weight-total").textContent=sum+"%";}
  if(id.startsWith("score-")){const i=Number(id.split("-")[1]);const obj={};CRITERIA.forEach(c=>obj[c.key]=el("score-"+i+"-"+c.key).value===""?null:Number(el("score-"+i+"-"+c.key).value));const s=weightedScore(obj,state.weights);el("member-preview-"+i).textContent=s===null?"—":fmt(s);}
  if(id.startsWith("rank-")){trackFilter(node);render();}
 });
-document.addEventListener("input",e=>{if(["rank-search","history-search","wish-search","map-search"].includes(e.target.id)){const id=e.target.id;trackFilter(e.target);refreshTextFilter(id);}});
+document.addEventListener("input",e=>{
+ if((e.target.id==="place-address"||e.target.id==="place-city")&&geoAutofilled&&geoSuccessfulQuery!==getAddressQuery()){
+   el("place-lat").value="";el("place-lng").value="";geoSuccessfulQuery="";
+   const link=el("geo-check");if(link)link.hidden=true;
+   geoStatus("Endereço alterado. As coordenadas serão atualizadas ao sair do campo.");
+ }
+ if(["rank-search","history-search","wish-search","map-search"].includes(e.target.id)){const id=e.target.id;trackFilter(e.target);refreshTextFilter(id);}});
 document.getElementById("theme-toggle").addEventListener("click",async()=>{const next=structuredClone(state);next.theme=state.theme==="dark"?"light":"dark";if(await persist(next))render();});
 document.getElementById("modal-close").addEventListener("click",closeModal);
 dialog.addEventListener("click",e=>{if(e.target===dialog)closeModal();});
