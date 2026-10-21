@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f7f4ee">
+  <meta name="description" content="Nosso Guia de Sabores — Dois paladares, uma coleção de experiências.">
+  <title>Nosso Guia de Sabores — Diário do casal</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Navegação principal">
+      <a class="brand" href="#dashboard" data-nav="dashboard" aria-label="Nosso Guia de Sabores, início">
+        <span class="brand-mark" aria-hidden="true">n<span>·</span>g</span>
+        <span class="brand-copy"><strong>Nosso Guia<br>de Sabores</strong><small>DIÁRIO A DOIS</small></span>
+      </a>
+      <div class="sidebar-divider"></div>
+      <div class="nav-label">EXPLORAR</div>
+      <nav id="desktop-nav" class="desktop-nav">
+        <button data-nav="dashboard" class="nav-link active"><span class="nav-icon" aria-hidden="true">◫</span> Nossa jornada</button>
+        <button data-nav="ranking" class="nav-link"><span class="nav-icon" aria-hidden="true">♜</span> Ranking de sabores</button>
+        <button data-nav="history" class="nav-link"><span class="nav-icon" aria-hidden="true">◷</span> Histórico de visitas</button>
+        <button data-nav="wishlist" class="nav-link"><span class="nav-icon" aria-hidden="true">♡</span> Nossa lista de desejos</button>
+      </nav>
+      <div class="sidebar-divider"></div>
+      <div class="nav-label">PERSONALIZAR</div>
+      <nav class="desktop-nav">
+        <button data-nav="settings" class="nav-link"><span class="nav-icon" aria-hidden="true">⚙</span> Ajustes &amp; dados</button>
+      </nav>
+      <div class="sidebar-spacer"></div>
+      <div class="sidebar-note">
+        <span class="eyebrow">NOSSO CANTINHO</span>
+        <p>Mais do que notas. São lugares, histórias e momentos para guardar.</p>
+        <span class="tiny-rule"></span>
+        <small>Dois paladares, uma coleção de experiências.</small>
+      </div>
+      <div class="sidebar-footer">Feito para ser vivido, juntos.</div>
+    </aside>
+
+    <div class="main-column">
+      <header class="topbar">
+        <div class="mobile-brand"><span class="brand-mark mini" aria-hidden="true">n<span>·</span>g</span><strong>nosso guia<span> de sabores</span></strong></div>
+        <div class="topbar-eyebrow">NOSSO DIÁRIO GASTRONÔMICO <span class="topbar-line"></span> <span id="today-label"></span></div>
+        <div class="top-actions">
+          <button type="button" class="icon-button" id="theme-toggle" title="Alternar tema" aria-label="Alternar tema">◐</button>
+          <button type="button" class="button button-dark top-add" data-nav="new">＋ Nova experiência</button>
+        </div>
+      </header>
+      <main id="app" class="main-content" tabindex="-1" aria-live="polite"></main>
+      <footer class="content-footer"><span>Nosso Guia de Sabores <span class="foot-sep">·</span> coleção de memórias, não só de notas.</span><span>Seus dados ficam neste navegador.</span></footer>
+    </div>
+  </div>
+
+  <nav class="bottom-nav" aria-label="Menu para celular">
+    <button class="mobile-nav active" data-nav="dashboard"><span aria-hidden="true">◫</span><small>Início</small></button>
+    <button class="mobile-nav" data-nav="ranking"><span aria-hidden="true">♜</span><small>Ranking</small></button>
+    <button class="mobile-nav add-tab" data-nav="new" aria-label="Nova experiência"><span aria-hidden="true">＋</span></button>
+    <button class="mobile-nav" data-nav="history"><span aria-hidden="true">◷</span><small>Histórico</small></button>
+    <button class="mobile-nav" data-nav="wishlist"><span aria-hidden="true">♡</span><small>Desejos</small></button>
+  </nav>
+
+  <dialog id="detail-dialog" class="modal" aria-labelledby="modal-title">
+    <div id="modal-body"></div>
+    <button type="button" class="modal-close" id="modal-close" aria-label="Fechar janela">×</button>
+  </dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
