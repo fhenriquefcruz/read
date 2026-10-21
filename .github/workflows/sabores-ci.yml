@@ -1,0 +1,38 @@
+name: Nosso Guia de Sabores — verificação isolada
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/nosso-guia-de-sabores/**'
+      - 'nosso-guia-de-sabores/**'
+      - '.github/sabores-tests/**'
+      - '.github/workflows/sabores-ci.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Instalar dependências da suite de navegador
+        run: npm install --no-audit --no-fund
+      - name: Validar pontuação, ranking e backups
+        run: node --test .github/sabores-tests/core.test.mjs
+      - name: Instalar Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Iniciar servidor estático
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory public >/tmp/sabores-server.log 2>&1 &
+          for attempt in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:8765/nosso-guia-de-sabores/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/sabores-server.log
+          exit 1
+      - name: Testar experiência web e mobile
+        run: node .github/sabores-tests/smoke.mjs
