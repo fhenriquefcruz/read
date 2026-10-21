@@ -15,8 +15,8 @@ jobs:
     name: Validação do código e das regras de avaliação
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: "24"
       - name: Conferir sintaxe JavaScript
@@ -33,13 +33,12 @@ jobs:
     needs: unit
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: "24"
-          cache: npm
       - name: Instalar dependências
-        run: npm ci --ignore-scripts --no-audit --no-fund
+        run: npm install --ignore-scripts --no-audit --no-fund
       - name: Instalar Chromium
         run: npx playwright install --with-deps chromium
       - name: Iniciar servidor estático local
