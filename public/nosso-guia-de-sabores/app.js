@@ -1,4 +1,4 @@
-import {CRITERIA,DEFAULT_WEIGHTS,CATEGORIES,weightedScore,visitResult,rankedPlaces,validateImport,validHalfStep} from "./core.js";
+import {CRITERIA,DEFAULT_WEIGHTS,CATEGORIES,weightedScore,visitResult,rankedPlaces,validateImport,validHalfStep,scoreBand,SCORE_BANDS} from "./core.js";
 const STORE_KEY="nosso-guia-sabores-data-v1",DB_NAME="nosso-guia-sabores";
 const app=document.getElementById("app"),dialog=document.getElementById("detail-dialog"),modalBody=document.getElementById("modal-body"),toastEl=document.getElementById("toast");
 modalBody.className="modal-body";
@@ -12,6 +12,11 @@ let geoRequest=null,geoAutofilled=false,geoSuccessfulQuery="";
 const geoCache=new Map();
 const H=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=n=>n===null||n===undefined?"—":Number(n).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:2});
+const tierHTML=score=>{const band=scoreBand(score);return '<span class="score-tier '+band.tone+'">'+H(band.label)+'</span>';};
+function rulesGuide(){
+ const ceilings=[10,8.99,7.99,6.99,5.99];
+ return '<div class="rules-guide" aria-label="Faixas de classificação">'+SCORE_BANDS.map((band,i)=>'<div class="rules-guide-item">'+tierHTML(ceilings[i])+'<strong>'+fmt(band.min)+'–'+fmt(ceilings[i])+'</strong><small>Nota da experiência</small></div>').join("")+'</div><p class="rules-footnote">A faixa interpreta a nota sem alterar a fórmula. Sem avaliação completa dos dois, a visita permanece pendente e fora do ranking. Desempate: sabor, custo-benefício e data.</p>';
+}
 const money=n=>n===null||n===undefined?"—":Number(n).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const dateText=s=>s?new Date(s+"T12:00:00").toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"numeric"}):"—";
 const todayISO=()=>{const d=new Date();return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10);};
@@ -48,6 +53,7 @@ function render(){let view=location.hash.slice(1)||"dashboard";currentView=view;
  app.innerHTML=pages[view]();
  if(view==="new"&&draftValues){for(const [id,data] of Object.entries(draftValues)){const node=el(id);if(!node)continue;if(node.type==="checkbox")node.checked=data;else node.value=data;}}
  if(view==="map")queueMicrotask(drawMap);
+ if(view==="new"&&readGoogleKey())queueMicrotask(mountGooglePlaces);
 }
 
 function dashboardPage(){
@@ -57,10 +63,10 @@ function dashboardPage(){
  const cats={};state.visits.forEach(v=>{const p=placeById(v.placeId);if(p)cats[p.category]=(cats[p.category]||0)+1;});
  const categories=Object.entries(cats).sort((a,b)=>b[1]-a[1]);
  const champion=rank[0];
- let out=header("A NOSSA COLEÇÃO DE MOMENTOS","Nossa jornada gastronômica","Cada mesa tem uma história. Aqui, guardamos os sabores, as descobertas e tudo o que vale a pena reviver.",'<button class="button button-outline intro-action" data-nav="new">＋ Nova experiência</button>');
+ let out=header("CADERNO GASTRONÔMICO DO CASAL","Cada sabor conta uma história.","Um diário de lugares vividos, notas sinceras e experiências que merecem ser lembradas.",'<button class="button button-outline intro-action" data-nav="new">＋ Nova experiência</button>');
  if(!state.members[0]||!state.members[1])out+='<div class="help-box mb16">Antes da primeira nota, <button class="button button-ghost button-small" data-nav="settings">definam os nomes do casal →</button> Assim, cada avaliação terá seu dono.</div>';
  out+='<div class="kpi-grid">'+kpi("Lugares conhecidos",state.places.filter(p=>visitsFor(p.id).length>0).length,"Estabelecimentos visitados","♧")+kpi("Nossas experiências",state.visits.length,"Visitas registradas","◷")+kpi("Nossa nota média",overall===null?"—":fmt(overall),"Visitas avaliadas pelos dois","✳")+kpi("Avaliações completas",complete.length,"De "+state.visits.length+" visitas","✓")+'</div>';
- out+='<div class="feature-grid"><section class="hero-feature"><div><span class="eyebrow">✦ NOSSA MELHOR EXPERIÊNCIA ATÉ AGORA</span><h2>'+(champion?H(champion.place.name):"Grandes histórias começam à mesa.")+'</h2><p>'+(champion?H(champion.place.category)+(champion.place.city?" · "+H(champion.place.city):"")+' · '+champion.complete.length+' visita(s) completas':"A primeira experiência avaliada pelos dois vai ganhar um lugar especial aqui.")+'</p></div><div class="champion-bottom"><button class="button button-outline" '+(champion?'data-action="detail" data-id="'+H(champion.place.id)+'"':'data-nav="new"')+'>'+(champion?"Ver essa experiência →":"Registrar primeiro sabor →")+'</button>'+(champion?'<div class="score-badge"><strong>'+fmt(champion.score)+'</strong><span>NOTA DO CASAL</span></div>':"")+'</div></section>';
+ out+='<div class="feature-grid"><section class="hero-feature"><div><span class="eyebrow">✦ NOSSA MELHOR EXPERIÊNCIA ATÉ AGORA</span><h2>'+(champion?H(champion.place.name):"Grandes histórias começam à mesa.")+'</h2><p>'+(champion?H(champion.place.category)+(champion.place.city?" · "+H(champion.place.city):"")+' · '+champion.complete.length+' visita(s) completas':"O primeiro lugar avaliado pelos dois ganhará destaque nesta coleção.")+'</p></div><div class="champion-bottom"><button class="button button-outline" '+(champion?'data-action="detail" data-id="'+H(champion.place.id)+'"':'data-nav="new"')+'>'+(champion?"Ver essa experiência →":"Registrar primeiro sabor →")+'</button>'+(champion?'<div class="score-badge"><strong>'+fmt(champion.score)+'</strong><span>NOTA DO CASAL</span></div>':"")+'</div></section>';
  out+='<section class="feature-panel"><span class="eyebrow">NA NOSSA MEMÓRIA</span><h3>Últimas descobertas</h3>'+(visits.length?'<div class="timeline-mini">'+visits.map(v=>'<div class="timeline-entry"><span class="timeline-dot">✳</span><div class="timeline-details"><strong>'+H(placeById(v.placeId)?.name||"")+'</strong><small>'+dateText(v.date)+'</small></div><span class="timeline-score">'+(result(v)?fmt(result(v).average):"—")+'</span></div>').join("")+'</div>':empty("Nosso diário começa aqui","Ainda não há experiências registradas.",false))+'</section></div>';
  out+='<div class="data-grid"><section class="surface"><span class="eyebrow">O QUE MAIS EXPLORAMOS</span><div class="section-heading" style="margin:7px 0 15px"><h2 class="section-title">Tipos de lugares</h2></div>'+(categories.length?categories.slice(0,6).map(([n,v])=>bar(n,v,categories[0][1],String(v))).join(""):'<p class="subtle-note">As categorias aparecem conforme cadastramos visitas.</p>')+'</section>';
  out+='<section class="surface"><span class="eyebrow">DOIS PONTOS DE VISTA</span><div class="section-heading" style="margin:7px 0 14px"><h2 class="section-title">Nossas opiniões</h2></div>'+comparison(complete)+'</section></div>';
