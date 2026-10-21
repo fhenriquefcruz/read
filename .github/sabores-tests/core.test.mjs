@@ -1,0 +1,21 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {CRITERIA,DEFAULT_WEIGHTS,weightedScore,visitResult,rankedPlaces,validateImport} from "../../public/nosso-guia-de-sabores/core.js";
+const rating=n=>Object.fromEntries(CRITERIA.map(c=>[c.key,n]));
+const place=(id,name)=>({id,name,category:"Restaurante",city:"Campo Grande",address:"",favorite:false,wishlist:false,lat:null,lng:null});
+const visit=(id,placeId,date,a,b)=>({id,placeId,date,ratings:[a,b],dishes:"",notes:"",positives:"",negatives:"",cost:null,photo:null,returnAgain:null,quickScore:null});
+const full=(places,visits)=>({schemaVersion:1,members:["Uma","Outra"],weights:{...DEFAULT_WEIGHTS},theme:"light",places,visits});
+test("pesos padrão somam 100%",()=>{assert.equal(Object.values(DEFAULT_WEIGHTS).reduce((s,n)=>s+n,0),100);});
+test("média ponderada não arredondada, respeitando pesos",()=>{const scores={sabor:10,atendimento:6,ambiente:8,custo:7,apresentacao:5,experiencia:9};assert.equal(weightedScore(scores,DEFAULT_WEIGHTS),7.8);});
+test("cada pessoa tem peso igual; concordância usa diferença",()=>{const r=visitResult(visit("v","p","2026-10-20",rating(8),rating(6)),DEFAULT_WEIGHTS);assert.equal(r.average,7);assert.equal(r.difference,2);assert.equal(r.agreement,80);});
+test("visita incompleta não entra no ranking oficial",()=>{const one=place("p","Lugar");const ranked=rankedPlaces([one],[visit("v","p","2026-10-20",rating(8),null)],DEFAULT_WEIGHTS);assert.equal(ranked.ranked.length,0);assert.equal(ranked.pending.length,1);});
+test("várias visitas têm peso igual na nota do estabelecimento",()=>{const p=place("p","Lugar");const visits=[visit("1","p","2026-10-18",rating(10),rating(10)),visit("2","p","2026-10-20",rating(6),rating(6))];assert.equal(rankedPlaces([p],visits,DEFAULT_WEIGHTS).ranked[0].score,8);});
+test("desempate prioriza sabor, depois custo, depois data",()=>{
+  const places=[place("a","A"),place("b","B"),place("c","C")];
+  const r1={sabor:8,atendimento:8,ambiente:8,custo:8,apresentacao:8,experiencia:8};
+  const r2={sabor:9,atendimento:7,ambiente:8,custo:8,apresentacao:8,experiencia:7};
+  const list=[visit("x","a","2026-10-20",r1,r1),visit("y","b","2026-10-19",r2,r2),visit("z","c","2026-10-18",r1,r1)];
+  const out=rankedPlaces(places,list,DEFAULT_WEIGHTS).ranked;assert.equal(out[0].place.id,"b");
+});
+test("backup válido aceita coordenadas e rejeita posição impossível",()=>{const p={...place("p","Local"),lat:-20.468,lng:-54.623};assert.equal(validateImport(full([p],[])),null);assert.match(validateImport(full([{...p,lat:180}],[])),/Coordenadas/);});
+test("backup rejeita nota impossível e IDs duplicados",()=>{const p=place("p","Local");assert.match(validateImport(full([p,p],[])),/inválidos|duplicado/);const bad=visit("v","p","2026-10-20",rating(11),rating(6));assert.match(validateImport(full([p],[bad])),/notas/);});
