@@ -2,6 +2,7 @@
 :root{--ink:#252922;--ink-soft:#44483e;--muted:#858779;--olive:#67735d;--olive-dark:#49583e;--cream:#f7f4ee;--paper:#fffefa;--card:#fffefa;--line:#e9e5db;--clay:#b87558;--gold:#b99a61;--bg:#f7f4ee;--soft:#f0eee7;--shadow:0 14px 48px rgba(47,47,37,.045);--radius:18px;--serif:'Playfair Display',Georgia,serif;--sans:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 :root[data-theme=dark]{--ink:#eceee8;--ink-soft:#c9cec3;--muted:#a4a99f;--olive:#a8b49a;--olive-dark:#b5c4a6;--cream:#181c19;--paper:#222822;--card:#242b25;--line:#384239;--clay:#d7a186;--gold:#d3b789;--bg:#181c19;--soft:#2b332b;--shadow:0 14px 42px rgba(0,0,0,.10)}
 *,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
 html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.6 var(--sans);-webkit-font-smoothing:antialiased;min-width:310px}
 button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit;text-decoration:none}img{max-width:100%}
