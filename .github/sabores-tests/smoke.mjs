@@ -6,9 +6,15 @@ const browser=await chromium.launch({headless:true});
 const context=await browser.newContext({acceptDownloads:true,viewport:{width:1280,height:850}});
 const page=await context.newPage();
 page.on("dialog",async dialog=>dialog.accept());
+await page.route("https://nominatim.openstreetmap.org/search?*",route=>route.fulfill({
+  status:200,contentType:"application/json",
+  body:JSON.stringify([{lat:"-20.4627000",lon:"-54.6145000",display_name:"Rua da Experiência, Campo Grande, MS"}])
+}));
 try{
   await page.goto(base,{waitUntil:"domcontentloaded"});
   await page.locator('button[data-nav="settings"]').first().click();
+  assert.equal(await page.locator("#member0").inputValue(),"Fábio");
+  assert.equal(await page.locator("#member1").inputValue(),"Tássia delícia gostosa do Fábio");
   await page.locator("#member0").fill("Ana");
   await page.locator("#member1").fill("Bia");
   await page.locator('#settings-form button[type="submit"]').click();
@@ -16,6 +22,13 @@ try{
   await page.locator("#place-name").fill("Café de Teste");
   await page.locator("#place-category").selectOption("Cafeteria");
   await page.locator("#place-city").fill("Campo Grande");
+  await page.locator("#place-address").fill("Rua da Experiência, 125, Centro");
+  await page.locator("#visit-date").click(); // blur dispara a busca, sem clicar em "Buscar coordenadas"
+  await page.waitForFunction(()=>document.querySelector("#place-lat")?.value==="-20.4627000");
+  assert.equal(await page.locator("#place-lng").inputValue(),"-54.6145000");
+  assert.match(await page.locator("#geocode-status").innerText(),/automaticamente/);
+  // Ajustes manuais continuam permitidos e não serão sobrescritos:
+
   await page.locator("#place-lat").fill("-20.46");
   await page.locator("#place-lng").fill("-54.62");
   await page.locator("#visit-date").fill("2026-10-20");
