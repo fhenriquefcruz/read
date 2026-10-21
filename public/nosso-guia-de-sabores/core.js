@@ -10,6 +10,24 @@ export const CRITERIA = [
 export const DEFAULT_WEIGHTS = Object.fromEntries(CRITERIA.map(c => [c.key, c.initialWeight]));
 export const CATEGORIES = ["Restaurante", "Hamburgueria", "Pizzaria", "Cafeteria", "Bar", "Sorveteria", "Churrascaria", "Comida japonesa", "Padaria", "Bistrô", "Doceria", "Outra"];
 
+/** Classificação editorial aplicada igualmente no dashboard, ranking, histórico e mapa.
+ * A classe expressa experiência, não altera a fórmula matemática do ranking.
+ */
+export const SCORE_BANDS = Object.freeze([
+  {min:9,label:"Imperdível",tone:"signature"},
+  {min:8,label:"Excelente",tone:"excellent"},
+  {min:7,label:"Muito bom",tone:"very-good"},
+  {min:6,label:"Bom",tone:"good"},
+  {min:0,label:"A melhorar",tone:"improve"}
+]);
+export function scoreBand(score){
+  if(score===null||score===undefined||!Number.isFinite(score)||score<0||score>10){
+    return {min:null,label:"Pendente",tone:"pending"};
+  }
+  return SCORE_BANDS.find(band=>score>=band.min);
+}
+
+
 export function validHalfStep(value) {
   return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 10 && Math.round(value * 2) === value * 2;
 }
