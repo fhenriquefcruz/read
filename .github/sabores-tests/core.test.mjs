@@ -6,7 +6,7 @@ const place=(id,name)=>({id,name,category:"Restaurante",city:"Campo Grande",addr
 const visit=(id,placeId,date,a,b)=>({id,placeId,date,ratings:[a,b],dishes:"",notes:"",positives:"",negatives:"",cost:null,photo:null,returnAgain:null,quickScore:null});
 const full=(places,visits)=>({schemaVersion:1,members:["Uma","Outra"],weights:{...DEFAULT_WEIGHTS},theme:"light",places,visits});
 test("pesos padrão somam 100%",()=>{assert.equal(Object.values(DEFAULT_WEIGHTS).reduce((s,n)=>s+n,0),100);});
-test("média ponderada não arredondada, respeitando pesos",()=>{const scores={sabor:10,atendimento:6,ambiente:8,custo:7,apresentacao:5,experiencia:9};assert.equal(weightedScore(scores,DEFAULT_WEIGHTS),7.8);});
+test("média ponderada não arredondada, respeitando pesos",()=>{const scores={sabor:10,atendimento:6,ambiente:8,custo:7,apresentacao:5,experiencia:9};assert.ok(Math.abs(weightedScore(scores,DEFAULT_WEIGHTS)-7.85)<1e-9);});
 test("cada pessoa tem peso igual; concordância usa diferença",()=>{const r=visitResult(visit("v","p","2026-10-20",rating(8),rating(6)),DEFAULT_WEIGHTS);assert.equal(r.average,7);assert.equal(r.difference,2);assert.equal(r.agreement,80);});
 test("visita incompleta não entra no ranking oficial",()=>{const one=place("p","Lugar");const ranked=rankedPlaces([one],[visit("v","p","2026-10-20",rating(8),null)],DEFAULT_WEIGHTS);assert.equal(ranked.ranked.length,0);assert.equal(ranked.pending.length,1);});
 test("várias visitas têm peso igual na nota do estabelecimento",()=>{const p=place("p","Lugar");const visits=[visit("1","p","2026-10-18",rating(10),rating(10)),visit("2","p","2026-10-20",rating(6),rating(6))];assert.equal(rankedPlaces([p],visits,DEFAULT_WEIGHTS).ranked[0].score,8);});
