@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {CRITERIA, DEFAULT_WEIGHTS, weightedScore, visitResult, rankedPlaces, validateImport, weightsValid, validHalfStep} from "./core.js";
+import {scoreBand,SCORE_BANDS,CRITERIA, DEFAULT_WEIGHTS, weightedScore, visitResult, rankedPlaces, validateImport, weightsValid, validHalfStep} from "./core.js";
 
 const scores = (sabor=8,atendimento=8,ambiente=8,custo=8,apresentacao=8,experiencia=8)=>({sabor,atendimento,ambiente,custo,apresentacao,experiencia});
 const place = (id,name,lat=null,lng=null)=>({id,name,city:"Campo Grande",address:"",category:"Restaurante",favorite:false,wishlist:false,lat,lng});
@@ -77,4 +77,12 @@ test("Notas artificiais nunca entram na classificação oficial",()=>{
  const data=base();data.visits=[{...visit("v1","p1",null,null),quickScore:9.5}];
  assert.equal(validateImport(data),null);
  assert.equal(rankedPlaces(data.places,data.visits,data.weights).ranked.length,0);
+});
+
+test("faixas editoriais: limites exatos e ausência de nota",()=>{
+ assert.equal(SCORE_BANDS.length,5);
+ for(const [n,label] of [[10,"Imperdível"],[9,"Imperdível"],[8.99,"Excelente"],[8,"Excelente"],[7.99,"Muito bom"],[7,"Muito bom"],[6.99,"Bom"],[6,"Bom"],[5.99,"A melhorar"],[0,"A melhorar"]]){
+   assert.equal(scoreBand(n).label,label);
+ }
+ for(const value of [null,undefined,-1,11,NaN])assert.equal(scoreBand(value).label,"Pendente");
 });
