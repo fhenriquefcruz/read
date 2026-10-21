@@ -25,9 +25,23 @@ A configuração original do READ+ utiliza Vite para enviar os conteúdos da pas
 - Geocodificação automática ao preencher o endereço e sair do campo: latitude e longitude aparecem sem precisar clicar em um botão. O resultado é uma sugestão e pode ser conferido no Google Maps ou ajustado manualmente. Para reduzir requisições, a busca só ocorre após concluir o campo, não a cada tecla.
 - Nomes padrão dos participantes: **Fábio** e **Tássia delícia gostosa do Fábio**. Registros anteriores com nomes personalizados são preservados.
 
+## Design e regras v2
+
+O sistema visual ganhou identidade editorial com temas mineral/floresta, tipografia hierarquizada, cartões refinados, navegação responsiva e indicadores por faixas de notas. A metodologia de pontuação agora apresenta: **Imperdível (9–10)**, **Excelente (8–8,99)**, **Muito bom (7–7,99)**, **Bom (6–6,99)** e **A melhorar (0–5,99)**; sem duas avaliações completas fica **Pendente**. As faixas não alteram a fórmula do ranking. Confira [DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md).
+
 ## Google Maps
 
-Os links dos locais sempre abrem no Google Maps usando latitude e longitude. A visualização interativa padrão do painel usa OpenStreetMap/Leaflet, sem chave de API. Para substituir o painel cartográfico pelo **Google Maps JavaScript API**, abra **Mapa dos sabores → Usar Google Maps neste mapa** e forneça uma chave pública **restrita ao domínio de publicação**; configure antes faturamento e a API no Google Cloud. A chave fica só na sessão do navegador, não no código ou no backup. Nenhuma chave privada deve ser inserida.
+Os links dos estabelecimentos abrem no Google Maps diretamente, sem necessidade de chave. O mapa padrão usa **OpenStreetMap/Leaflet**, sem custo de API Google.
+
+Uma chave **restrita para navegador** habilita recursos da plataforma oficial:
+
+- **Google Maps JavaScript API:** mapa Google integrado ao painel.
+- **Geocoding API:** transformação do endereço informado em latitude e longitude.
+- **Places API (New):** busca de restaurantes, cafés e estabelecimentos com sugestões do Google, preenchendo endereço, localização e nome quando selecionado.
+
+**Para ativar:** no [Google Cloud Console](https://console.cloud.google.com/google/maps-apis/credentials), crie projeto com faturamento, habilite as três APIs, crie uma chave com restrição de **sites** permitindo apenas `https://fhenriquefcruz.github.io/*`, limite as APIs e configure alertas de orçamento. Em **Mapa → Integrar Google Maps API** (ou no formulário de experiência), informe a chave. Uma nova abertura da página ativa a integração. A chave é retida **somente em sessionStorage**, não no repositório nem no backup. Chaves de navegador são visíveis na rede e por isso devem ser **restritas**, não tratadas como segredo. O Google Maps pode gerar cobrança.
+
+Se uma chave não estiver configurada ou o serviço Google falhar, a experiência básica continua funcionando pelo OpenStreetMap. A busca do Nominatim ocorre só após o usuário concluir a digitação, não oferece autocomplete em tempo real e está sujeita à [política pública](https://operations.osmfoundation.org/policies/nominatim/).
 
 ## Integridade e privacidade
 
