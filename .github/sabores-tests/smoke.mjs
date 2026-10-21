@@ -95,5 +95,45 @@ try{
   const overflow=await mobilePage.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
   assert.ok(overflow<=1,"Tela móvel tem rolagem horizontal indevida: "+overflow);
   await mobile.close();
+
+  // Contrato local dos adaptadores Google: a chave real não está disponível em CI.
+  // A API é simulada, sem chamadas faturáveis, para testar Places + Geocoding.
+  const googleContext=await browser.newContext({viewport:{width:1200,height:850}});
+  await googleContext.addInitScript(()=>{
+    sessionStorage.setItem("sabores-google-key","mock-restricted-google-browser-key");
+    if(!customElements.get("gmp-place-autocomplete")){
+      customElements.define("gmp-place-autocomplete",class extends HTMLElement{});
+    }
+    const Widget=customElements.get("gmp-place-autocomplete");
+    window.google={maps:{
+      Map:class{},
+      Geocoder:class{async geocode(){return {results:[{formatted_address:"Rua Confirmada, Campo Grande",geometry:{location:{lat:()=>-20.48,lng:()=>-54.61}}}]};}},
+      importLibrary:async name=>name==="places"?{PlaceAutocompleteElement:Widget}:{}
+    }};
+  });
+  const googlePage=await googleContext.newPage();
+  await googlePage.goto(base);
+  await googlePage.locator("button.top-add").click();
+  await googlePage.locator("gmp-place-autocomplete").waitFor();
+  await googlePage.evaluate(()=>{
+    const prediction={toPlace:()=>({
+      displayName:"Bistrô Validado",
+      formattedAddress:"Rua Nova, 40, Campo Grande",
+      location:{lat:()=>-20.5,lng:()=>-54.6},
+      fetchFields:async()=>{}
+    })};
+    const event=new Event("gmp-select");
+    Object.defineProperty(event,"placePrediction",{value:prediction});
+    document.querySelector("gmp-place-autocomplete").dispatchEvent(event);
+  });
+  await googlePage.waitForFunction(()=>document.querySelector("#place-lat")?.value==="-20.5000000");
+  assert.equal(await googlePage.locator("#place-name").inputValue(),"Bistrô Validado");
+  assert.equal(await googlePage.locator("#place-lng").inputValue(),"-54.6000000");
+  await googlePage.locator("#place-address").fill("Rua Confirmada, 100");
+  await googlePage.locator("#visit-date").click();
+  await googlePage.waitForFunction(()=>document.querySelector("#place-lat")?.value==="-20.4800000");
+  assert.equal(await googlePage.locator("#place-lng").inputValue(),"-54.6100000");
+  await googleContext.close();
+
   process.stdout.write("Smoke: formulário, duas notas, ranking, novas visitas, mapa, persistência, backup, exclusão e mobile OK\n");
 }finally{await browser.close();}
